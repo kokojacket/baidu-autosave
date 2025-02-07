@@ -509,10 +509,11 @@ class TaskScheduler:
                     logger.error("刷新登录状态失败")
                     return False
 
-            # 初始化结果字典
+            # 更新结果字典的结构
             results = {
                 'success': [],
                 'failed': [],
+                'skipped': [],
                 'transferred_files': {}
             }
 
@@ -522,8 +523,8 @@ class TaskScheduler:
                 if status == 'info' and message.startswith('添加文件:'):
                     file_path = message.replace('添加文件:', '').strip()
                     if task_id not in results['transferred_files']:
-                        results['transferred_files'][task_id] = []
-                    results['transferred_files'][task_id].append(file_path)
+                        results['transferred_files'][task['url']] = []  # 使用 url 作为 key
+                    results['transferred_files'][task['url']].append(file_path)
 
             # 验证必要的任务信息
             if not current_task.get('url') or not current_task.get('save_dir'):
@@ -553,28 +554,38 @@ class TaskScheduler:
                         self.storage.update_task_status_by_order(
                             task_order,
                             'success',
-                            '转存成功'
+                            '转存成功',
+                            transferred_files=result.get('transferred_files', [])
                         )
+                        # 添加到成功列表
                         results['success'].append(current_task)
+                        # 更新转存文件列表
+                        if result.get('transferred_files'):
+                            results['transferred_files'][current_task['url']] = result['transferred_files']
                 else:
                     self.storage.update_task_status_by_order(
                         task_order,
                         'failed',
                         result.get('error', '转存失败')
                     )
+                    current_task['error'] = result.get('error')
                     results['failed'].append(current_task)
                 
                 # 发送通知
                 if results['success'] or results['failed']:
                     notification_content = generate_transfer_notification(results)
-                    logger.info(f"准备发送通知:\n{notification_content}")
-                    notify_send("百度网盘自动追更", notification_content)
-                    logger.info("通知发送成功")
+                    if notification_content.strip():  # 只在有内容时发送通知
+                        logger.info(f"准备发送通知:\n{notification_content}")
+                        notify_send("百度网盘自动追更", notification_content)
+                        logger.info("通知发送成功")
+                    else:
+                        logger.warning("生成的通知内容为空，跳过发送")
+                
+                return result.get('success', False)
                 
             except Exception as e:
                 logger.error(f"更新任务状态失败: {str(e)}")
-            
-            return result.get('success', False)
+                return False
             
         except Exception as e:
             logger.error(f"执行任务失败: {str(e)}")
@@ -586,11 +597,9 @@ class TaskScheduler:
                     'failed': [task],
                     'transferred_files': {}
                 }
-                try:
-                    notification_content = generate_transfer_notification(results)
+                notification_content = generate_transfer_notification(results)
+                if notification_content.strip():
                     notify_send("百度网盘自动追更", notification_content)
-                except Exception as notify_e:
-                    logger.error(f"发送失败通知失败: {str(notify_e)}")
             except:
                 pass
             return False
