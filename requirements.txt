@@ -1,0 +1,17 @@
+-i https://mirrors.aliyun.com/pypi/simple/
+--trusted-host mirrors.aliyun.com
+
+
+flask>=3.1.0
+flask-cors>=5.0.0
+gevent>=24.11.1
+gevent-websocket>=0.10.1
+apscheduler>=3.11.0
+loguru>=0.7.3
+requests>=2.32.3
+pytz>=2024.2
+python-engineio>=4.11.2
+python-socketio>=5.12.1
+baidupcs-py>=0.7.6
+Cython>=3.0.11
+eventlet>=0.35.2 

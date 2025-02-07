@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  baidu-autosave:
+    image: python:3.10
+    container_name: baidu-autosave
+    ports:
+      - '5000:5000'
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+      - PYTHONIOENCODING=utf-8
+      - LANG=C.UTF-8
+    volumes:
+      - /opt/docker/python/baidu-autosave:/baidu-autosave
+    working_dir: /baidu-autosave
+    command: >
+      bash -c "pip install -r requirements.txt &&
+              python web_app.py"
+    tty: true
+    stdin_open: true 

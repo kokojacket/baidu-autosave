@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>百度网盘自动转存系统</title>
+    <!-- 引入外部资源 -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <!-- 引入本地资源 -->
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/main.js" defer></script>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="top-nav">
+        <div class="nav-content">
+            <div class="nav-left">
+                <i class="material-icons">cloud_queue</i>
+                <span class="nav-title">百度网盘自动转存系统</span>
+            </div>
+            <div class="nav-right">
+                <span id="current-user">未登录</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <button class="nav-btn active" data-panel="tasks">
+                <i class="material-icons">list</i>
+                <span>任务管理</span>
+            </button>
+            <button class="nav-btn" data-panel="users">
+                <i class="material-icons">people</i>
+                <span>用户管理</span>
+            </button>
+            <button class="nav-btn" data-panel="settings">
+                <i class="material-icons">settings</i>
+                <span>系统设置</span>
+            </button>
+        </aside>
+
+        <!-- 内容面板 -->
+        <div class="content-panels">
+            <!-- 任务管理面板 -->
+            <section id="tasks-panel" class="panel active">
+                <div class="panel-header">
+                    <div class="operations-bar">
+                        <div class="operations-top">
+                            <!-- 搜索框 -->
+                            <div class="search-box">
+                                <i class="material-icons">search</i>
+                                <input type="text" class="search-input" placeholder="搜索任务...">
+                            </div>
+                            <!-- 操作按钮组 -->
+                            <div class="action-group">
+                                <button class="btn secondary" onclick="selectAllTasks()">
+                                    <i class="material-icons">select_all</i>
+                                    全选
+                                </button>
+                                <button class="btn primary" id="add-task-btn">
+                                    <i class="material-icons">add</i>
+                                    添加任务
+                                </button>
+                                <button class="btn primary" onclick="executeBatchOperation('execute')" disabled>
+                                    <i class="material-icons">play_arrow</i>
+                                    批量执行
+                                </button>
+                                <button class="btn danger" onclick="executeBatchOperation('delete')" disabled>
+                                    <i class="material-icons">delete</i>
+                                    批量删除
+                                </button>
+                            </div>
+                        </div>
+                        <!-- 状态筛选 -->
+                        <div class="operations-bottom">
+                            <div class="filter-group">
+                                <div class="status-filter">
+                                    <button class="status-btn active" data-status="all">全部</button>
+                                    <button class="status-btn" data-status="normal">正常</button>
+                                    <button class="status-btn" data-status="error">异常</button>
+                                    <button class="status-btn" data-status="running">执行中</button>
+                                </div>
+                                <div class="category-filter">
+                                    <button class="category-btn active" data-category="all">全部分类</button>
+                                    <!-- 分类按钮将通过JavaScript动态添加 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="task-list">
+                    <!-- 任务项将通过JavaScript动态添加 -->
+                </div>
+            </section>
+
+            <!-- 用户管理面板 -->
+            <section id="users-panel" class="panel">
+                <div class="panel-header">
+                    <h2>用户管理</h2>
+                    <button class="btn primary" id="add-user-btn">
+                        <i class="material-icons">person_add</i>
+                        添加用户
+                    </button>
+                </div>
+                <div class="user-list-container">
+                    <div class="user-list">
+                        <!-- 用户列表将通过JavaScript动态添加 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 系统设置面板 -->
+            <section id="settings-panel" class="panel">
+                <h2>系统设置</h2>
+                <div class="settings-form">
+                    <!-- 通知设置 -->
+                    <div class="form-group">
+                        <h3>通知设置</h3>
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="notify-enabled" name="notify-enabled">
+                            <label for="notify-enabled">启用通知</label>
+                        </div>
+                        <div class="input-group">
+                            <label for="pushplus-token">PushPlus Token</label>
+                            <input type="text" id="pushplus-token" name="pushplus-token" 
+                                   placeholder="请输入您的PushPlus Token">
+                            <div class="help-text">在 pushplus.plus 网站注册并获取 Token</div>
+                        </div>
+                        <div class="input-group">
+                            <label for="pushplus-topic">PushPlus Topic</label>
+                            <input type="text" id="pushplus-topic" name="pushplus-topic" 
+                                   placeholder="可选，用于群组推送">
+                            <div class="help-text">群组编码，可用于群组推送</div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="button" id="test-notify-btn" class="secondary">
+                                测试通知
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 定时设置 -->
+                    <div class="form-group">
+                        <h3>定时设置</h3>
+                        <div class="input-group">
+                            <label for="global-cron">全局定时规则</label>
+                            <input type="text" id="global-cron" name="global-cron" 
+                                   placeholder="请输入cron表达式，多个规则用分号(;)分隔">
+                            <div class="help-text">
+                                示例：0 */4 * * * - 每4小时执行一次<br>
+                                */30 * * * * - 每30分钟执行一次<br>
+                                多个规则之间使用分号(;)分隔
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 保存按钮 -->
+                    <div class="btn-group">
+                        <button type="button" id="save-settings-btn" class="primary">
+                            保存设置
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- 底部导航栏 -->
+    <nav class="bottom-nav">
+        <button class="nav-btn active" data-panel="tasks">
+            <i class="material-icons">list</i>
+            <span>任务管理</span>
+        </button>
+        <button class="nav-btn" data-panel="users">
+            <i class="material-icons">people</i>
+            <span>用户管理</span>
+        </button>
+        <button class="nav-btn" data-panel="settings">
+            <i class="material-icons">settings</i>
+            <span>系统设置</span>
+        </button>
+    </nav>
+
+    <!-- 底部状态栏 -->
+    <footer class="status-bar">
+        <div class="status-content">
+            <div id="status-message"></div>
+            <div class="copyright">
+                Made with ❤️ by <a href="https://github.com/your-username" target="_blank">Your Name</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 任务表单模态框 -->
+    <div id="task-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>添加/编辑任务</h2>
+                <button class="close-btn" onclick="hideModal('task-modal')">
+                    <i class="material-icons">close</i>
+                </button>
+            </div>
+            <form id="task-form" onsubmit="handleTaskSubmit(event)">
+                <!-- 使用task_id作为任务标识 -->
+                <input type="hidden" name="task_id">
+                
+                <div class="form-group">
+                    <label class="required">分享链接</label>
+                    <input type="text" name="url" required placeholder="请输入百度网盘分享链接，如果有提取码请直接加在链接后面，例如: https://pan.baidu.com/s/xxx?pwd=1234">
+                    <div class="form-help">支持带密码的分享链接，格式：链接?pwd=密码</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="required">保存目录</label>
+                    <div class="input-with-dropdown">
+                        <input type="text" name="save_dir" required placeholder="请输入保存目录，例如: /downloads" list="save-dir-list">
+                        <datalist id="save-dir-list"></datalist>
+                        <button type="button" class="dropdown-btn" onclick="toggleSaveDirDropdown()">
+                            <i class="material-icons">arrow_drop_down</i>
+                        </button>
+                    </div>
+                    <div class="form-help">目录必须以/开头，可以使用已有目录或创建新目录</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>任务名称</label>
+                    <input type="text" name="name" placeholder="可选，默认使用分享的文件/文件夹名称">
+                    <div class="form-help">用于在任务列表中显示，如不填写则使用分享的文件/文件夹名称</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>定时规则</label>
+                    <input type="text" name="cron" placeholder="可选，使用cron表达式，例如: */5 * * * *">
+                    <div class="form-help">留空则使用默认定时规则，支持cron表达式，例如：*/5 * * * * 表示每5分钟执行一次</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>分类标签</label>
+                    <input type="text" name="category" placeholder="可选，用于对任务进行分类" list="category-list">
+                    <datalist id="category-list"></datalist>
+                    <div class="form-help">可以给任务添加分类标签，方便管理和筛选</div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn secondary" onclick="hideModal('task-modal')">取消</button>
+                    <button type="submit" class="btn primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 用户表单模态框 -->
+    <div class="modal" id="user-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>添加用户</h2>
+                <button class="close-btn" onclick="hideModal('user-modal')">
+                    <i class="material-icons">close</i>
+                </button>
+            </div>
+            <form id="user-form">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label>Cookies</label>
+                    <textarea name="cookies" required rows="5" placeholder="请输入百度网盘的cookies"></textarea>
+                    <div class="form-help">提示：请在百度网盘网页版登录后，按F12打开开发者工具，在Console中输入 document.cookie 获取</div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn secondary" onclick="hideModal('user-modal')">取消</button>
+                    <button type="submit" class="btn primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 进度日志窗口 -->
+    <div id="progress-modal" class="modal">
+        <div class="modal-content progress-modal-content">
+            <div class="modal-header">
+                <h2>任务执行进度</h2>
+                <button class="close-btn" onclick="hideModal('progress-modal')">
+                    <i class="material-icons">close</i>
+                </button>
+            </div>
+            <div class="progress-log-container">
+                <div id="progress-log" class="progress-log"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

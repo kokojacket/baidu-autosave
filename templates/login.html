@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 百度网盘自动转存系统</title>
+    <!-- 引入外部资源 -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- 引入本地资源 -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="brand-logo">
+                <i class="material-icons">cloud_queue</i>
+            </div>
+            <div class="login-header">
+                <h1>百度网盘自动转存系统</h1>
+                <p>请登录以继续使用</p>
+            </div>
+            {% if message %}
+            <div class="login-error">
+                <i class="material-icons">error_outline</i>
+                <span>{{ message }}</span>
+            </div>
+            {% endif %}
+            <form class="login-form" action="/login" method="POST">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <div class="input-icon">
+                        <i class="material-icons">person</i>
+                        <input type="text" id="username" name="username" required 
+                               placeholder="请输入用户名" autocomplete="username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <div class="input-icon">
+                        <i class="material-icons">lock</i>
+                        <input type="password" id="password" name="password" required 
+                               placeholder="请输入密码" autocomplete="current-password">
+                    </div>
+                </div>
+                <button type="submit" class="submit-btn">
+                    <i class="material-icons" style="vertical-align: middle; margin-right: 8px;">login</i>
+                    登录
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
