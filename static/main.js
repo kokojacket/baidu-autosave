@@ -323,7 +323,6 @@ function renderUI() {
     renderTasks();
     renderUsers();
     renderConfig();
-    updateStatusBar();
 }
 
 // 任务列表渲染
@@ -989,13 +988,11 @@ function getStatusText(status) {
 }
 
 function showSuccess(message) {
-    updateStatusBar(message);
-    setTimeout(() => updateStatusBar(), 3000);
+    showNotification(message, 'success');
 }
 
 function showError(message) {
-    updateStatusBar(`错误：${message}`);
-    setTimeout(() => updateStatusBar(), 5000);
+    showNotification(message, 'error');
 }
 
 // 事件监听器
@@ -1553,15 +1550,17 @@ function initializeEventListeners() {
     
     // 确保所有按钮都能正常工作
     document.querySelectorAll('.btn, .nav-btn, .btn-icon').forEach(btn => {
-        btn.addEventListener('touchstart', function(e) {
-            // 添加触摸反馈
+        btn.addEventListener('touchstart', function() {
             this.style.opacity = '0.7';
-        });
-        
-        btn.addEventListener('touchend', function(e) {
-            // 移除触摸反馈
+        }, { passive: true });
+
+        btn.addEventListener('touchend', function() {
             this.style.opacity = '';
-        });
+        }, { passive: true });
+
+        btn.addEventListener('touchcancel', function() {
+            this.style.opacity = '';
+        }, { passive: true });
     });
 }
 
@@ -2006,3 +2005,38 @@ function handleOutsideClick(event) {
         hideDropdown();
     }
 }
+
+// 移动端事件处理
+function initMobileEvents() {
+    let lastTouchEnd = 0;
+    
+    // 防止双击缩放
+    document.addEventListener('touchend', (e) => {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+            e.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, { passive: false });
+
+    // 添加触摸反馈
+    const touchTargets = document.querySelectorAll('.btn, .btn-icon, .task-item');
+    touchTargets.forEach(el => {
+        el.addEventListener('touchstart', () => {
+            el.style.opacity = '0.7';
+        }, { passive: true });
+
+        el.addEventListener('touchend', () => {
+            el.style.opacity = '';
+        }, { passive: true });
+
+        el.addEventListener('touchcancel', () => {
+            el.style.opacity = '';
+        }, { passive: true });
+    });
+}
+
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+    initMobileEvents();
+});

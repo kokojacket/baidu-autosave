@@ -56,20 +56,25 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .nav-title {
     font-size: 1.2rem;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 /* 主内容区样式 */
 .main-content {
-    margin-top: 64px;
+    min-height: 100vh;
+    padding-top: 56px; /* 顶部导航高度 */
     display: flex;
     min-height: calc(100vh - 124px); /* 减去顶部导航和底部导航的高度 */
     max-width: 1200px;
     margin: 64px auto 0;
+    margin-bottom: 60px !important; /* 为底部导航预留空间 */
 }
 
 /* 侧边栏样式 */
@@ -217,38 +222,98 @@ body {
     }
     
     .main-content {
-        margin: 64px 0 60px;
+        margin: 56px 0 60px !important;
         padding: 0;
         width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* 确保子元素水平居中 */
     }
     
     .content-panels {
-        padding: 16px;
         width: 100%;
+        max-width: 600px; /* 限制最大宽度 */
+        margin: 92px auto 0; /* 上方92px为操作栏预留空间 */
+        padding: 0 8px; /* 两侧留出间距 */
+        box-sizing: border-box;
     }
     
     .operations-bar {
-        padding: 12px;
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 56px;
+        padding: 4px;
+        background: white;
+        z-index: 1000;
+        width: 100%;
+        box-sizing: border-box;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     
     .operations-top {
-        flex-direction: column;
-        align-items: stretch;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 4px;
+        width: 100%;
+        align-items: center;
     }
     
     .search-box {
-        width: 100%;
+        flex: 1;
+        min-width: 160px;
+        margin: 0;
+    }
+    
+    .search-box input {
+        height: 32px;
+        padding: 4px 12px 4px 32px;
+        font-size: 14px;
+        border-radius: 6px;
     }
     
     .action-group {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
+        display: flex;
+        flex-direction: row;
+        gap: 4px;
+        margin: 0;
     }
     
-    .modal-content {
-        width: 90%;
-        margin: 32px auto;
+    .action-group .btn {
+        height: 32px;
+        padding: 0 8px;
+        font-size: 13px;
+        min-width: unset;
+        white-space: nowrap;
+    }
+    
+    .status-filter {
+        width: 100%;
+        margin: 2px 0;
+        padding: 2px 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        display: flex;
+        gap: 4px;
+    }
+    
+    .status-filter::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .status-btn {
+        font-size: 12px;
+        padding: 4px 10px;
+        height: 24px;
+        border-radius: 12px;
+        margin: 0;
+        flex-shrink: 0;
+    }
+
+    .content-panels {
+        margin-top: 92px;
     }
 }
 
@@ -647,228 +712,11 @@ body {
     cursor: not-allowed;
 }
 
-/* 优化移动端样式 */
-@media screen and (max-width: 768px) {
-    body {
-        padding-bottom: 50px;
-        overflow-x: hidden;
-        touch-action: manipulation;
-    }
-
-    .sidebar {
-        display: none !important;
-    }
-    
-    .bottom-nav {
-        display: flex !important;
-    }
-    
-    .main-content {
-        margin: 64px 0 50px !important;
-        padding: 0;
-        width: 100%;
-        min-height: calc(100vh - 114px);
-    }
-    
-    .content-panels {
-        padding: 12px;
-        width: 100%;
-    }
-
-    /* 任务列表容器 */
-    .task-list {
-        margin-bottom: 50px;
-        padding: 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    /* 任务项布局 */
-    .task-item {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        padding: 12px;
-        gap: 12px;
-        background: white;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        position: relative;
-    }
-
-    /* 左侧控制区（勾选框和拖拽手柄） */
-    .task-item-left {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-shrink: 0;
-    }
-
-    /* 勾选框样式 */
-    .checkbox-wrapper {
-        margin: 0;
-        padding: 0;
-        display: flex;
-        align-items: center;
-    }
-
-    .checkbox-custom {
-        width: 18px;
-        height: 18px;
-        border-width: 1.5px;
-        margin: 0;
-    }
-
-    /* 拖拽手柄样式 */
-    .drag-handle {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 4px;
-        margin: 0;
-        color: var(--text-secondary);
-        cursor: move;
-    }
-
-    .drag-handle i {
-        font-size: 16px;
-    }
-
-    /* 任务内容区域 */
-    .task-content {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .task-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .task-name {
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--primary-color);
-        margin-right: auto;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .task-status {
-        font-size: 12px;
-        padding: 2px 8px;
-        border-radius: 12px;
-        white-space: nowrap;
-    }
-
-    .save-dir {
-        width: 100%;
-        font-size: 12px;
-        color: var(--text-secondary);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* 操作按钮区域 */
-    .task-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-left: auto;
-        padding-left: 12px;
-        border-left: 1px solid var(--border-color);
-    }
-
-    .task-actions .btn-icon {
-        width: 32px;
-        height: 32px;
-        padding: 6px;
-    }
-
-    .task-actions .btn-icon i {
-        font-size: 18px;
-    }
-
-    /* 操作栏响应式调整 */
-    .operations-bar {
-        padding: 12px;
-        gap: 12px;
-    }
-
-    .operations-top {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .search-box {
-        width: 100%;
-    }
-
-    .search-box input {
-        height: 36px;
-        font-size: 14px;
-    }
-
-    .action-group {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
-        margin-top: 8px;
-    }
-
-    .action-group .btn {
-        padding: 6px 12px;
-        font-size: 12px;
-    }
-
-    .action-group .btn i {
-        font-size: 18px;
-    }
-
-    /* 状态筛选区域 */
-    .status-filter {
-        margin: 0 -12px;
-        padding: 0 12px 8px;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        display: flex;
-        gap: 8px;
-    }
-
-    .status-filter::-webkit-scrollbar {
-        display: none;
-    }
-
-    .status-btn {
-        padding: 4px 12px;
-        font-size: 12px;
-        flex-shrink: 0;
-    }
-
-    /* 模态框调整 */
-    .modal-content {
-        width: 90%;
-        margin: 32px auto 60px;
-    }
-
-    .modal form {
-        padding: 16px;
-    }
-    
-    .modal .form-group {
-        margin-bottom: 16px;
-    }
-    
-    .modal .form-group input[type="text"] {
-        font-size: 16px;
+/* 触摸反馈 */
+@media (hover: none) {
+    .btn:active,
+    .btn-icon:active {
+        opacity: 0.7;
     }
 }
 
@@ -1609,273 +1457,78 @@ textarea:focus {
     }
 }
 
-/* 底部导航栏样式 */
-.bottom-nav {
-    display: none;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 50px;
-    background: white;
-    box-shadow: 0 -1px 2px rgba(0,0,0,0.1);
-    z-index: 1001;
-    padding: 0;
-    justify-content: space-around;
-    align-items: center;
-    overflow: hidden;
-    width: 100%;
-    pointer-events: auto;
-    touch-action: manipulation;
-}
-
-.bottom-nav .nav-btn {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    padding: 4px 0;
-    color: var(--text-secondary);
-    background: none;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-    min-width: 0;
-    white-space: nowrap;
-    pointer-events: auto;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.bottom-nav .nav-btn i {
-    font-size: 20px;
-}
-
-.bottom-nav .nav-btn span {
-    font-size: 10px;
-}
-
-/* 修复点击态样式 */
-.bottom-nav .nav-btn:active,
-.btn:active,
-.task-actions .btn-icon:active,
-.status-btn:active {
-    opacity: 0.7;
-}
-
-/* 任务列表基础样式（PC端） */
-.task-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px;
-}
-
-/* 任务项基础样式（PC端） */
-.task-item {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px;
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    transition: all 0.2s;
-}
-
-.task-item:hover {
-    box-shadow: var(--shadow-medium);
-}
-
-/* 任务项左侧布局（PC端） */
-.task-item-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-/* 拖拽手柄基础样式（PC端） */
-.drag-handle {
-    cursor: move;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    padding: 8px;
-    border-radius: 4px;
-    transition: all 0.2s;
-}
-
-.drag-handle:hover {
-    background: var(--background-color);
-}
-
-/* 任务内容基础样式（PC端） */
-.task-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.task-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 4px;
-}
-
-.task-name {
-    font-weight: 500;
-    color: var(--primary-color);
-    text-decoration: none;
-    transition: all 0.2s;
-    display: inline-block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.save-dir {
-    color: var(--text-secondary);
-    font-size: 14px;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* 任务操作按钮基础样式（PC端） */
-.task-actions {
-    display: flex;
-    gap: 8px;
-    margin-left: auto;
-}
-
-.task-actions .btn-icon {
-    width: 36px;
-    height: 36px;
-    padding: 8px;
-}
-
-.task-actions .btn-icon i {
-    font-size: 20px;
-}
-
-/* 移动端样式覆盖 */
-@media screen and (max-width: 768px) {
-    .task-list {
-        margin-bottom: 50px;
-        padding: 12px;
-    }
-
-    .task-item {
-        padding: 12px;
-        gap: 12px;
-    }
-
-    .task-item-left {
-        gap: 8px;
-    }
-
-    .task-header {
-        gap: 8px;
-        margin-bottom: 2px;
-    }
-
-    .task-name {
-        font-size: 14px;
-    }
-
-    .save-dir {
-        font-size: 12px;
-    }
-
-    .task-actions {
-        padding-left: 12px;
-        border-left: 1px solid var(--border-color);
-    }
-
-    .task-actions .btn-icon {
-        width: 32px;
-        height: 32px;
-        padding: 6px;
-    }
-
-    .task-actions .btn-icon i {
-        font-size: 18px;
-    }
-}
-
-.task-details {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+/* 版本号样式 */
+.version {
     font-size: 12px;
-    color: #666;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 8px;
 }
 
-.task-details .save-dir,
-.task-details .cron-rule {
-    display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-@media screen and (max-width: 768px) {
-    .task-details {
-        font-size: 11px;
-    }
-}
-
-.status-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--bg-color);
-    border-top: 1px solid var(--border-color);
-    padding: 8px 16px;
-    z-index: 1000;
-    font-size: 14px;
-    color: var(--text-color);
-}
-
-.status-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.copyright {
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-.copyright a {
-    color: var(--primary-color);
+/* GitHub图标样式 */
+.github-link {
+    color: rgba(255, 255, 255, 0.8);
     text-decoration: none;
-    transition: color 0.2s;
+    margin-left: 12px;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
 }
 
-.copyright a:hover {
-    color: var(--primary-hover);
-    text-decoration: underline;
+.github-link:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
 }
 
+.github-icon {
+    width: 20px;
+    height: 20px;
+    color: currentColor;
+}
+
+/* 移动端适配 */
 @media screen and (max-width: 768px) {
-    .status-content {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
+    .nav-left {
+        gap: 8px;
     }
     
-    .copyright {
-        font-size: 11px;
+    .nav-title {
+        font-size: 1rem;
     }
+    
+    .version {
+        font-size: 10px;
+        padding: 1px 4px;
+    }
+    
+    .github-link {
+        margin-left: 8px;
+    }
+    
+    .github-icon {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+/* 底部导航栏样式 */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: white;
+    box-shadow: 0 -1px 2px rgba(0,0,0,0.1);
+    display: none; /* 默认隐藏 */
+    justify-content: space-around;
+    align-items: center;
+    z-index: 9999;
 }
 
 /* 登录页面样式 */
@@ -2158,4 +1811,313 @@ textarea:focus {
 
 .task-message.error {
     color: #ff4d4f;
+}
+
+/* 添加安全区域适配 */
+@supports (padding: max(0px)) {
+    .bottom-nav {
+        padding-bottom: max(4px, env(safe-area-inset-bottom));
+        height: calc(56px + env(safe-area-inset-bottom));
+    }
+}   
+
+/* 在移动端显示底部导航 */
+@media screen and (max-width: 768px) {
+    .bottom-nav {
+        display: flex !important;
+    }
+}
+
+/* 优化触摸目标尺寸 */
+@media (pointer: coarse) {
+    .btn,
+    .btn-icon,
+    .nav-btn,
+    .checkbox-wrapper,
+    .drag-handle {
+        min-height: 44px; /* 确保最小触摸区域 */
+        min-width: 44px;
+    }
+
+    .action-group .btn {
+        margin: 1px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        min-width: 44px;
+    }
+
+    .status-btn, .category-btn {
+        margin: 0 2px;
+        padding: 6px 10px;
+    }
+}
+
+/* 添加触摸反馈效果 */
+@media (hover: none) {
+    .btn,
+    .btn-icon,
+    .nav-btn,
+    .status-btn,
+    .category-btn {
+        transition: opacity 0.2s;
+    }
+
+    .btn:active,
+    .btn-icon:active,
+    .nav-btn:active,
+    .status-btn:active,
+    .category-btn:active {
+        opacity: 0.7;
+    }
+}
+
+/* 优化安全区域适配 */
+@supports (padding: max(0px)) {
+    .bottom-nav {
+        padding-bottom: max(4px, env(safe-area-inset-bottom));
+        height: calc(56px + env(safe-area-inset-bottom));
+    }
+
+    .task-list {
+        margin-bottom: calc(60px + env(safe-area-inset-bottom));
+    }
+
+    .modal-content {
+        max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px);
+    }
+}
+
+/* 增加触摸反馈 */
+@media (pointer: coarse) {
+    .btn-icon {
+        min-width: 40px;
+        min-height: 40px;
+        padding: 12px !important;
+    }
+    
+    .task-item {
+        touch-action: pan-y;
+    }
+}
+
+/* 增加触摸滚动支持 */
+.operations-bar {
+    scrollbar-width: none; /* Firefox */
+}
+
+.operations-bar::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+/* 增加移动端专用样式 */
+@media (pointer: coarse) {
+    .operations-bar {
+        touch-action: pan-y; /* 限制滚动方向 */
+    }
+
+    .action-group .btn {
+        margin: 2px; /* 增加按钮间距 */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* 提升按钮可视性 */
+    }
+
+    .status-btn, .category-btn {
+        margin: 0 4px; /* 增加筛选按钮间距 */
+    }
+}
+
+/* 增强移动端触摸体验 */
+@media (pointer: coarse) {
+    .task-actions .btn-icon {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .action-group .btn {
+        min-height: 48px;
+    }
+}
+
+/* 增强底部导航的显示性能 */
+.bottom-nav {
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+/* 任务列表基础样式 */
+.task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+}
+
+/* 任务项基础样式 */
+.task-item {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    gap: 8px;
+    padding: 12px;
+    align-items: center;
+    background: white;
+    border-radius: 8px;
+    box-shadow: var(--shadow-light);
+}
+
+.task-item:hover {
+    box-shadow: var(--shadow-medium);
+}
+
+/* 任务项左侧布局 */
+.task-item-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* 拖拽手柄样式 */
+.drag-handle {
+    cursor: move;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.drag-handle:hover {
+    background: var(--background-color);
+}
+
+/* 任务内容样式 */
+.task-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.task-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.task-name {
+    font-weight: 500;
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: all 0.2s;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.save-dir {
+    color: var(--text-secondary);
+    font-size: 14px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 任务操作按钮样式 */
+.task-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.task-actions .btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 8px;
+}
+
+.task-actions .btn-icon i {
+    font-size: 20px;
+}
+
+/* 任务详情样式 */
+.task-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: #666;
+}
+
+.task-details .save-dir,
+.task-details .cron-rule {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 移动端任务列表样式调整 */
+@media screen and (max-width: 768px) {
+    .task-list {
+        margin: 0;
+        margin-bottom: calc(60px + env(safe-area-inset-bottom));
+        padding: 4px;
+        gap: 8px;
+    }
+
+    .task-item {
+        padding: 8px;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .task-item-left {
+        gap: 4px;
+        display: flex;
+        align-items: center;
+    }
+
+    .task-header {
+        gap: 4px;
+        margin-bottom: 2px;
+    }
+
+    .task-name {
+        font-size: 14px;
+        max-width: 100%;
+        line-height: 1.3;
+        margin-right: 4px;
+    }
+
+    .save-dir {
+        font-size: 12px;
+    }
+
+    .task-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        width: 42px;
+        padding: 2px;
+        margin: 0;
+        background: rgba(0,0,0,0.03);
+        border-radius: 6px;
+        box-sizing: border-box;
+    }
+
+    .task-actions .btn-icon {
+        width: 36px;
+        height: 36px;
+        margin: 0;
+    }
+
+    .task-actions .btn-icon i {
+        font-size: 18px;
+    }
+
+    .task-details {
+        font-size: 11px;
+        gap: 2px;
+    }
 } 

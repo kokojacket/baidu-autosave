@@ -46,9 +46,8 @@ http://localhost:5000
 ### 1. 添加用户
 
 1. 登录百度网盘网页版
-2. 按F12打开开发者工具
-3. 在Console中输入 `document.cookie` 获取cookies
-4. 在系统中添加用户，填入cookies
+2. 按F12打开开发者工具获取cookies
+3. 在系统中添加用户，填入cookies
 
 ### 2. 添加任务
 
