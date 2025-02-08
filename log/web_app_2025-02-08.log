@@ -1989,3 +1989,47 @@
 2025-02-08 14:48:49 | INFO     | scheduler:stop:366 - 调度器已停止
 2025-02-08 14:48:49 | INFO     | __main__:cleanup:128 - 调度器已停止
 2025-02-08 14:48:49 | INFO     | __main__:signal_handler:920 - 清理完成，正在退出...
+2025-02-08 15:01:45 | INFO     | __main__:init_app:94 - 开始初始化应用...
+2025-02-08 15:01:45 | INFO     | __main__:init_app:96 - 正在初始化存储...
+2025-02-08 15:01:46 | INFO     | storage:_init_client:129 - 客户端初始化成功，网盘总空间: 2155.0GB, 已使用: 1228.67GB
+2025-02-08 15:01:46 | INFO     | __main__:init_app:101 - 正在初始化调度器...
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 鹊刀门传奇2 -> 5,15,45 18,20 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 乡丨村爱情17 -> 15,30 12,14 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 你丨好星期六2025 -> 40,59 20 * * 6
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 女丨子推理社第二季 -> 15,35 12 * * 1,2
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 三叉戟第二部 -> 35,45 19 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 致1999年的自己 -> 5,15,45 18,20 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 五福临门 -> 15,30 20,22 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 无所畏惧之永不放弃 -> 35,45 19 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 星辰变第六季 -> 35,45 19,20 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 白色橄榄树 -> 5,15,45 18,20 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 芒着接五福 -> 15,30 20,22 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 六姊妹 -> 5,15,59 20,21 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 五福临门团综友福同享 -> 59 21 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 富贵千团 -> 5,30 21,22 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 创丨造营亚洲 第二季 -> 5,15,45 19,20 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 漫影寻踪 -> 5,15,45 18 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 仙台有树 -> 5,15,45 19,20 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 掌心 -> 57 11,18,20,23 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 掌心 -> 53 12 * * *
+2025-02-08 15:01:46 | INFO     | scheduler:_init_scheduler:243 - 调度器初始化完成: 17 个自定义定时任务, 1 个默认定时任务
+2025-02-08 15:01:46 | INFO     | scheduler:_init_notify:442 - 通知配置已加载
+2025-02-08 15:01:46 | SUCCESS  | scheduler:start:125 - 调度器已启动
+2025-02-08 15:01:46 | INFO     | __main__:init_app:104 - 调度器初始化成功
+2025-02-08 15:01:46 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 15:01:46 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 15:01:46 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': '580efc4a0e6a46ea1738998106'}, 'server_time': '5746', 'time': 1738998106, 'ctime': 0, 'logid': 106056574, 'error_code': '0'}
+2025-02-08 15:01:46 | INFO     | __main__:init_app:112 - 应用初始化完成
+2025-02-08 15:01:48 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 15:01:48 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 15:01:49 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': 'e7df22a72d01eae01738998109'}, 'server_time': '8638', 'time': 1738998109, 'ctime': 0, 'logid': 108726524, 'error_code': '0'}
+2025-02-08 15:02:18 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 15:02:18 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 15:02:18 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': '38462f73e62360031738998138'}, 'server_time': '4355', 'time': 1738998138, 'ctime': 0, 'logid': 138019026, 'error_code': '0'}
+2025-02-08 15:02:28 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 15:02:28 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 15:02:28 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': '956bf22414219a681738998148'}, 'server_time': '3870', 'time': 1738998148, 'ctime': 0, 'logid': 148094790, 'error_code': '0'}
+2025-02-08 15:02:52 | INFO     | __main__:signal_handler:914 - 接收到退出信号，正在清理...
+2025-02-08 15:02:52 | INFO     | scheduler:stop:366 - 调度器已停止
+2025-02-08 15:02:52 | INFO     | __main__:cleanup:128 - 调度器已停止
+2025-02-08 15:02:52 | INFO     | __main__:signal_handler:920 - 清理完成，正在退出...
