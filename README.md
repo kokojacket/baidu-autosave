@@ -83,6 +83,9 @@ docker-compose logs -f
 http://localhost:5000
 ```
 
+> 默认登录账号：admin  
+> 默认登录密码：admin123
+
 ### 使用 Docker CLI 部署
 
 1. 创建必要目录：
@@ -111,6 +114,8 @@ docker logs -f baidu-autosave
 ```
 http://localhost:5000
 ```
+> 默认登录账号：admin  
+> 默认登录密码：admin123
 
 ### 目录结构说明
 
@@ -251,3 +256,4 @@ MIT License
 - [Flask](https://flask.palletsprojects.com/)
 - [APScheduler](https://apscheduler.readthedocs.io/)
 - [baidupcs-py](https://github.com/PeterDing/BaiduPCS-Py)
+- [quark-auto-save](https://github.com/Cp0204/quark-auto-save) - 夸克网盘自动转存项目，提供了很好的参考
