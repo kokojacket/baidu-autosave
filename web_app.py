@@ -991,6 +991,35 @@ def batch_delete_tasks():
             'message': f'批量删除任务失败: {error_msg}'
         })
 
+@app.route('/api/auth/update', methods=['POST'])
+@login_required
+@handle_api_error
+def update_auth():
+    """更新登录凭据"""
+    if not storage:
+        return jsonify({'success': False, 'message': '存储未初始化'})
+        
+    data = request.get_json()
+    new_username = data.get('username', '').strip()
+    new_password = data.get('password', '').strip()
+    old_password = data.get('old_password', '').strip()
+    
+    if not new_username or not new_password or not old_password:
+        return jsonify({'success': False, 'message': '用户名、新密码和旧密码都不能为空'})
+    
+    # 验证旧密码
+    auth_config = storage.config.get('auth', {})
+    if old_password != auth_config.get('password'):
+        return jsonify({'success': False, 'message': '旧密码错误'})
+    
+    # 更新配置
+    auth_config['users'] = new_username
+    auth_config['password'] = new_password
+    storage.config['auth'] = auth_config
+    storage._save_config()
+    
+    return jsonify({'success': True, 'message': '登录凭据更新成功'})
+
 if __name__ == '__main__':
     try:
         # 启动时初始化应用

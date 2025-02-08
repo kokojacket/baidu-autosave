@@ -1,2 +1,7 @@
-/config.json
+/config/config.json
 git-config
+__pycache__/
+*.pyc
+.DS_Store
+log/
+*.log

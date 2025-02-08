@@ -24,7 +24,7 @@ class BaiduStorage:
         
     def _load_config(self):
         try:
-            with open('config.json', 'r', encoding='utf-8') as f:
+            with open('config/config.json', 'r', encoding='utf-8') as f:
                 config = json.load(f)
                 # 确保配置文件结构完整
                 if 'baidu' not in config:
@@ -77,13 +77,13 @@ class BaiduStorage:
                 if 'cron' in task and task['cron'] is None:
                     del task['cron']
                     
-            with open('config.json', 'w', encoding='utf-8') as f:
+            with open('config/config.json', 'w', encoding='utf-8') as f:
                 json.dump(self.config, f, ensure_ascii=False, indent=4)
             
             logger.debug("配置保存成功")
             
             # 确保配置已经写入文件
-            with open('config.json', 'r', encoding='utf-8') as f:
+            with open('config/config.json', 'r', encoding='utf-8') as f:
                 saved_config = json.load(f)
                 if saved_config != self.config:
                     logger.error("配置保存验证失败")

@@ -1250,3 +1250,393 @@
 2025-02-08 11:49:26 | INFO     | scheduler:stop:366 - 调度器已停止
 2025-02-08 11:49:26 | INFO     | __main__:cleanup:128 - 调度器已停止
 2025-02-08 11:49:26 | INFO     | __main__:signal_handler:921 - 清理完成，正在退出...
+2025-02-08 12:07:57 | INFO     | __main__:init_app:94 - 开始初始化应用...
+2025-02-08 12:07:57 | INFO     | __main__:init_app:96 - 正在初始化存储...
+2025-02-08 12:07:58 | INFO     | storage:_init_client:129 - 客户端初始化成功，网盘总空间: 2155.0GB, 已使用: 1227.87GB
+2025-02-08 12:07:58 | INFO     | __main__:init_app:101 - 正在初始化调度器...
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 鹊刀门传奇2 -> 5,15,45 18,20 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 乡丨村爱情17 -> 15,30 12,14 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 你丨好星期六2025 -> 40,59 20 * * 6
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 女丨子推理社第二季 -> 15,35 12 * * 1,2
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 三叉戟第二部 -> 35,45 19 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 致1999年的自己 -> 5,15,45 18,20 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 五福临门 -> 15,30 20,22 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 无所畏惧之永不放弃 -> 35,45 19 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 星辰变第六季 -> 35,45 19,20 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 白色橄榄树 -> 5,15,45 18,20 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 芒着接五福 -> 15,30 20,22 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 六姊妹 -> 5,15,59 20,21 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 五福临门团综友福同享 -> 59 21 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 富贵千团 -> 5,30 21,22 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 创丨造营亚洲 第二季 -> 5,15,45 19,20 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 漫影寻踪 -> 5,15,45 18 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 掌心 -> 57 11,18,20,23 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 掌心 -> 53 12 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 仙台有树 -> 57 11,18,20,23 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 仙台有树 -> 53 12 * * *
+2025-02-08 12:07:58 | INFO     | scheduler:_init_scheduler:243 - 调度器初始化完成: 16 个自定义定时任务, 2 个默认定时任务
+2025-02-08 12:07:58 | INFO     | scheduler:_init_notify:442 - 通知配置已加载
+2025-02-08 12:07:58 | SUCCESS  | scheduler:start:125 - 调度器已启动
+2025-02-08 12:07:58 | INFO     | __main__:init_app:104 - 调度器初始化成功
+2025-02-08 12:07:59 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 12:07:59 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 12:07:59 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': '03f0021d8fd8fff61738987679'}, 'server_time': '3028', 'time': 1738987679, 'ctime': 0, 'logid': 479429074, 'error_code': '0'}
+2025-02-08 12:07:59 | INFO     | __main__:init_app:112 - 应用初始化完成
+2025-02-08 12:08:06 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 12:08:06 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 12:08:06 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': '89310e9dccb0b63b1738987686'}, 'server_time': '3181', 'time': 1738987686, 'ctime': 0, 'logid': 486525227, 'error_code': '0'}
+2025-02-08 12:08:31 | INFO     | __main__:signal_handler:915 - 接收到退出信号，正在清理...
+2025-02-08 12:08:31 | INFO     | scheduler:stop:366 - 调度器已停止
+2025-02-08 12:08:31 | INFO     | __main__:cleanup:128 - 调度器已停止
+2025-02-08 12:08:31 | INFO     | __main__:signal_handler:921 - 清理完成，正在退出...
+2025-02-08 12:11:04 | INFO     | __main__:init_app:94 - 开始初始化应用...
+2025-02-08 12:11:04 | INFO     | __main__:init_app:96 - 正在初始化存储...
+2025-02-08 12:11:05 | INFO     | storage:_init_client:129 - 客户端初始化成功，网盘总空间: 2155.0GB, 已使用: 1227.87GB
+2025-02-08 12:11:05 | INFO     | __main__:init_app:101 - 正在初始化调度器...
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 鹊刀门传奇2 -> 5,15,45 18,20 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 乡丨村爱情17 -> 15,30 12,14 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 你丨好星期六2025 -> 40,59 20 * * 6
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 女丨子推理社第二季 -> 15,35 12 * * 1,2
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 三叉戟第二部 -> 35,45 19 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 致1999年的自己 -> 5,15,45 18,20 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 五福临门 -> 15,30 20,22 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 无所畏惧之永不放弃 -> 35,45 19 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 星辰变第六季 -> 35,45 19,20 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 白色橄榄树 -> 5,15,45 18,20 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 芒着接五福 -> 15,30 20,22 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 六姊妹 -> 5,15,59 20,21 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 五福临门团综友福同享 -> 59 21 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 富贵千团 -> 5,30 21,22 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 创丨造营亚洲 第二季 -> 5,15,45 19,20 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 漫影寻踪 -> 5,15,45 18 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 掌心 -> 57 11,18,20,23 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 掌心 -> 53 12 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 仙台有树 -> 57 11,18,20,23 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 仙台有树 -> 53 12 * * *
+2025-02-08 12:11:05 | INFO     | scheduler:_init_scheduler:243 - 调度器初始化完成: 16 个自定义定时任务, 2 个默认定时任务
+2025-02-08 12:11:05 | INFO     | scheduler:_init_notify:442 - 通知配置已加载
+2025-02-08 12:11:05 | SUCCESS  | scheduler:start:125 - 调度器已启动
+2025-02-08 12:11:05 | INFO     | __main__:init_app:104 - 调度器初始化成功
+2025-02-08 12:11:05 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 12:11:05 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 12:11:05 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': '98cb3de1e274082c1738987865'}, 'server_time': '6295', 'time': 1738987865, 'ctime': 0, 'logid': 665876125, 'error_code': '0'}
+2025-02-08 12:11:05 | INFO     | __main__:init_app:112 - 应用初始化完成
+2025-02-08 12:11:11 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 12:11:11 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 12:11:11 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': '3f15e4bb5cc9f3531738987871'}, 'server_time': '5252', 'time': 1738987871, 'ctime': 0, 'logid': 671579135, 'error_code': '0'}
+2025-02-08 12:12:10 | INFO     | __main__:signal_handler:915 - 接收到退出信号，正在清理...
+2025-02-08 12:12:10 | INFO     | scheduler:stop:366 - 调度器已停止
+2025-02-08 12:12:10 | INFO     | __main__:cleanup:128 - 调度器已停止
+2025-02-08 12:12:10 | INFO     | __main__:signal_handler:921 - 清理完成，正在退出...
+2025-02-08 12:12:37 | INFO     | __main__:init_app:94 - 开始初始化应用...
+2025-02-08 12:12:37 | INFO     | __main__:init_app:96 - 正在初始化存储...
+2025-02-08 12:12:39 | INFO     | storage:_init_client:129 - 客户端初始化成功，网盘总空间: 2155.0GB, 已使用: 1227.87GB
+2025-02-08 12:12:39 | INFO     | __main__:init_app:101 - 正在初始化调度器...
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 鹊刀门传奇2 -> 5,15,45 18,20 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 乡丨村爱情17 -> 15,30 12,14 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 你丨好星期六2025 -> 40,59 20 * * 6
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 女丨子推理社第二季 -> 15,35 12 * * 1,2
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 三叉戟第二部 -> 35,45 19 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 致1999年的自己 -> 5,15,45 18,20 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 五福临门 -> 15,30 20,22 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 无所畏惧之永不放弃 -> 35,45 19 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 星辰变第六季 -> 35,45 19,20 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 白色橄榄树 -> 5,15,45 18,20 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 芒着接五福 -> 15,30 20,22 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 六姊妹 -> 5,15,59 20,21 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 五福临门团综友福同享 -> 59 21 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 富贵千团 -> 5,30 21,22 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 创丨造营亚洲 第二季 -> 5,15,45 19,20 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 漫影寻踪 -> 5,15,45 18 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 掌心 -> 57 11,18,20,23 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 掌心 -> 53 12 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 仙台有树 -> 57 11,18,20,23 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 仙台有树 -> 53 12 * * *
+2025-02-08 12:12:39 | INFO     | scheduler:_init_scheduler:243 - 调度器初始化完成: 16 个自定义定时任务, 2 个默认定时任务
+2025-02-08 12:12:39 | INFO     | scheduler:_init_notify:442 - 通知配置已加载
+2025-02-08 12:12:39 | SUCCESS  | scheduler:start:125 - 调度器已启动
+2025-02-08 12:12:39 | INFO     | __main__:init_app:104 - 调度器初始化成功
+2025-02-08 12:12:39 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 12:12:39 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 12:12:39 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': 'bc894dde9f2880bb1738987959'}, 'server_time': '4975', 'time': 1738987959, 'ctime': 0, 'logid': 759551789, 'error_code': '0'}
+2025-02-08 12:12:39 | INFO     | __main__:init_app:112 - 应用初始化完成
+2025-02-08 12:12:40 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 12:12:40 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 12:12:40 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': 'd6df0c6574ae64ec1738987960'}, 'server_time': '3157', 'time': 1738987960, 'ctime': 0, 'logid': 760367096, 'error_code': '0'}
+2025-02-08 12:12:54 | DEBUG    | storage:_save_config:83 - 配置保存成功
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 鹊刀门传奇2, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 乡丨村爱情17, 调度: 15,30 12,14 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 你丨好星期六2025, 调度: 40,59 20 * * 6
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 女丨子推理社第二季, 调度: 15,35 12 * * 1,2
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 三叉戟第二部, 调度: 35,45 19 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 致1999年的自己, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门, 调度: 15,30 20,22 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 无所畏惧之永不放弃, 调度: 35,45 19 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 星辰变第六季, 调度: 35,45 19,20 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 白色橄榄树, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 芒着接五福, 调度: 15,30 20,22 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 六姊妹, 调度: 5,15,59 20,21 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门团综友福同享, 调度: 59 21 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 富贵千团, 调度: 5,30 21,22 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 创丨造营亚洲 第二季, 调度: 5,15,45 19,20 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 漫影寻踪, 调度: 5,15,45 18 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 57 11,18,20,23 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 53 12 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 仙台有树, 调度: 57 11,18,20,23 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 仙台有树, 调度: 53 12 * * *
+2025-02-08 12:12:54 | INFO     | scheduler:update_tasks:87 - 任务调度更新完成: 16 个自定义定时任务, 4 个默认定时任务
+2025-02-08 12:13:14 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 12:13:14 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 12:13:15 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': 'c58fa8a1b892abdc1738987995'}, 'server_time': '5826', 'time': 1738987995, 'ctime': 0, 'logid': 795003448, 'error_code': '0'}
+2025-02-08 12:13:35 | DEBUG    | storage:_save_config:83 - 配置保存成功
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 鹊刀门传奇2, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 乡丨村爱情17, 调度: 15,30 12,14 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 你丨好星期六2025, 调度: 40,59 20 * * 6
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 女丨子推理社第二季, 调度: 15,35 12 * * 1,2
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 三叉戟第二部, 调度: 35,45 19 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 致1999年的自己, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门, 调度: 15,30 20,22 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 无所畏惧之永不放弃, 调度: 35,45 19 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 星辰变第六季, 调度: 35,45 19,20 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 白色橄榄树, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 芒着接五福, 调度: 15,30 20,22 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 六姊妹, 调度: 5,15,59 20,21 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门团综友福同享, 调度: 59 21 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 富贵千团, 调度: 5,30 21,22 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 创丨造营亚洲 第二季, 调度: 5,15,45 19,20 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 漫影寻踪, 调度: 5,15,45 18 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 57 11,18,20,23 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 53 12 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 仙台有树, 调度: 57 11,18,20,23 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 仙台有树, 调度: 53 12 * * *
+2025-02-08 12:13:35 | INFO     | scheduler:update_tasks:87 - 任务调度更新完成: 16 个自定义定时任务, 4 个默认定时任务
+2025-02-08 12:13:45 | INFO     | __main__:signal_handler:915 - 接收到退出信号，正在清理...
+2025-02-08 12:13:45 | INFO     | scheduler:stop:366 - 调度器已停止
+2025-02-08 12:13:45 | INFO     | __main__:cleanup:128 - 调度器已停止
+2025-02-08 12:13:45 | INFO     | __main__:signal_handler:921 - 清理完成，正在退出...
+2025-02-08 12:14:36 | INFO     | __main__:init_app:94 - 开始初始化应用...
+2025-02-08 12:14:36 | INFO     | __main__:init_app:96 - 正在初始化存储...
+2025-02-08 12:14:38 | INFO     | storage:_init_client:129 - 客户端初始化成功，网盘总空间: 2155.0GB, 已使用: 1227.87GB
+2025-02-08 12:14:38 | INFO     | __main__:init_app:101 - 正在初始化调度器...
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 鹊刀门传奇2 -> 5,15,45 18,20 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 乡丨村爱情17 -> 15,30 12,14 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 你丨好星期六2025 -> 40,59 20 * * 6
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 女丨子推理社第二季 -> 15,35 12 * * 1,2
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 三叉戟第二部 -> 35,45 19 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 致1999年的自己 -> 5,15,45 18,20 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 五福临门 -> 15,30 20,22 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 无所畏惧之永不放弃 -> 35,45 19 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 星辰变第六季 -> 35,45 19,20 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 白色橄榄树 -> 5,15,45 18,20 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 芒着接五福 -> 15,30 20,22 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 六姊妹 -> 5,15,59 20,21 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 五福临门团综友福同享 -> 59 21 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 富贵千团 -> 5,30 21,22 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 创丨造营亚洲 第二季 -> 5,15,45 19,20 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 漫影寻踪 -> 5,15,45 18 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 掌心 -> 57 11,18,20,23 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 掌心 -> 53 12 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 仙台有树 -> 57 11,18,20,23 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 仙台有树 -> 53 12 * * *
+2025-02-08 12:14:38 | INFO     | scheduler:_init_scheduler:243 - 调度器初始化完成: 16 个自定义定时任务, 2 个默认定时任务
+2025-02-08 12:14:38 | INFO     | scheduler:_init_notify:442 - 通知配置已加载
+2025-02-08 12:14:38 | SUCCESS  | scheduler:start:125 - 调度器已启动
+2025-02-08 12:14:38 | INFO     | __main__:init_app:104 - 调度器初始化成功
+2025-02-08 12:14:38 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 12:14:38 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 12:14:38 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': '05b65263cf714c3b1738988078'}, 'server_time': '3285', 'time': 1738988078, 'ctime': 0, 'logid': 878740008, 'error_code': '0'}
+2025-02-08 12:14:38 | INFO     | __main__:init_app:112 - 应用初始化完成
+2025-02-08 12:14:42 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 12:14:42 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 12:14:42 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': '7715ede8741aeba71738988082'}, 'server_time': '3307', 'time': 1738988082, 'ctime': 0, 'logid': 882393551, 'error_code': '0'}
+2025-02-08 12:14:55 | DEBUG    | storage:_save_config:83 - 配置保存成功
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 鹊刀门传奇2, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 乡丨村爱情17, 调度: 15,30 12,14 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 你丨好星期六2025, 调度: 40,59 20 * * 6
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 女丨子推理社第二季, 调度: 15,35 12 * * 1,2
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 三叉戟第二部, 调度: 35,45 19 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 致1999年的自己, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门, 调度: 15,30 20,22 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 无所畏惧之永不放弃, 调度: 35,45 19 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 星辰变第六季, 调度: 35,45 19,20 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 白色橄榄树, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 芒着接五福, 调度: 15,30 20,22 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 六姊妹, 调度: 5,15,59 20,21 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门团综友福同享, 调度: 59 21 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 富贵千团, 调度: 5,30 21,22 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 创丨造营亚洲 第二季, 调度: 5,15,45 19,20 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 漫影寻踪, 调度: 5,15,45 18 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 57 11,18,20,23 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 53 12 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 仙台有树, 调度: 57 11,18,20,23 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 仙台有树, 调度: 53 12 * * *
+2025-02-08 12:14:55 | INFO     | scheduler:update_tasks:87 - 任务调度更新完成: 16 个自定义定时任务, 4 个默认定时任务
+2025-02-08 12:15:00 | INFO     | scheduler:_execute_single_task:499 - 开始执行任务: 乡丨村爱情17
+2025-02-08 12:15:00 | INFO     | scheduler:_execute_single_task:500 - 分享链接: https://pan.baidu.com/s/1xKVCTpVTrCP5chXs0hK0GQ
+2025-02-08 12:15:00 | INFO     | scheduler:_execute_single_task:501 - 保存目录: /快搜虾/电视剧/乡丨村爱情17
+2025-02-08 12:15:00 | INFO     | scheduler:_execute_single_task:502 - 提取码: 1120
+2025-02-08 12:15:00 | INFO     | scheduler:_execute_single_task:503 - 
+2025-02-08 12:15:00 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 12:15:00 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 12:15:00 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': '0c12ad2cae7f25211738988100'}, 'server_time': '10336', 'time': 1738988100, 'ctime': 0, 'logid': 900333915, 'error_code': '0'}
+2025-02-08 12:15:00 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 准备转存到目录: /快搜虾/电视剧/乡丨村爱情17
+2025-02-08 12:15:00 | DEBUG    | storage:list_local_files:1039 - 开始获取本地目录 /快搜虾/电视剧/乡丨村爱情17 的文件列表
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 01.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 02.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 03.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 04.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 05.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 06.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 07.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 08.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 09.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 10.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 11.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 12.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 13.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 14.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 15.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 16.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 17.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 18.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 19.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 20.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 21.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 22.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 23.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 24.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 25.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 26.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 27.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 28.mp4
+2025-02-08 12:15:01 | DEBUG    | storage:_list_dir:1051 - 添加本地文件: 29.mp4
+2025-02-08 12:15:01 | INFO     | storage:list_local_files:1060 - 本地目录 /快搜虾/电视剧/乡丨村爱情17 扫描完成，找到 29 个文件: ['01.mp4', '02.mp4', '03.mp4', '04.mp4', '05.mp4', '06.mp4', '07.mp4', '08.mp4', '09.mp4', '10.mp4', '11.mp4', '12.mp4', '13.mp4', '14.mp4', '15.mp4', '16.mp4', '17.mp4', '18.mp4', '19.mp4', '20.mp4', '21.mp4', '22.mp4', '23.mp4', '24.mp4', '25.mp4', '26.mp4', '27.mp4', '28.mp4', '29.mp4']
+2025-02-08 12:15:01 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 本地目录中有 29 个文件
+2025-02-08 12:15:01 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 访问分享链接: https://pan.baidu.com/s/1xKVCTpVTrCP5chXs0hK0GQ
+2025-02-08 12:15:02 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 目标保存目录: /快搜虾/电视剧/乡丨村爱情17
+2025-02-08 12:15:02 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 扫描文件夹: /乡丨村爱情17
+2025-02-08 12:15:03 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 12:15:03 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '32.mp4', 'fs_id': 262501941276202, 'path': '乡丨村爱情17/32.mp4', 'size': 290941931, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '31.mp4', 'fs_id': 798864945035756, 'path': '乡丨村爱情17/31.mp4', 'size': 307494168, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '30.mp4', 'fs_id': 722258689507617, 'path': '乡丨村爱情17/30.mp4', 'size': 258920905, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '29.mp4', 'fs_id': 684803774627286, 'path': '乡丨村爱情17/29.mp4', 'size': 283109904, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '28.mp4', 'fs_id': 411395887898235, 'path': '乡丨村爱情17/28.mp4', 'size': 302598769, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '27.mp4', 'fs_id': 727939674985191, 'path': '乡丨村爱情17/27.mp4', 'size': 357077947, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '26.mp4', 'fs_id': 540228070212995, 'path': '乡丨村爱情17/26.mp4', 'size': 292260686, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '25.mp4', 'fs_id': 24043690883555, 'path': '乡丨村爱情17/25.mp4', 'size': 314587942, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '24.mp4', 'fs_id': 160824693622231, 'path': '乡丨村爱情17/24.mp4', 'size': 356223568, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '23.mp4', 'fs_id': 931479561157769, 'path': '乡丨村爱情17/23.mp4', 'size': 306430815, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '22.mp4', 'fs_id': 1025372460406911, 'path': '乡丨村爱情17/22.mp4', 'size': 310044295, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '21.mp4', 'fs_id': 1088003591136279, 'path': '乡丨村爱情17/21.mp4', 'size': 334067757, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '20.mp4', 'fs_id': 759481105221633, 'path': '乡丨村爱情17/20.mp4', 'size': 284372534, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '19.mp4', 'fs_id': 201242880188017, 'path': '乡丨村爱情17/19.mp4', 'size': 259022943, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '18.mp4', 'fs_id': 106560855328142, 'path': '乡丨村爱情17/18.mp4', 'size': 368045016, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '17.mp4', 'fs_id': 395361050078890, 'path': '乡丨村爱情17/17.mp4', 'size': 345462774, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '16.mp4', 'fs_id': 591607608415196, 'path': '乡丨村爱情17/16.mp4', 'size': 339563151, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '15.mp4', 'fs_id': 530148108064801, 'path': '乡丨村爱情17/15.mp4', 'size': 332576897, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '14.mp4', 'fs_id': 948944217893665, 'path': '乡丨村爱情17/14.mp4', 'size': 302331359, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '13.mp4', 'fs_id': 515800710046509, 'path': '乡丨村爱情17/13.mp4', 'size': 316738425, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '12.mp4', 'fs_id': 2529882030111, 'path': '乡丨村爱情17/12.mp4', 'size': 291873277, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '11.mp4', 'fs_id': 609514746444129, 'path': '乡丨村爱情17/11.mp4', 'size': 307542342, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '10.mp4', 'fs_id': 380681422109230, 'path': '乡丨村爱情17/10.mp4', 'size': 311121600, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '09.mp4', 'fs_id': 554318492064288, 'path': '乡丨村爱情17/09.mp4', 'size': 391461084, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '08.mp4', 'fs_id': 701842558878807, 'path': '乡丨村爱情17/08.mp4', 'size': 331526456, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '07.mp4', 'fs_id': 630983615164438, 'path': '乡丨村爱情17/07.mp4', 'size': 330448918, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '06.mp4', 'fs_id': 1009400371132548, 'path': '乡丨村爱情17/06.mp4', 'size': 349626441, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '05.mp4', 'fs_id': 308090541136347, 'path': '乡丨村爱情17/05.mp4', 'size': 344516001, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '04.mp4', 'fs_id': 1107618244610348, 'path': '乡丨村爱情17/04.mp4', 'size': 334236828, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '03.mp4', 'fs_id': 615191879957986, 'path': '乡丨村爱情17/03.mp4', 'size': 321735536, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '02.mp4', 'fs_id': 916633462655981, 'path': '乡丨村爱情17/02.mp4', 'size': 353947664, 'isdir': 0}
+2025-02-08 12:15:03 | DEBUG    | storage:_list_shared_dir_files:1142 - 添加文件: {'server_filename': '01.mp4', 'fs_id': 670813294275555, 'path': '乡丨村爱情17/01.mp4', 'size': 343856097, 'isdir': 0}
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 添加文件: 32.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 添加文件: 31.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 添加文件: 30.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 29.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 28.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 27.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 26.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 25.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 24.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 23.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 22.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 21.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 20.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 19.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 18.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 17.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 16.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 15.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 14.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 13.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 12.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 11.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 10.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 09.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 08.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 07.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 06.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 05.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 04.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 03.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 02.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 文件已存在，跳过: 01.mp4
+2025-02-08 12:15:03 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 找到 3 个新文件需要转存
+2025-02-08 12:15:03 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': '50887e719d47787c1738988103'}, 'server_time': '11151', 'time': 1738988103, 'ctime': 0, 'logid': 903681522, 'error_code': '0'}
+2025-02-08 12:15:04 | DEBUG    | storage:_ensure_dir_exists:587 - 目录已存在: /快搜虾/电视剧/乡丨村爱情17
+2025-02-08 12:15:04 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] info: 转存到目录 /快搜虾/电视剧/乡丨村爱情17 (3 个文件)
+2025-02-08 12:15:06 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] success: 成功转存到 /快搜虾/电视剧/乡丨村爱情17
+2025-02-08 12:15:07 | INFO     | scheduler:progress_callback:522 - [乡丨村爱情17] success: 转存完成，成功转存 3/3 个文件
+2025-02-08 12:15:07 | DEBUG    | storage:_save_config:83 - 配置保存成功
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 鹊刀门传奇2, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 乡丨村爱情17, 调度: 15,30 12,14 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 你丨好星期六2025, 调度: 40,59 20 * * 6
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 女丨子推理社第二季, 调度: 15,35 12 * * 1,2
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 三叉戟第二部, 调度: 35,45 19 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 致1999年的自己, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门, 调度: 15,30 20,22 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 无所畏惧之永不放弃, 调度: 35,45 19 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 星辰变第六季, 调度: 35,45 19,20 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 白色橄榄树, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 芒着接五福, 调度: 15,30 20,22 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 六姊妹, 调度: 5,15,59 20,21 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门团综友福同享, 调度: 59 21 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 富贵千团, 调度: 5,30 21,22 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 创丨造营亚洲 第二季, 调度: 5,15,45 19,20 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 漫影寻踪, 调度: 5,15,45 18 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 57 11,18,20,23 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 53 12 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 仙台有树, 调度: 57 11,18,20,23 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 仙台有树, 调度: 53 12 * * *
+2025-02-08 12:15:07 | INFO     | scheduler:update_tasks:87 - 任务调度更新完成: 16 个自定义定时任务, 4 个默认定时任务
+2025-02-08 12:15:07 | INFO     | storage:update_task_status_by_order:1394 - 已更新任务状态: order=2 -> normal (转存成功)
+2025-02-08 12:15:07 | INFO     | scheduler:_execute_single_task:578 - 准备发送通知:
+✅《乡丨村爱情17》添加追更：
+/快搜虾/电视剧/乡丨村爱情17
+├── 🎞️30.mp4
+├── 🎞️31.mp4
+└── 🎞️32.mp4
+
+2025-02-08 12:15:07 | INFO     | scheduler:_execute_single_task:580 - 通知发送成功
+2025-02-08 12:15:17 | DEBUG    | storage:_save_config:83 - 配置保存成功
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 鹊刀门传奇2, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 乡丨村爱情17, 调度: 15,30 12,14 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 你丨好星期六2025, 调度: 40,59 20 * * 6
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 女丨子推理社第二季, 调度: 15,35 12 * * 1,2
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 三叉戟第二部, 调度: 35,45 19 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 致1999年的自己, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门, 调度: 15,30 20,22 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 无所畏惧之永不放弃, 调度: 35,45 19 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 星辰变第六季, 调度: 35,45 19,20 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 白色橄榄树, 调度: 5,15,45 18,20 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 芒着接五福, 调度: 15,30 20,22 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 六姊妹, 调度: 5,15,59 20,21 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门团综友福同享, 调度: 59 21 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 富贵千团, 调度: 5,30 21,22 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 创丨造营亚洲 第二季, 调度: 5,15,45 19,20 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 漫影寻踪, 调度: 5,15,45 18 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 57 11,18,20,23 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 53 12 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 仙台有树, 调度: 57 11,18,20,23 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 仙台有树, 调度: 53 12 * * *
+2025-02-08 12:15:17 | INFO     | scheduler:update_tasks:87 - 任务调度更新完成: 16 个自定义定时任务, 4 个默认定时任务

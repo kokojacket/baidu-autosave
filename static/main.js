@@ -1562,6 +1562,35 @@ function initializeEventListeners() {
             this.style.opacity = '';
         }, { passive: true });
     });
+
+    // 更新登录凭据按钮事件
+    const updateAuthBtn = document.getElementById('update-auth-btn');
+    if (updateAuthBtn) {
+        updateAuthBtn.addEventListener('click', async () => {
+            const newUsername = document.getElementById('new-username').value.trim();
+            const oldPassword = document.getElementById('old-password').value.trim();
+            const newPassword = document.getElementById('new-password').value.trim();
+            const confirmPassword = document.getElementById('confirm-password').value.trim();
+            
+            // 验证输入
+            if (!newUsername || !oldPassword || !newPassword || !confirmPassword) {
+                showError('请填写所有必填字段');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showError('新密码与确认密码不匹配');
+                return;
+            }
+            
+            // 调用更新API
+            await updateAuth({
+                username: newUsername,
+                old_password: oldPassword,
+                password: newPassword
+            });
+        });
+    }
 }
 
 // 更新登录状态显示
@@ -2040,3 +2069,27 @@ function initMobileEvents() {
 document.addEventListener('DOMContentLoaded', () => {
     initMobileEvents();
 });
+
+// 更新登录凭据
+async function updateAuth(data) {
+    try {
+        const response = await callApi('auth/update', 'POST', data);
+        if (response.success) {
+            showSuccess('登录凭据更新成功，即将退出登录...');
+            // 清空输入框
+            document.getElementById('new-username').value = '';
+            document.getElementById('old-password').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-password').value = '';
+            
+            // 延迟2秒后退出登录，让用户看到成功消息
+            setTimeout(() => {
+                window.location.href = '/logout';
+            }, 1000);
+        } else {
+            showError(response.message || '更新登录凭据失败');
+        }
+    } catch (error) {
+        showError('更新登录凭据失败: ' + error.message);
+    }
+}

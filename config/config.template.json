@@ -1,0 +1,34 @@
+{
+    "baidu": {
+        "users": {},
+        "current_user": null,
+        "tasks": []
+    },
+    "retry": {
+        "max_attempts": 3,
+        "delay_seconds": 5
+    },
+    "cron": {
+        "default_schedule": "*/5 * * * *",
+        "auto_install": true
+    },
+    "notify": {
+        "enabled": false,
+        "channels": {
+            "pushplus": {
+                "token": "",
+                "topic": ""
+            }
+        }
+    },
+    "scheduler": {
+        "max_workers": 1,
+        "misfire_grace_time": 3600,
+        "coalesce": true
+    },
+    "auth": {
+        "users": "admin",
+        "password": "admin123",
+        "session_timeout": 3600
+    }
+} 

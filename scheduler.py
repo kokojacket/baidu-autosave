@@ -39,7 +39,7 @@ class TaskScheduler:
         """获取当前的任务列表"""
         try:
             # 重新加载配置以获取最新任务
-            with open('config.json', 'r', encoding='utf-8') as f:
+            with open('config/config.json', 'r', encoding='utf-8') as f:
                 config = json.load(f)
             return config['baidu']['tasks']
         except Exception as e:
@@ -249,7 +249,7 @@ class TaskScheduler:
     def _load_config(self):
         """加载配置文件"""
         try:
-            with open('config.json', 'r', encoding='utf-8') as f:
+            with open('config/config.json', 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"加载配置文件失败: {str(e)}")
@@ -258,7 +258,7 @@ class TaskScheduler:
     def _save_config(self):
         """保存配置文件"""
         try:
-            with open('config.json', 'w', encoding='utf-8') as f:
+            with open('config/config.json', 'w', encoding='utf-8') as f:
                 json.dump(self.config, f, ensure_ascii=False, indent=4)
         except Exception as e:
             logger.error(f"保存配置文件失败: {str(e)}")

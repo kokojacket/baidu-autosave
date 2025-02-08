@@ -41,6 +41,58 @@ python web_app.py
 http://localhost:5000
 ```
 
+## Docker 部署
+
+### 使用 docker-compose 部署
+
+1. 克隆仓库：
+```bash
+git clone https://github.com/your-username/baidu-autosave.git
+cd baidu-autosave
+```
+
+2. 构建并启动容器：
+```bash
+docker-compose up -d
+```
+
+3. 查看日志：
+```bash
+docker-compose logs -f
+```
+
+4. 访问Web界面：
+```
+http://localhost:5000
+```
+
+### 目录结构说明
+
+```
+baidu-autosave/
+├── config/                # 配置文件目录
+│   ├── config.json       # 运行时配置文件（自动生成）
+│   └── config.template.json  # 配置文件模板
+├── log/                  # 日志目录
+├── Dockerfile           # Docker构建文件
+├── docker-compose.yml   # Docker编排文件
+├── web_app.py      # Web应用主程序
+├── storage.py      # 存储管理模块
+├── scheduler.py    # 任务调度模块
+├── utils.py        # 工具函数
+├── notify.py       # 通知模块
+└── templates/      # 模板文件
+    └── index.html  # 主页面
+```
+
+### 主要模块说明
+
+- **web_app.py**: Web应用核心，处理HTTP请求和WebSocket通信
+- **storage.py**: 管理百度网盘API调用和数据存储
+- **scheduler.py**: 处理定时任务的调度和执行
+- **notify.py**: 实现各种通知方式
+- **utils.py**: 提供通用工具函数
+
 ## 使用说明
 
 ### 1. 添加用户
@@ -129,24 +181,6 @@ http://localhost:5000
    - 检查网络连接
 
 ## 开发说明
-
-### 项目结构
-
-```
-baidu-autosave/
-├── web_app.py      # Web应用主程序
-├── storage.py      # 存储管理模块
-├── scheduler.py    # 任务调度模块
-├── utils.py        # 工具函数
-├── notify.py       # 通知模块
-├── config.json     # 配置文件
-├── requirements.txt # 依赖清单
-├── static/         # 静态资源
-│   ├── style.css   # 样式表
-│   └── main.js     # 前端脚本
-└── templates/      # 模板文件
-    └── index.html  # 主页面
-```
 
 ### 主要模块说明
 
