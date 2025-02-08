@@ -2,7 +2,7 @@ version: '3'
 
 services:
   baidu-autosave:
-    image: baidu-autosave
+    image: kokojacket/baidu-autosave:latest
     container_name: baidu-autosave
     restart: unless-stopped
     ports:

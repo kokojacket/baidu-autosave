@@ -43,22 +43,68 @@ http://localhost:5000
 
 ## Docker 部署
 
-### 使用 docker-compose 部署
+### 使用 docker-compose 部署（推荐）
 
-1. 克隆仓库：
-```bash
-git clone https://github.com/your-username/baidu-autosave.git
-cd baidu-autosave
+1. 创建 `docker-compose.yml` 文件：
+```yaml
+version: '3'
+
+services:
+  baidu-autosave:
+    image: kokojacket/baidu-autosave:latest
+    container_name: baidu-autosave
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./config:/app/config
+      - ./log:/app/log
+    environment:
+      - TZ=Asia/Shanghai
 ```
 
-2. 构建并启动容器：
+2. 创建必要目录：
+```bash
+mkdir -p config log
+```
+
+3. 启动服务：
 ```bash
 docker-compose up -d
 ```
 
-3. 查看日志：
+4. 查看日志：
 ```bash
 docker-compose logs -f
+```
+
+5. 访问Web界面：
+```
+http://localhost:5000
+```
+
+### 使用 Docker CLI 部署
+
+1. 创建必要目录：
+```bash
+mkdir -p config log
+```
+
+2. 启动容器：
+```bash
+docker run -d \
+  --name baidu-autosave \
+  --restart unless-stopped \
+  -p 5000:5000 \
+  -v $(pwd)/config:/app/config \
+  -v $(pwd)/log:/app/log \
+  -e TZ=Asia/Shanghai \
+  kokojacket/baidu-autosave:latest
+```
+
+3. 查看日志：
+```bash
+docker logs -f baidu-autosave
 ```
 
 4. 访问Web界面：
