@@ -775,6 +775,9 @@ async function refreshTasks(retryCount = 3) {
 
 // 修改任务更新函数
 async function updateTask(data) {
+    if (this.isUpdating) return; // 防止重复提交
+    this.isUpdating = true;
+    
     try {
         // 获取原任务数据
         const tasks = state.tasks || [];
@@ -800,7 +803,7 @@ async function updateTask(data) {
         
         // 创建完整的更新数据对象
         const updateData = {
-            task_id: taskId,  // 使用taskId而不是order
+            task_id: taskId,
             url: url,
             save_dir: data.save_dir.trim(),
             pwd: pwd || originalTask.pwd || '',  // 保留原密码如果没有新密码
@@ -808,8 +811,8 @@ async function updateTask(data) {
             category: data.category.trim() || originalTask.category || '',
             cron: data.cron.trim() || originalTask.cron || '',
             status: originalTask?.status || 'normal',  // 保持原有状态
-            message: originalTask?.message || '',      // 保持原有消息
-            last_execute_time: originalTask?.last_execute_time // 保持原有执行时间
+            message: originalTask?.message || '',  // 保持原有消息
+            last_execute_time: originalTask?.last_execute_time  // 保持原有执行时间
         };
         
         console.log('更新任务数据:', {
@@ -830,8 +833,8 @@ async function updateTask(data) {
     } catch (error) {
         console.error('更新任务失败:', error);
         showError(error.message || '更新任务失败');
-        // 强制刷新以确保显示正确状态
-        await refreshTasks();
+    } finally {
+        this.isUpdating = false;
     }
 }
 
@@ -1021,28 +1024,7 @@ async function handleTaskSubmit(event) {
         
         // 如果有task_id，说明是编辑任务
         if (data.task_id) {
-            // 获取原有任务的状态和消息
-            const taskId = parseInt(data.task_id);
-            const originalTask = state.tasks.find(t => t.order === taskId + 1);
-            
-            const response = await callApi('task/update', 'POST', {
-                task_id: taskId,
-                url: data.url,
-                pwd: data.pwd,
-                save_dir: data.save_dir,
-                name: data.name || '',
-                cron: data.cron || '',
-                category: data.category || '',
-                status: originalTask?.status || 'normal',  // 保持原有状态
-                message: originalTask?.message || '',      // 保持原有消息
-                last_execute_time: originalTask?.last_execute_time // 保持原有执行时间
-            });
-            
-            if (response.success) {
-                await afterTaskOperation();
-                hideModal('task-modal');
-                showSuccess('任务更新成功');
-            }
+            await updateTask(data);
         } else {
             // 新增任务
             await addTask({
@@ -1055,7 +1037,7 @@ async function handleTaskSubmit(event) {
             });
         }
     } catch (error) {
-        showError(error.message || '保存任务失败');
+        showError(error.message || '操作失败');
     }
 }
 

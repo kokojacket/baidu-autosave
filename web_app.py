@@ -358,7 +358,7 @@ def update_task():
         if not success:
             return jsonify({'success': False, 'message': '更新任务失败'})
         
-        # 广播任务更新消息
+        # 只在成功时广播一次
         broadcast_message({
             'type': 'task_updated',
             'data': {
@@ -372,7 +372,6 @@ def update_task():
             'message': '更新任务成功',
             'task': update_data
         })
-        
     except Exception as e:
         logger.error(f"更新任务失败: {str(e)}")
         return jsonify({'success': False, 'message': f'更新任务失败: {str(e)}'})
