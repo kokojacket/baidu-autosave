@@ -3320,3 +3320,130 @@
 2025-02-08 19:54:16 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 53 12 * * *
 2025-02-08 19:54:16 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 仙台有树, 调度: 5,15,45 19,20 * * *
 2025-02-08 19:54:16 | INFO     | scheduler:update_tasks:87 - 任务调度更新完成: 17 个自定义定时任务, 2 个默认定时任务
+2025-02-08 19:58:26 | DEBUG    | storage:_save_config:83 - 配置保存成功
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 鹊刀门传奇2, 调度: 5,15,45 18,20 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 乡丨村爱情17, 调度: 15,30 12,14 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 你丨好星期六2025, 调度: 40,59 20 * * 6
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 女丨子推理社第二季, 调度: 15,35 12 * * 1,2
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 三叉戟第二部, 调度: 35,45 19 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 致1999年的自己, 调度: 5,15,45 18,20 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门, 调度: 15,30 20,22 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 无所畏惧之永不放弃, 调度: 35,45 19 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 星辰变第六季, 调度: 35,45 19,20 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 白色橄榄树, 调度: 5,15,45 18,20 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 芒着接五福, 调度: 15,30 20,22 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 六姊妹, 调度: 5,15,59 20,21 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门团综友福同享, 调度: 59 21 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 富贵千团, 调度: 5,30 21,22 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 创丨造营亚洲 第二季, 调度: 5,15,45 19,20 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 漫影寻踪, 调度: 5,15,45 18 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 57 11,18,20,23 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 53 12 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:update_tasks:87 - 任务调度更新完成: 16 个自定义定时任务, 2 个默认定时任务
+2025-02-08 19:58:26 | SUCCESS  | storage:remove_task_by_order:1415 - 删除任务成功: order=18
+2025-02-08 19:58:26 | DEBUG    | storage:_save_config:83 - 配置保存成功
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 鹊刀门传奇2, 调度: 5,15,45 18,20 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 乡丨村爱情17, 调度: 15,30 12,14 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 你丨好星期六2025, 调度: 40,59 20 * * 6
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 女丨子推理社第二季, 调度: 15,35 12 * * 1,2
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 三叉戟第二部, 调度: 35,45 19 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 致1999年的自己, 调度: 5,15,45 18,20 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门, 调度: 15,30 20,22 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 无所畏惧之永不放弃, 调度: 35,45 19 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 星辰变第六季, 调度: 35,45 19,20 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 白色橄榄树, 调度: 5,15,45 18,20 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 芒着接五福, 调度: 15,30 20,22 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 六姊妹, 调度: 5,15,59 20,21 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门团综友福同享, 调度: 59 21 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 富贵千团, 调度: 5,30 21,22 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 创丨造营亚洲 第二季, 调度: 5,15,45 19,20 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 漫影寻踪, 调度: 5,15,45 18 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 57 11,18,20,23 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 53 12 * * *
+2025-02-08 19:58:26 | INFO     | scheduler:update_tasks:87 - 任务调度更新完成: 16 个自定义定时任务, 2 个默认定时任务
+2025-02-08 19:58:29 | DEBUG    | storage:_save_config:83 - 配置保存成功
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 鹊刀门传奇2, 调度: 5,15,45 18,20 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 乡丨村爱情17, 调度: 15,30 12,14 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 你丨好星期六2025, 调度: 40,59 20 * * 6
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 女丨子推理社第二季, 调度: 15,35 12 * * 1,2
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 三叉戟第二部, 调度: 35,45 19 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 致1999年的自己, 调度: 5,15,45 18,20 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门, 调度: 15,30 20,22 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 无所畏惧之永不放弃, 调度: 35,45 19 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 星辰变第六季, 调度: 35,45 19,20 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 白色橄榄树, 调度: 5,15,45 18,20 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 芒着接五福, 调度: 15,30 20,22 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 六姊妹, 调度: 5,15,59 20,21 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门团综友福同享, 调度: 59 21 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 富贵千团, 调度: 5,30 21,22 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 创丨造营亚洲 第二季, 调度: 5,15,45 19,20 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 漫影寻踪, 调度: 5,15,45 18 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 57 11,18,20,23 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 53 12 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:update_tasks:87 - 任务调度更新完成: 16 个自定义定时任务, 2 个默认定时任务
+2025-02-08 19:58:29 | INFO     | scheduler:update_task_schedule:649 - 任务 https://pan.baidu.com/s/1zRveLXBD_qEU7xuEX3LqBQ (task_id=16) 切换到默认定时，正在更新调度...
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 鹊刀门传奇2, 调度: 5,15,45 18,20 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 乡丨村爱情17, 调度: 15,30 12,14 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 你丨好星期六2025, 调度: 40,59 20 * * 6
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 女丨子推理社第二季, 调度: 15,35 12 * * 1,2
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 三叉戟第二部, 调度: 35,45 19 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 致1999年的自己, 调度: 5,15,45 18,20 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门, 调度: 15,30 20,22 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 无所畏惧之永不放弃, 调度: 35,45 19 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 星辰变第六季, 调度: 35,45 19,20 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 白色橄榄树, 调度: 5,15,45 18,20 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 芒着接五福, 调度: 15,30 20,22 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 六姊妹, 调度: 5,15,59 20,21 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 五福临门团综友福同享, 调度: 59 21 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 富贵千团, 调度: 5,30 21,22 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 创丨造营亚洲 第二季, 调度: 5,15,45 19,20 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加自定义定时任务: 漫影寻踪, 调度: 5,15,45 18 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 57 11,18,20,23 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:add_single_task:112 - 已添加默认定时任务: 掌心, 调度: 53 12 * * *
+2025-02-08 19:58:29 | INFO     | scheduler:update_tasks:87 - 任务调度更新完成: 16 个自定义定时任务, 2 个默认定时任务
+2025-02-08 19:58:29 | INFO     | storage:update_task_by_order:1492 - 已更新任务调度: https://pan.baidu.com/s/1zRveLXBD_qEU7xuEX3LqBQ
+2025-02-08 19:58:29 | SUCCESS  | storage:update_task_by_order:1494 - 更新任务成功: {'url': 'https://pan.baidu.com/s/1zRveLXBD_qEU7xuEX3LqBQ', 'save_dir': '/快搜虾/电视剧/掌丨心', 'pwd': '1120', 'name': '掌心', 'status': 'normal', 'transferred_files': ['04.mp4', '03.mp4', '02.mp4', '01.mp4'], 'order': 17, 'category': '电视剧', 'message': '没有新文件需要转存', 'last_execute_time': 1738925823, 'last_update': 1739015909}
+2025-02-08 19:59:43 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 19:59:43 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 19:59:43 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': '8a7a3cd0c28aad411739015983'}, 'server_time': '8426', 'time': 1739015983, 'ctime': 0, 'logid': 3583096424, 'error_code': '0'}
+2025-02-08 19:59:46 | INFO     | __main__:signal_handler:914 - 接收到退出信号，正在清理...
+2025-02-08 19:59:46 | INFO     | scheduler:stop:366 - 调度器已停止
+2025-02-08 19:59:46 | INFO     | __main__:cleanup:128 - 调度器已停止
+2025-02-08 19:59:46 | INFO     | __main__:signal_handler:920 - 清理完成，正在退出...
+2025-02-08 19:59:49 | INFO     | __main__:init_app:94 - 开始初始化应用...
+2025-02-08 19:59:49 | INFO     | __main__:init_app:96 - 正在初始化存储...
+2025-02-08 19:59:49 | INFO     | storage:_init_client:129 - 客户端初始化成功，网盘总空间: 2155.0GB, 已使用: 1228.67GB
+2025-02-08 19:59:49 | INFO     | __main__:init_app:101 - 正在初始化调度器...
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 鹊刀门传奇2 -> 5,15,45 18,20 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 乡丨村爱情17 -> 15,30 12,14 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 你丨好星期六2025 -> 40,59 20 * * 6
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 女丨子推理社第二季 -> 15,35 12 * * 1,2
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 三叉戟第二部 -> 35,45 19 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 致1999年的自己 -> 5,15,45 18,20 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 五福临门 -> 15,30 20,22 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 无所畏惧之永不放弃 -> 35,45 19 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 星辰变第六季 -> 35,45 19,20 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 白色橄榄树 -> 5,15,45 18,20 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 芒着接五福 -> 15,30 20,22 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 六姊妹 -> 5,15,59 20,21 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 五福临门团综友福同享 -> 59 21 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 富贵千团 -> 5,30 21,22 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 创丨造营亚洲 第二季 -> 5,15,45 19,20 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:217 - 已添加自定义定时任务: 漫影寻踪 -> 5,15,45 18 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 掌心 -> 57 11,18,20,23 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:238 - 已添加默认定时任务: 掌心 -> 53 12 * * *
+2025-02-08 19:59:49 | INFO     | scheduler:_init_scheduler:243 - 调度器初始化完成: 16 个自定义定时任务, 1 个默认定时任务
+2025-02-08 19:59:49 | INFO     | scheduler:_init_notify:442 - 通知配置已加载
+2025-02-08 19:59:49 | SUCCESS  | scheduler:start:125 - 调度器已启动
+2025-02-08 19:59:49 | INFO     | __main__:init_app:104 - 调度器初始化成功
+2025-02-08 19:59:49 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 19:59:49 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 19:59:49 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': '7b319a4c7e0228571739015989'}, 'server_time': '4809', 'time': 1739015989, 'ctime': 0, 'logid': 3589514347, 'error_code': '0'}
+2025-02-08 19:59:49 | INFO     | __main__:init_app:112 - 应用初始化完成
+2025-02-08 19:59:52 | DEBUG    | storage:get_user_info:327 - 成功获取网盘配额信息
+2025-02-08 19:59:52 | DEBUG    | storage:get_user_info:332 - 开始获取网盘用户信息...
+2025-02-08 19:59:52 | DEBUG    | storage:get_user_info:334 - 网盘用户信息: {'user': {'id': '732379512', 'name': 'jk1764978913', 'BDUSS': 'HVzLVBrWUN3M2R4V2xWRm4tOXZlQ1ExTzlOdXE1ampRZnJRQlJQbmlDS2tVYWhuRVFBQUFBJCQAAAAAAAAAAAEAAAB4OacramsxNzY0OTc4OTEzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKTEgGekxIBnR', 'portrait': 'tb.1.a2621072.4rXxVvaILvyn_WD4s6nMew'}, 'anti': {'tbs': '0b918285f310631d1739015992'}, 'server_time': '6789', 'time': 1739015992, 'ctime': 0, 'logid': 3592273933, 'error_code': '0'}
+2025-02-08 19:59:59 | INFO     | __main__:signal_handler:914 - 接收到退出信号，正在清理...
+2025-02-08 19:59:59 | INFO     | scheduler:stop:366 - 调度器已停止
+2025-02-08 19:59:59 | INFO     | __main__:cleanup:128 - 调度器已停止
+2025-02-08 19:59:59 | INFO     | __main__:signal_handler:920 - 清理完成，正在退出...
