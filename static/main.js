@@ -185,11 +185,18 @@ function updateTaskStatus(taskId, status, message) {
         }
     }
     
-    // 更新按钮状态
-    const buttons = taskElement.querySelectorAll('.btn-icon');
-    buttons.forEach(btn => {
-        btn.disabled = status === 'running';
-    });
+    // 保持原有按钮容器结构
+    const buttonsContainer = taskElement.querySelector('.task-actions');
+    if (buttonsContainer) {
+        // 使用克隆节点避免重新创建元素
+        const newButtons = buttonsContainer.cloneNode(true);
+        newButtons.querySelectorAll('.btn-icon').forEach(btn => {
+            btn.disabled = status === 'running';
+            // 保持按钮可见性一致
+            btn.style.visibility = 'visible'; 
+        });
+        buttonsContainer.parentNode.replaceChild(newButtons, buttonsContainer);
+    }
     
     // 如果有消息，显示通知
     if (message) {
@@ -208,7 +215,9 @@ function updateTaskProgress(taskId, progress) {
         const taskContent = taskElement.querySelector('.task-content');
         progressBar = document.createElement('div');
         progressBar.className = 'progress-bar';
-        progressBar.innerHTML = '<div class="progress"></div>';
+        const progressElement = document.createElement('div');
+        progressElement.className = 'progress';
+        progressBar.appendChild(progressElement);
         taskContent.appendChild(progressBar);
     }
     
@@ -398,7 +407,7 @@ function createTaskElement(task) {
             </div>
             ` : ''}
         </div>
-        <div class="task-actions">
+        <div class="task-actions" style="min-width: 120px">
             <button class="btn-icon" onclick="executeTask(${task.order - 1})" 
                     ${task.status === 'running' ? 'disabled' : ''}>
                 <i class="material-icons">play_arrow</i>
@@ -1006,10 +1015,17 @@ async function handleTaskSubmit(event) {
     event.preventDefault();
     
     const form = event.target;
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
+    const submitBtn = form.querySelector('button[type="submit"]');
     
+    // 添加防重复提交逻辑
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="material-icons">hourglass_empty</i> 提交中...';
+
     try {
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        
         // 处理URL和提取码
         const urlData = parseShareUrl(data.url);
         data.url = urlData.url;
@@ -1038,6 +1054,10 @@ async function handleTaskSubmit(event) {
         }
     } catch (error) {
         showError(error.message || '操作失败');
+    } finally {
+        // 恢复按钮状态
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '保存';
     }
 }
 
@@ -1289,28 +1309,21 @@ function handleTaskProgress(data) {
     
     // 更新进度条
     let progressBar = taskElement.querySelector('.progress-bar');
-    if (!progressBar && status === 'running') {
-        // 如果不存在进度条且任务正在运行，创建进度条
+    if (!progressBar) {
+        // 如果不存在进度条，创建一个
         const taskContent = taskElement.querySelector('.task-content');
         progressBar = document.createElement('div');
         progressBar.className = 'progress-bar';
-        progressBar.innerHTML = '<div class="progress"></div>';
+        const progressElement = document.createElement('div');
+        progressElement.className = 'progress';
+        progressBar.appendChild(progressElement);
         taskContent.appendChild(progressBar);
     }
     
-    if (progressBar) {
-        const progressElement = progressBar.querySelector('.progress');
-        if (progressElement) {
-            progressElement.style.width = `${progress}%`;
-            progressElement.setAttribute('aria-valuenow', progress);
-        }
-        
-        // 如果任务完成或失败，延迟移除进度条
-        if (status !== 'running') {
-            setTimeout(() => {
-                progressBar.remove();
-            }, 3000);
-        }
+    const progressElement = progressBar.querySelector('.progress');
+    if (progressElement) {
+        progressElement.style.width = `${progress}%`;
+        progressElement.setAttribute('aria-valuenow', progress);
     }
     
     // 更新状态
@@ -1327,6 +1340,7 @@ function handleTaskProgress(data) {
     const buttons = taskElement.querySelectorAll('.btn-icon');
     buttons.forEach(btn => {
         btn.disabled = status === 'running';
+        btn.style.pointerEvents = status === 'running' ? 'none' : 'auto'; // 确保按钮状态不影响布局
     });
 }
 
@@ -1516,10 +1530,11 @@ function initializeEventListeners() {
         });
     }
     
-    // 表单提交事件
+    // 表单提交事件（修改为一次性绑定）
     const taskForm = document.getElementById('task-form');
-    if (taskForm) {
+    if (taskForm && !taskForm.dataset.listenerAdded) {
         taskForm.addEventListener('submit', handleTaskSubmit);
+        taskForm.dataset.listenerAdded = true; // 标记已添加监听器
     }
     
     const userForm = document.getElementById('user-form');

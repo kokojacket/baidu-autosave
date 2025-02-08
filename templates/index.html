@@ -244,6 +244,12 @@
                 <input type="hidden" name="task_id">
                 
                 <div class="form-group">
+                    <label>任务名称</label>
+                    <input type="text" name="name" placeholder="可选，默认使用分享的文件/文件夹名称">
+                    <div class="form-help">用于在任务列表中显示，如不填写则使用分享的文件/文件夹名称</div>
+                </div>
+                
+                <div class="form-group">
                     <label class="required">分享链接</label>
                     <input type="text" name="url" required placeholder="请输入百度网盘分享链接，如果有提取码请直接加在链接后面，例如: https://pan.baidu.com/s/xxx?pwd=1234">
                     <div class="form-help">支持带密码的分享链接，格式：链接?pwd=密码</div>
@@ -259,12 +265,6 @@
                         </button>
                     </div>
                     <div class="form-help">目录必须以/开头，可以使用已有目录或创建新目录</div>
-                </div>
-                
-                <div class="form-group">
-                    <label>任务名称</label>
-                    <input type="text" name="name" placeholder="可选，默认使用分享的文件/文件夹名称">
-                    <div class="form-help">用于在任务列表中显示，如不填写则使用分享的文件/文件夹名称</div>
                 </div>
                 
                 <div class="form-group">

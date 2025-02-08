@@ -2028,11 +2028,14 @@ textarea:focus {
     display: flex;
     gap: 8px;
     align-items: center;
+    min-width: 120px; /* 新增固定宽度 */
+    justify-content: flex-end; /* 保持右对齐 */
+    transition: none !important; /* 禁用过渡效果 */
 }
 
 .task-actions .btn-icon {
-    width: 36px;
-    height: 36px;
+    width: 36px !important;
+    height: 36px !important;
     padding: 8px;
 }
 
@@ -2095,29 +2098,14 @@ textarea:focus {
     }
 
     .task-actions {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        width: 42px;
-        padding: 2px;
-        margin: 0;
-        background: rgba(0,0,0,0.03);
-        border-radius: 6px;
-        box-sizing: border-box;
+        flex-direction: row !important; /* 覆盖之前的垂直布局 */
+        width: auto !important;
+        padding: 0 !important;
+        background: transparent !important;
     }
-
+    
     .task-actions .btn-icon {
-        width: 36px;
-        height: 36px;
-        margin: 0;
-    }
-
-    .task-actions .btn-icon i {
-        font-size: 18px;
-    }
-
-    .task-details {
-        font-size: 11px;
-        gap: 2px;
+        margin: 0 2px !important; /* 减少间距 */
+        transform: scale(0.9); /* 统一缩放 */
     }
 } 
