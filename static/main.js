@@ -804,6 +804,8 @@ async function updateTask(data) {
         // 处理URL和密码
         let url = data.url.trim();
         let pwd = '';
+        
+        // 从URL中提取密码
         if (url.includes('?pwd=')) {
             [url, pwd] = url.split('?pwd=');
             url = url.trim();
@@ -813,18 +815,15 @@ async function updateTask(data) {
         // 创建完整的更新数据对象
         const updateData = {
             task_id: taskId,
-            url: url,
+            url: url,  // 使用处理后的URL
             save_dir: data.save_dir.trim(),
-            pwd: pwd || originalTask.pwd || '',  // 保留原密码如果没有新密码
+            pwd: pwd || data.pwd || originalTask.pwd || '',  // 优先使用新密码
             name: data.name.trim() || originalTask.name || '',
             category: data.category.trim() || originalTask.category || '',
-            cron: data.cron.trim() || originalTask.cron || '',
-            status: originalTask?.status || 'normal',  // 保持原有状态
-            message: originalTask?.message || '',  // 保持原有消息
-            last_execute_time: originalTask?.last_execute_time  // 保持原有执行时间
+            cron: data.cron.trim() || originalTask.cron || ''
         };
         
-        console.log('更新任务数据:', {
+        console.log('准备更新任务:', {
             taskId,
             originalTask,
             updateData
@@ -832,7 +831,14 @@ async function updateTask(data) {
         
         // 发送更新请求
         const response = await callApi('task/update', 'POST', updateData);
+        
         if (response.success) {
+            // 验证更新是否成功
+            const verifyResult = await verifyTaskUpdate(originalTask, updateData);
+            if (!verifyResult.success) {
+                throw new Error(verifyResult.error || '任务更新验证失败');
+            }
+            
             await afterTaskOperation();
             showSuccess('更新任务成功');
             hideModal('task-modal');
@@ -844,6 +850,46 @@ async function updateTask(data) {
         showError(error.message || '更新任务失败');
     } finally {
         this.isUpdating = false;
+    }
+}
+
+// 添加任务更新验证函数
+async function verifyTaskUpdate(originalTask, updateData) {
+    try {
+        // 重新获取任务列表
+        const result = await callApi('tasks');
+        if (!result.success) {
+            return { success: false, error: '获取任务列表失败' };
+        }
+        
+        // 查找更新后的任务
+        const updatedTask = result.tasks.find(t => t.order === originalTask.order);
+        
+        if (!updatedTask) {
+            return { 
+                success: false, 
+                error: '无法找到更新后的任务' 
+            };
+        }
+        
+        // 验证URL是否正确更新
+        if (updatedTask.url !== updateData.url) {
+            console.error('URL更新不匹配:', {
+                expected: updateData.url,
+                actual: updatedTask.url
+            });
+            return {
+                success: false,
+                error: 'URL更新验证失败'
+            };
+        }
+        
+        return { success: true };
+    } catch (error) {
+        return { 
+            success: false, 
+            error: error.message || '验证更新失败' 
+        };
     }
 }
 
@@ -1900,52 +1946,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // 添加登出功能
 function logout() {
     window.location.href = '/logout';
-}
-
-// 添加任务验证函数
-async function verifyTaskUpdate(originalTask, updateData) {
-    try {
-        // 重新获取任务列表
-        const result = await callApi('tasks');
-        if (!result.success) {
-            return { success: false, error: '获取任务列表失败' };
-        }
-        
-        // 查找更新后的任务
-        const updatedTask = result.tasks.find(t => 
-            t.url === updateData.url || 
-            t.url === originalTask.url
-        );
-        
-        // 检查任务是否存在
-        if (!updatedTask) {
-            return { 
-                success: false, 
-                error: '无法找到更新后的任务' 
-            };
-        }
-        
-        // 检查是否有重复任务
-        const duplicateTasks = result.tasks.filter(t => 
-            t.url === updateData.url || 
-            t.url === originalTask.url
-        );
-        
-        if (duplicateTasks.length > 1) {
-            return { 
-                success: false, 
-                error: '发现重复任务',
-                duplicates: duplicateTasks 
-            };
-        }
-        
-        return { success: true };
-    } catch (error) {
-        return { 
-            success: false, 
-            error: error.message || '验证更新失败' 
-        };
-    }
 }
 
 // 更新保存目录下拉列表
