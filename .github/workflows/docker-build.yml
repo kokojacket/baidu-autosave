@@ -7,7 +7,7 @@ on:
         description: '镜像版本号 (例如: v1.0.0)'
         required: true
         type: string
-        default: 'latest'
+        default: 'v1.0.0'
       push_to_registry:
         description: '是否推送到 Docker Hub'
         required: true
