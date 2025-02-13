@@ -804,8 +804,6 @@ async function updateTask(data) {
         // 处理URL和密码
         let url = data.url.trim();
         let pwd = '';
-        
-        // 检查URL中是否包含密码
         if (url.includes('?pwd=')) {
             [url, pwd] = url.split('?pwd=');
             url = url.trim();
@@ -817,22 +815,19 @@ async function updateTask(data) {
             task_id: taskId,
             url: url,
             save_dir: data.save_dir.trim(),
-            pwd: pwd || data.pwd || originalTask.pwd || '',  // 优先使用URL中的密码，其次是表单密码，再次是原密码
+            pwd: pwd || originalTask.pwd || '',  // 保留原密码如果没有新密码
             name: data.name.trim() || originalTask.name || '',
             category: data.category.trim() || originalTask.category || '',
             cron: data.cron.trim() || originalTask.cron || '',
-            status: originalTask?.status || 'normal',
-            message: originalTask?.message || '',
-            last_execute_time: originalTask?.last_execute_time
+            status: originalTask?.status || 'normal',  // 保持原有状态
+            message: originalTask?.message || '',  // 保持原有消息
+            last_execute_time: originalTask?.last_execute_time  // 保持原有执行时间
         };
         
         console.log('更新任务数据:', {
             taskId,
             originalTask,
-            updateData,
-            urlContainsPwd: url.includes('?pwd='),
-            extractedPwd: pwd,
-            finalPwd: updateData.pwd
+            updateData
         });
         
         // 发送更新请求
