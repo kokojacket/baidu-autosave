@@ -332,11 +332,21 @@ def update_task():
     if not task:
         return jsonify({'success': False, 'message': f'未找到任务(order={task_order})'})
     
+    # 获取新的URL和密码
+    new_url = data.get('url', '').strip()
+    new_pwd = data.get('pwd', '').strip()
+    
+    # 如果URL中包含密码部分，提取出来
+    if '?pwd=' in new_url:
+        new_url, new_pwd = new_url.split('?pwd=')
+        new_url = new_url.strip()
+        new_pwd = new_pwd.strip()
+    
     # 创建更新数据对象，保持原有状态
     update_data = {
-        'url': data.get('url', '').strip(),
+        'url': new_url,
         'save_dir': data.get('save_dir', '').strip(),
-        'pwd': data.get('pwd', ''),
+        'pwd': new_pwd,  # 使用处理后的新密码
         'name': data.get('name', '').strip(),
         'cron': data.get('cron', '').strip(),
         'category': data.get('category', '').strip(),
