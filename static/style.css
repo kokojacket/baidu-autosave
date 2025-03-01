@@ -14,12 +14,19 @@
     --shadow-light: 0 1px 2px rgba(0,0,0,0.1);
     --shadow-medium: 0 2px 4px rgba(0,0,0,0.1);
     --shadow-heavy: 0 4px 8px rgba(0,0,0,0.1);
+    --scrollbar-width: 12px; /* 新增：统一滚动条宽度 */
 }
 
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+    display: none;
 }
 
 body {
@@ -69,12 +76,13 @@ body {
 /* 主内容区样式 */
 .main-content {
     min-height: 100vh;
-    padding-top: 56px; /* 顶部导航高度 */
+    padding-top: 56px;
     display: flex;
     min-height: calc(100vh - 124px);
     max-width: 1200px;
     margin: 64px auto 0;
     margin-bottom: 60px !important;
+    overflow: hidden;
 }
 
 /* 侧边栏样式 */
@@ -114,14 +122,33 @@ body {
     flex: 1;
     padding: 24px;
     background: white;
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .panel {
     display: none;
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
 }
 
 .panel.active {
     display: block;
+}
+
+/* 任务列表和用户列表容器统一样式 */
+.task-list,
+.user-list-container {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 16px;
+    overflow-y: auto;
 }
 
 /* 顶部操作栏 */
@@ -188,6 +215,7 @@ body {
 .status-filter {
     display: flex;
     gap: 8px;
+    overflow-x: auto;
 }
 
 .status-btn {
@@ -231,89 +259,14 @@ body {
     }
     
     .content-panels {
-        width: 100%;
-        max-width: 600px;
-        margin: 0 auto; /* 移除之前的上边距，因为已经在main-content中设置了 */
-        padding: 16px 8px; /* 增加上下内边距 */
-        box-sizing: border-box;
+        padding: 16px 8px;
+        overflow: hidden;
     }
     
-    .operations-bar {
-        position: fixed;
-        left: 0;
-        right: 0;
-        top: 64px; /* 调整为与顶部导航栏高度一致 */
-        padding: 8px;
-        background: white;
-        z-index: 1000;
-        width: 100%;
-        box-sizing: border-box;
-        box-shadow: var(--shadow-light);
-    }
-    
-    .operations-top {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 4px;
-        width: 100%;
-        align-items: center;
-    }
-    
-    .search-box {
-        flex: 1;
-        min-width: 160px;
-        margin: 0;
-    }
-    
-    .search-box input {
-        height: 32px;
-        padding: 4px 12px 4px 32px;
-        font-size: 14px;
-        border-radius: 6px;
-    }
-    
-    .action-group {
-        display: flex;
-        flex-direction: row;
-        gap: 4px;
-        margin: 0;
-    }
-    
-    .action-group .btn {
-        height: 32px;
-        padding: 0 8px;
-        font-size: 13px;
-        min-width: unset;
-        white-space: nowrap;
-    }
-    
-    .status-filter {
-        width: 100%;
-        margin: 2px 0;
-        padding: 2px 0;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        display: flex;
-        gap: 4px;
-    }
-    
-    .status-filter::-webkit-scrollbar {
-        display: none;
-    }
-    
-    .status-btn {
-        font-size: 12px;
-        padding: 4px 10px;
-        height: 24px;
-        border-radius: 12px;
-        margin: 0;
-        flex-shrink: 0;
-    }
-
-    .content-panels {
-        margin-top: 92px;
+    .panel {
+        overflow-y: auto;
+        padding-right: 0;
+        margin-right: 0;
     }
 }
 
@@ -1085,14 +1038,16 @@ datalist option:hover {
 /* 用户管理面板样式 */
 .user-list-container {
     padding: 16px;
-    overflow-y: auto;
-    max-height: calc(100vh - 200px);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .user-list {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    width: 100%;
 }
 
 .user-item {
@@ -1945,10 +1900,9 @@ textarea:focus {
 
 /* 任务列表基础样式 */
 .task-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* 任务项基础样式 */
