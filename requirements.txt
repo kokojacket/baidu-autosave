@@ -11,6 +11,6 @@ requests==2.31.0
 pytz==2023.3.post1
 python-engineio==4.8.0
 python-socketio==5.10.0
-baidupcs-py==0.7.6
-Cython==3.0.6
+# Cython==3.0.6 已在Dockerfile中单独安装
+# baidupcs-py==0.7.6 已改为本地安装
 eventlet==0.35.1 

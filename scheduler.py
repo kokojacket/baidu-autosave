@@ -14,6 +14,7 @@ import time
 from threading import Lock
 import pytz
 import eventlet  # 添加 eventlet 导入
+import datetime
 
 class TaskScheduler:
     instance = None
@@ -105,13 +106,12 @@ class TaskScheduler:
                     if len(parts) != 5:
                         raise ValueError("Invalid cron expression format")
                     
-                    day_of_week = parts[4].replace('6', 'sat').replace('5', 'fri')
                     trigger = CronTrigger(
                         minute=parts[0],
                         hour=parts[1],
                         day=parts[2],
                         month=parts[3],
-                        day_of_week=day_of_week,
+                        day_of_week=parts[4],
                         timezone=pytz.timezone('Asia/Shanghai')
                     )
 
@@ -141,6 +141,9 @@ class TaskScheduler:
             self.scheduler.start()
             self.is_running = True  # 设置运行状态
             logger.success("调度器已启动")
+            
+            current_time = datetime.datetime.now(pytz.timezone('Asia/Shanghai'))
+            logger.info(f"当前时间: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
             
         except Exception as e:
             logger.error(f"启动调度器失败: {str(e)}")
@@ -230,8 +233,6 @@ class TaskScheduler:
                     if len(parts) != 5:
                         raise ValueError("Invalid cron expression format")
                     
-                    day_of_week = parts[4].replace('6', 'sat').replace('5', 'fri')
-                    
                     self.scheduler.add_job(
                         self._execute_single_task,
                         CronTrigger(
@@ -239,7 +240,7 @@ class TaskScheduler:
                             hour=parts[1],
                             day=parts[2],
                             month=parts[3],
-                            day_of_week=day_of_week,
+                            day_of_week=parts[4],
                             timezone=pytz.timezone('Asia/Shanghai')
                         ),
                         args=[task],
@@ -264,8 +265,6 @@ class TaskScheduler:
                             if len(parts) != 5:
                                 continue
                                 
-                            day_of_week = parts[4].replace('6', 'sat').replace('5', 'fri')
-                            
                             self.scheduler.add_job(
                                 self._execute_single_task,
                                 CronTrigger(
@@ -273,7 +272,7 @@ class TaskScheduler:
                                     hour=parts[1],
                                     day=parts[2],
                                     month=parts[3],
-                                    day_of_week=day_of_week,
+                                    day_of_week=parts[4],
                                     timezone=pytz.timezone('Asia/Shanghai')
                                 ),
                                 args=[task],

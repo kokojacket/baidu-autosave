@@ -14,6 +14,8 @@ COPY *.py ./
 COPY static/ static/
 COPY templates/ templates/
 COPY config/config.template.json /app/template/config.template.json
+# 复制修改后的BaiduPCS-Py包
+COPY BaiduPCS-Py-0.7.6/ /app/BaiduPCS-Py-0.7.6/
 
 # 创建必要的目录
 RUN mkdir -p config && \
@@ -28,7 +30,13 @@ fi\n\
 exec python web_app.py' > /app/start.sh && \
     chmod +x /app/start.sh
 
-# 安装Python依赖
+# 安装构建BaiduPCS-Py所需的依赖
+RUN pip install --no-cache-dir wheel setuptools Cython==3.0.6
+
+# 安装修改后的本地BaiduPCS-Py包
+RUN pip install --no-cache-dir /app/BaiduPCS-Py-0.7.6 --no-build-isolation
+
+# 安装其他Python依赖
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 设置环境变量
