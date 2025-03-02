@@ -17,7 +17,7 @@
 
 ## 系统要求
 
-- Python 3.8+
+- Python 3.10（baidupcs-py-0.7.6只支持3.10）
 - Windows/Linux/MacOS
 
 ## 安装说明

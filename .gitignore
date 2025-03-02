@@ -6,3 +6,5 @@ __pycache__/
 log/
 *.log
 Repository overview.md
+__pycache__/scheduler.cpython-310.pyc
+__pycache__/storage.cpython-310.pyc
