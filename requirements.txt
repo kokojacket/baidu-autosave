@@ -11,6 +11,6 @@ requests==2.31.0
 pytz==2023.3.post1
 python-engineio==4.8.0
 python-socketio==5.10.0
-baidupcs-py==0.7.6
 Cython==3.0.6
+baidupcs-py==0.7.6
 eventlet==0.35.1 
