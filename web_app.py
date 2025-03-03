@@ -20,6 +20,8 @@ import time
 from gevent.queue import Queue
 from geventwebsocket.exceptions import WebSocketError
 import socket
+import requests
+import threading
 
 # 创建日志目录
 os.makedirs('log', exist_ok=True)
@@ -1120,6 +1122,84 @@ def update_auth():
     storage._save_config()
     
     return jsonify({'success': True, 'message': '登录凭据更新成功'})
+
+@app.route('/api/check_update', methods=['GET'])
+@handle_api_error
+def check_update():
+    """
+    代理GitHub API请求，获取最新版本信息
+    由后端请求可以避免前端直接请求GitHub API时的跨域和速率限制问题
+    """
+    try:
+        # 设置GitHub仓库信息
+        github_repo = os.environ.get('GITHUB_REPO', 'kokojacket/baidu-autosave')
+        
+        # 添加缓存控制
+        cache_file = os.path.join('log', 'version_cache.json')
+        cache_valid = False
+        
+        # 检查缓存是否存在且有效(24小时内)
+        if os.path.exists(cache_file):
+            try:
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    cache_data = json.load(f)
+                    cache_time = cache_data.get('timestamp', 0)
+                    # 缓存24小时有效
+                    if time.time() - cache_time < 86400:
+                        cache_valid = True
+                        return jsonify(cache_data)
+            except Exception as e:
+                logger.warning(f"读取版本缓存失败: {str(e)}")
+        
+        if not cache_valid:
+            # 使用requests库请求GitHub API
+            headers = {
+                'User-Agent': 'baidu-autosave-backend',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+            response = requests.get(
+                f'https://api.github.com/repos/{github_repo}/releases/latest',
+                headers=headers,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                release_info = response.json()
+                result = {
+                    'latest_version': release_info.get('tag_name'),
+                    'release_url': release_info.get('html_url'),
+                    'published_at': release_info.get('published_at'),
+                    'timestamp': int(time.time())
+                }
+                
+                # 保存到缓存
+                try:
+                    with open(cache_file, 'w', encoding='utf-8') as f:
+                        json.dump(result, f)
+                except Exception as e:
+                    logger.warning(f"保存版本缓存失败: {str(e)}")
+                
+                return jsonify(result)
+            else:
+                # 如果API请求失败但有缓存，仍返回缓存的结果
+                if os.path.exists(cache_file):
+                    try:
+                        with open(cache_file, 'r', encoding='utf-8') as f:
+                            return jsonify(json.load(f))
+                    except:
+                        pass
+                
+                # 完全失败时返回空结果
+                return jsonify({
+                    'latest_version': None,
+                    'error': f'GitHub API请求失败: {response.status_code}'
+                }), 200  # 仍返回200以避免前端显示错误
+    except Exception as e:
+        logger.error(f"检查更新失败: {str(e)}")
+        return jsonify({
+            'latest_version': None,
+            'error': f'检查更新出错: {str(e)}'
+        }), 200  # 返回200以避免前端显示错误
 
 if __name__ == '__main__':
     try:
