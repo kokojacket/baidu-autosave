@@ -14,11 +14,9 @@
     },
     "notify": {
         "enabled": false,
-        "channels": {
-            "pushplus": {
-                "token": "",
-                "topic": ""
-            }
+        "direct_fields": {
+            "PUSH_PLUS_TOKEN": "",
+            "PUSH_PLUS_USER": ""
         }
     },
     "scheduler": {

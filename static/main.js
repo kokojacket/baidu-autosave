@@ -1,3 +1,7 @@
+// 应用版本号和配置
+const APP_VERSION = 'v1.0.4';
+const GITHUB_REPO = 'kokojacket/baidu-autosave';
+
 // 本地缓存管理
 const CACHE_KEY = {
     TASKS: 'baidu_autosave_tasks',
@@ -475,8 +479,7 @@ function renderConfig() {
     console.log('开始渲染配置，当前状态:', state);
     
     const notifyEnabled = document.getElementById('notify-enabled');
-    const pushplusToken = document.getElementById('pushplus-token');
-    const pushplusTopic = document.getElementById('pushplus-topic');
+    const notifyFieldsContainer = document.getElementById('notify-fields-container');
     const globalCron = document.getElementById('global-cron');
     
     if (!globalCron) {
@@ -488,8 +491,42 @@ function renderConfig() {
     if (state.config.notify) {
         console.log('渲染通知配置:', state.config.notify);
         notifyEnabled.checked = state.config.notify.enabled;
-        pushplusToken.value = state.config.notify.channels?.pushplus?.token || '';
-        pushplusTopic.value = state.config.notify.channels?.pushplus?.topic || '';
+        
+        // 清空现有字段
+        notifyFieldsContainer.innerHTML = '';
+        
+        // 将通知配置转换为扁平结构
+        const notifyFields = {};
+        
+        // 检查是否使用新格式
+        if (state.config.notify.direct_fields) {
+            // 使用新格式
+            Object.assign(notifyFields, state.config.notify.direct_fields);
+        } else if (state.config.notify.channels) {
+            // 转换旧格式
+            // 处理pushplus渠道
+            if (state.config.notify.channels.pushplus) {
+                const pushplus = state.config.notify.channels.pushplus;
+                if (pushplus.token) {
+                    notifyFields['PUSH_PLUS_TOKEN'] = pushplus.token;
+                }
+                if (pushplus.topic) {
+                    notifyFields['PUSH_PLUS_USER'] = pushplus.topic;
+                }
+            }
+            
+            // 如果有其他渠道，这里可以继续添加转换逻辑
+        }
+        
+        // 添加自定义字段
+        if (state.config.notify.custom_fields) {
+            Object.assign(notifyFields, state.config.notify.custom_fields);
+        }
+        
+        // 渲染通知字段
+        Object.entries(notifyFields).forEach(([key, value]) => {
+            addNotifyFieldToUI(key, value);
+        });
     }
     
     // 处理定时配置
@@ -516,6 +553,74 @@ function renderConfig() {
     const cronValue = cronRules.join(';');
     console.log('最终定时规则字符串:', cronValue);
     globalCron.value = cronValue;
+}
+
+// 添加通知字段到UI
+function addNotifyFieldToUI(key, value) {
+    const container = document.getElementById('notify-fields-container');
+    
+    const fieldDiv = document.createElement('div');
+    fieldDiv.className = 'notify-field';
+    fieldDiv.dataset.key = key;
+    
+    const keyInput = document.createElement('input');
+    keyInput.type = 'text';
+    keyInput.className = 'field-name';
+    keyInput.value = key;
+    keyInput.readOnly = true;
+    
+    const valueInput = document.createElement('input');
+    valueInput.type = 'text';
+    valueInput.className = 'field-value';
+    valueInput.value = value || '';
+    valueInput.placeholder = '字段值';
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'icon-btn delete';
+    deleteBtn.innerHTML = '<i class="material-icons">delete</i>';
+    deleteBtn.onclick = async function() {
+        try {
+            // 确认删除
+            if (!confirm(`确定要删除字段 ${key} 吗？`)) {
+                return;
+            }
+            
+            showLoading(`正在删除字段 ${key}...`);
+            
+            // 直接从UI中删除
+            container.removeChild(fieldDiv);
+            
+            // 如果不是初始加载时渲染的，直接返回
+            const saveBtn = document.getElementById('save-settings-btn');
+            if (saveBtn && !saveBtn.disabled) {
+                showSuccess(`字段 ${key} 已删除，点击保存按钮生效`);
+                hideLoading();
+                return;
+            }
+            
+            // 发送请求删除远程字段
+            const result = await callApi('notify/fields', 'DELETE', { name: key });
+            if (result.success) {
+                showSuccess(result.message || `字段 ${key} 已删除`);
+            } else {
+                throw new Error(result.message || `删除字段 ${key} 失败`);
+            }
+        } catch (error) {
+            console.error('删除通知字段失败:', error);
+            showError(error.message || '删除通知字段失败');
+            // 如果删除失败，重新渲染配置
+            renderConfig();
+        } finally {
+            hideLoading();
+        }
+    };
+    
+    fieldDiv.appendChild(keyInput);
+    fieldDiv.appendChild(valueInput);
+    fieldDiv.appendChild(deleteBtn);
+    
+    container.appendChild(fieldDiv);
 }
 
 // 状态栏更新
@@ -968,9 +1073,18 @@ async function saveConfig() {
         saveBtn.innerHTML = '<i class="material-icons">hourglass_empty</i> 保存中...';
         
         const notifyEnabled = document.getElementById('notify-enabled').checked;
-        const pushplusToken = document.getElementById('pushplus-token').value.trim();
-        const pushplusTopic = document.getElementById('pushplus-topic').value.trim();
         const globalCron = document.getElementById('global-cron').value.trim();
+        
+        // 收集所有通知字段
+        const directFields = {};
+        const notifyFieldElements = document.querySelectorAll('.notify-field');
+        notifyFieldElements.forEach(field => {
+            const key = field.querySelector('.field-name').value;
+            const value = field.querySelector('.field-value').value.trim();
+            if (key && value) {
+                directFields[key] = value;
+            }
+        });
         
         // 处理定时规则
         const cronRules = globalCron.split(';')
@@ -978,16 +1092,12 @@ async function saveConfig() {
             .filter(rule => rule.length > 0);
             
         console.log('处理后的定时规则:', cronRules);
+        console.log('收集到的通知字段:', directFields);
         
         const config = {
             notify: {
                 enabled: notifyEnabled,
-                channels: {
-                    pushplus: {
-                        token: pushplusToken,
-                        topic: pushplusTopic
-                    }
-                }
+                direct_fields: directFields
             },
             cron: {
                 default_schedule: cronRules,
@@ -1461,19 +1571,61 @@ async function handleUserSubmit(event) {
     }
 }
 
+// 检查应用更新
+async function checkForUpdates() {
+    try {
+        const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+        if (!response.ok) {
+            console.warn('无法获取最新版本信息');
+            return;
+        }
+        
+        const releaseInfo = await response.json();
+        const latestVersion = releaseInfo.tag_name;
+        
+        console.log(`检查版本：当前 ${APP_VERSION} 最新 ${latestVersion}`);
+        
+        if (latestVersion && latestVersion !== APP_VERSION) {
+            // 显示更新指示器
+            const updateIndicator = document.getElementById('update-indicator');
+            if (updateIndicator) {
+                updateIndicator.classList.add('active');
+                
+                // 添加点击事件，点击后导航到发布页面
+                const versionContainer = document.querySelector('.version-container');
+                if (versionContainer) {
+                    versionContainer.style.cursor = 'pointer';
+                    versionContainer.title = `发现新版本 ${latestVersion}，点击查看更新`;
+                    versionContainer.addEventListener('click', () => {
+                        window.open(`https://github.com/${GITHUB_REPO}/releases/latest`, '_blank');
+                    });
+                }
+            }
+        }
+    } catch (error) {
+        console.error('检查更新失败:', error);
+    }
+}
+
 // 初始化应用
 async function initializeApp() {
     try {
-        // 1. 创建必要的UI元素
+        // 1. 设置版本号显示
+        document.getElementById('app-version').textContent = APP_VERSION;
+        
+        // 2. 创建必要的UI元素
         createNotificationContainer();
         
-        // 2. 初始化数据
+        // 3. 初始化数据
         await initializeData();
         
-        // 3. 初始化WebSocket连接
+        // 4. 初始化WebSocket连接
         socket = initWebSocket();
         
-        // 4. 添加事件监听
+        // 5. 检查是否有新版本
+        checkForUpdates();
+        
+        // 6. 添加事件监听
         initializeEventListeners();
         
     } catch (error) {
@@ -1486,6 +1638,15 @@ async function initializeApp() {
 function initializeEventListeners() {
     // 导航按钮点击事件处理
     initNavigation();
+    
+    const taskForm = document.getElementById('task-form');
+    const userForm = document.getElementById('user-form');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const testNotifyBtn = document.getElementById('test-notify-btn');
+    const addNotifyFieldBtn = document.getElementById('add-notify-field');
+    const addPushplusTokenBtn = document.getElementById('add-pushplus-token-btn');
+    const addPushplusUserBtn = document.getElementById('add-pushplus-user-btn');
+    const addBarkBtn = document.getElementById('add-bark-btn');
     
     // 任务搜索
     const searchInput = document.querySelector('.search-input');
@@ -1506,107 +1667,114 @@ function initializeEventListeners() {
         });
     }
     
-    // 状态筛选
-    document.querySelectorAll('.status-btn').forEach(btn => {
-        // 同时监听 click 和 touchend 事件
-        ['click', 'touchend'].forEach(eventType => {
-            btn.addEventListener(eventType, (e) => {
-                e.preventDefault(); // 阻止默认行为
-                document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                filterTasks();
-            }, { passive: false });
-        });
-    });
-    
-    // 分类筛选
-    document.querySelectorAll('.category-btn').forEach(btn => {
-        ['click', 'touchend'].forEach(eventType => {
-            btn.addEventListener(eventType, (e) => {
-                e.preventDefault();
-                const category = btn.dataset.category;
-                filterByCategory(category);
-            }, { passive: false });
-        });
-    });
-    
-    // 添加任务按钮
-    const addTaskBtn = document.getElementById('add-task-btn');
-    if (addTaskBtn) {
-        ['click', 'touchend'].forEach(eventType => {
-            addTaskBtn.addEventListener(eventType, (e) => {
-                e.preventDefault();
-                document.getElementById('task-form').reset();
-                showModal('task-modal');
-            }, { passive: false });
-        });
-    }
-    
-    // 添加用户按钮
-    const addUserBtn = document.getElementById('add-user-btn');
-    if (addUserBtn) {
-        ['click', 'touchend'].forEach(eventType => {
-            addUserBtn.addEventListener(eventType, (e) => {
-                e.preventDefault();
-                document.getElementById('user-form').reset();
-                showModal('user-modal');
-            }, { passive: false });
-        });
-    }
-    
-    // 保存设置按钮
-    const saveSettingsBtn = document.getElementById('save-settings-btn');
-    if (saveSettingsBtn) {
-        ['click', 'touchend'].forEach(eventType => {
-            saveSettingsBtn.addEventListener(eventType, (e) => {
-                e.preventDefault();
-                saveConfig();
-            }, { passive: false });
-        });
-    }
-    
-    // 测试通知按钮
-    const testNotifyBtn = document.getElementById('test-notify-btn');
-    if (testNotifyBtn) {
-        ['click', 'touchend'].forEach(eventType => {
-            testNotifyBtn.addEventListener(eventType, (e) => {
-                e.preventDefault();
-                testNotify();
-            }, { passive: false });
-        });
-    }
-    
-    // 表单提交事件（修改为一次性绑定）
-    const taskForm = document.getElementById('task-form');
-    if (taskForm && !taskForm.dataset.listenerAdded) {
+    // 任务表单提交
+    if (taskForm) {
         taskForm.addEventListener('submit', handleTaskSubmit);
-        taskForm.dataset.listenerAdded = true; // 标记已添加监听器
     }
     
-    const userForm = document.getElementById('user-form');
+    // 用户表单提交
     if (userForm) {
         userForm.addEventListener('submit', handleUserSubmit);
     }
     
-    // 初始化拖拽功能
-    initDragAndDrop();
+    // 配置保存按钮
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', saveConfig);
+    }
     
-    // 确保所有按钮都能正常工作
-    document.querySelectorAll('.btn, .nav-btn, .btn-icon').forEach(btn => {
-        btn.addEventListener('touchstart', function() {
-            this.style.opacity = '0.7';
-        }, { passive: true });
-
-        btn.addEventListener('touchend', function() {
-            this.style.opacity = '';
-        }, { passive: true });
-
-        btn.addEventListener('touchcancel', function() {
-            this.style.opacity = '';
-        }, { passive: true });
-    });
-
-    // 更新登录凭据按钮事件
+    // 测试通知按钮
+    if (testNotifyBtn) {
+        testNotifyBtn.addEventListener('click', async () => {
+            try {
+                showLoading('发送测试通知...');
+                await testNotify();
+            } catch (error) {
+                showError(error.message || '发送测试通知失败');
+            } finally {
+                hideLoading();
+            }
+        });
+    }
+    
+    // 添加通知字段按钮
+    if (addNotifyFieldBtn) {
+        addNotifyFieldBtn.addEventListener('click', () => {
+            const keyInput = document.getElementById('new-notify-key');
+            const valueInput = document.getElementById('new-notify-value');
+            
+            const key = keyInput.value.trim();
+            const value = valueInput.value.trim();
+            
+            if (!key) {
+                showError('字段名称不能为空');
+                return;
+            }
+            
+            // 检查字段是否已存在
+            const existingField = document.querySelector(`.notify-field[data-key="${key}"]`);
+            if (existingField) {
+                showError(`字段 ${key} 已存在`);
+                return;
+            }
+            
+            // 添加到界面
+            addNotifyFieldToUI(key, value);
+            
+            // 清空输入框
+            keyInput.value = '';
+            valueInput.value = '';
+            keyInput.focus();
+            
+            showSuccess(`添加通知字段 ${key} 成功`);
+        });
+    }
+    
+    // 快速添加PUSH_PLUS_TOKEN按钮
+    if (addPushplusTokenBtn) {
+        addPushplusTokenBtn.addEventListener('click', () => {
+            // 检查是否已存在
+            const tokenField = document.querySelector('.notify-field[data-key="PUSH_PLUS_TOKEN"]');
+            
+            if (!tokenField) {
+                addNotifyFieldToUI('PUSH_PLUS_TOKEN', '');
+                showSuccess('已添加PUSH_PLUS_TOKEN字段');
+            } else {
+                showError('PUSH_PLUS_TOKEN字段已存在');
+            }
+        });
+    }
+    
+    // 快速添加PUSH_PLUS_USER按钮
+    if (addPushplusUserBtn) {
+        addPushplusUserBtn.addEventListener('click', () => {
+            // 检查是否已存在
+            const userField = document.querySelector('.notify-field[data-key="PUSH_PLUS_USER"]');
+            
+            if (!userField) {
+                addNotifyFieldToUI('PUSH_PLUS_USER', '');
+                showSuccess('已添加PUSH_PLUS_USER字段');
+            } else {
+                showError('PUSH_PLUS_USER字段已存在');
+            }
+        });
+    }
+    
+    // 快速添加Bark按钮
+    if (addBarkBtn) {
+        addBarkBtn.addEventListener('click', () => {
+            // 检查是否已存在
+            const barkField = document.querySelector('.notify-field[data-key="BARK_PUSH"]');
+            
+            if (!barkField) {
+                addNotifyFieldToUI('BARK_PUSH', '');
+                showSuccess('已添加BARK_PUSH字段');
+            } else {
+                showError('BARK_PUSH字段已存在');
+            }
+        });
+    }
+    
+    // 登录凭据更新按钮
     const updateAuthBtn = document.getElementById('update-auth-btn');
     if (updateAuthBtn) {
         updateAuthBtn.addEventListener('click', async () => {
@@ -1615,25 +1783,92 @@ function initializeEventListeners() {
             const newPassword = document.getElementById('new-password').value.trim();
             const confirmPassword = document.getElementById('confirm-password').value.trim();
             
-            // 验证输入
             if (!newUsername || !oldPassword || !newPassword || !confirmPassword) {
-                showError('请填写所有必填字段');
+                showError('所有字段都必须填写');
                 return;
             }
             
             if (newPassword !== confirmPassword) {
-                showError('新密码与确认密码不匹配');
+                showError('两次输入的密码不一致');
                 return;
             }
             
-            // 调用更新API
-            await updateAuth({
-                username: newUsername,
-                old_password: oldPassword,
-                password: newPassword
-            });
+            try {
+                showLoading('更新登录凭据...');
+                await updateAuth({
+                    username: newUsername,
+                    password: newPassword,
+                    old_password: oldPassword
+                });
+                
+                // 清空表单
+                document.getElementById('new-username').value = '';
+                document.getElementById('old-password').value = '';
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+                
+                showSuccess('登录凭据已更新，请使用新凭据重新登录');
+                
+                // 3秒后退出登录
+                setTimeout(() => {
+                    logout();
+                }, 3000);
+            } catch (error) {
+                showError(error.message || '更新登录凭据失败');
+            } finally {
+                hideLoading();
+            }
         });
     }
+    
+    // 添加任务按钮
+    const addTaskBtn = document.getElementById('add-task-btn');
+    if (addTaskBtn) {
+        addTaskBtn.addEventListener('click', () => {
+            // 清空表单
+            const form = document.getElementById('task-form');
+            if (form) {
+                form.reset();
+                form.elements['task_id'].value = '';
+            }
+            
+            // 显示模态框
+            showModal('task-modal');
+        });
+    }
+    
+    // 添加用户按钮
+    const addUserBtn = document.getElementById('add-user-btn');
+    if (addUserBtn) {
+        addUserBtn.addEventListener('click', () => {
+            // 清空表单
+            const form = document.getElementById('user-form');
+            if (form) form.reset();
+            
+            // 显示模态框
+            showModal('user-modal');
+        });
+    }
+    
+    // 状态筛选按钮
+    document.querySelectorAll('.status-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterTasks();
+        });
+    });
+    
+    // 分类筛选
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const category = btn.dataset.category;
+            filterByCategory(category);
+        });
+    });
+
+    // 初始化拖拽功能
+    initDragAndDrop();
 }
 
 // 更新登录状态显示

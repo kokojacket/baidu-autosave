@@ -12,3 +12,4 @@ test_saturday_job.py
 test_dow_mapping.py
 test_cron_convert.py
 __pycache__/scheduler.cpython-310.pyc
+test_pushplus.py

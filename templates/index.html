@@ -26,7 +26,10 @@
             <div class="nav-left">
                 <i class="material-icons">cloud_queue</i>
                 <span class="nav-title">百度自动转存</span>
-                <span class="version">v1.0.3</span>
+                <span class="version-container">
+                    <span class="version" id="app-version"></span>
+                    <span class="update-indicator" id="update-indicator"></span>
+                </span>
                 <a href="https://github.com/kokojacket/baidu-autosave" target="_blank" class="github-link">
                     <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="github-icon">
                         <desc>Github Streamline Icon: https://streamlinehq.com</desc>
@@ -139,18 +142,43 @@
                             <input type="checkbox" id="notify-enabled" name="notify-enabled">
                             <label for="notify-enabled">启用通知</label>
                         </div>
-                        <div class="input-group">
-                            <label for="pushplus-token">PushPlus Token</label>
-                            <input type="text" id="pushplus-token" name="pushplus-token" 
-                                   placeholder="请输入您的PushPlus Token">
-                            <div class="help-text">在 pushplus.plus 网站注册并获取 Token</div>
+                        
+                        <!-- 动态通知字段 -->
+                        <div id="notify-fields-container">
+                            <!-- 这里会动态添加通知字段 -->
                         </div>
-                        <div class="input-group">
-                            <label for="pushplus-topic">PushPlus Topic</label>
-                            <input type="text" id="pushplus-topic" name="pushplus-topic" 
-                                   placeholder="可选，用于群组推送">
-                            <div class="help-text">群组编码，可用于群组推送</div>
+                        
+                        <!-- 快速添加常用通知字段 -->
+                        <div class="quick-notify-buttons">
+                            <button type="button" id="add-pushplus-token-btn" class="secondary small-btn">
+                                添加PUSH_PLUS_TOKEN
+                            </button>
+                            <button type="button" id="add-pushplus-user-btn" class="secondary small-btn">
+                                添加PUSH_PLUS_USER
+                            </button>
+                            <button type="button" id="add-bark-btn" class="secondary small-btn">
+                                添加BARK_PUSH
+                            </button>
                         </div>
+                        
+                        <!-- 添加新通知字段 -->
+                        <div class="input-group">
+                            <div class="input-row">
+                                <input type="text" id="new-notify-key" placeholder="通知字段名称">
+                                <input type="text" id="new-notify-value" placeholder="字段值">
+                                <button type="button" id="add-notify-field" class="icon-btn">
+                                    <i class="material-icons">add</i>
+                                </button>
+                            </div>
+                            <div class="help-text">
+                                添加自定义通知字段，常用字段: <br/>
+                                PUSH_PLUS_TOKEN - PushPlus的令牌<br/>
+                                PUSH_PLUS_USER - PushPlus的群组编码<br/>
+                                BARK_PUSH - Bark推送的令牌<br/>
+                                更多字段请参考通知模块文档
+                            </div>
+                        </div>
+                        
                         <div class="btn-group">
                             <button type="button" id="test-notify-btn" class="secondary">
                                 测试通知
@@ -305,7 +333,6 @@
                 <div class="form-group">
                     <label>Cookies</label>
                     <textarea name="cookies" required rows="5" placeholder="请输入百度网盘的cookies"></textarea>
-                    <div class="form-help">提示：请在百度网盘网页版登录后，按F12打开开发者工具，在Console中输入 document.cookie 获取</div>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn secondary" onclick="hideModal('user-modal')">取消</button>

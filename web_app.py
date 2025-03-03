@@ -508,7 +508,12 @@ def execute_task():
                     'failed': [],
                     'transferred_files': {task['url']: transferred_files}
                 }
-                notify_send('百度自动追更', generate_transfer_notification(task_results))
+                
+                try:
+                    # 发送转存成功通知
+                    notify_send('百度自动追更', generate_transfer_notification(task_results))
+                except Exception as e:
+                    logger.error(f"发送转存成功通知失败: {str(e)}")
                 
                 storage.update_task_status_by_order(
                     task_order, 
@@ -646,6 +651,7 @@ def update_config():
     storage.config.update(data)
     storage._save_config()
     
+    # 处理调度器配置更新
     if scheduler and ('cron' in data or 'scheduler' in data):
         try:
             was_running = scheduler.is_running
@@ -670,6 +676,19 @@ def update_config():
                 'message': f'配置已保存，但更新调度器失败: {str(e)}'
             })
     
+    # 处理通知配置更新
+    if scheduler and 'notify' in data:
+        try:
+            # 重新初始化通知配置
+            scheduler._init_notify()
+            logger.info('通知配置已更新')
+        except Exception as e:
+            logger.error(f'更新通知配置失败: {str(e)}')
+            return jsonify({
+                'success': False,
+                'message': f'配置已保存，但更新通知配置失败: {str(e)}'
+            })
+    
     return jsonify({'success': True, 'message': '更新配置成功'})
 
 @app.route('/api/notify/test', methods=['POST'])
@@ -681,9 +700,41 @@ def test_notify():
         return jsonify({'success': False, 'message': '通知功能未启用'})
         
     try:
-        notify_send('百度网盘自动追更', '这是一条测试通知,如果你收到了这条消息,说明通知配置正确!')
-        return jsonify({'success': True, 'message': '测试通知已发送'})
+        # 确保通知配置正确加载
+        notify_config = storage.config.get('notify', {})
+        if notify_config and notify_config.get('enabled'):
+            # 重新应用通知配置
+            from notify import push_config, send as notify_send
+            
+            # 应用直接字段配置
+            if 'direct_fields' in notify_config:
+                for key, value in notify_config.get('direct_fields', {}).items():
+                    push_config[key] = value
+            # 兼容旧版配置
+            elif 'channels' in notify_config and 'pushplus' in notify_config['channels']:
+                pushplus = notify_config['channels']['pushplus']
+                if 'token' in pushplus:
+                    push_config['PUSH_PLUS_TOKEN'] = pushplus['token']
+                if 'topic' in pushplus:
+                    push_config['PUSH_PLUS_USER'] = pushplus['topic']
+            
+            # 应用自定义字段
+            if 'custom_fields' in notify_config:
+                for key, value in notify_config.get('custom_fields', {}).items():
+                    push_config[key] = value
+            
+            # 使用时间戳确保每次内容不同，避免重复内容限制
+            import time
+            timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+            
+            # 使用notify_send发送通知
+            notify_send('百度网盘自动追更', f'这是一条测试通知,如果你收到了这条消息,说明通知配置正确! 测试时间: {timestamp}')
+            
+            return jsonify({'success': True, 'message': '测试通知已发送'})
+        else:
+            return jsonify({'success': False, 'message': '通知功能未启用'})
     except Exception as e:
+        logger.error(f"发送测试通知失败: {str(e)}")
         return jsonify({'success': False, 'message': f'发送测试通知失败: {str(e)}'})
 
 @app.route('/api/tasks/execute-all', methods=['POST'])
@@ -835,6 +886,47 @@ def add_notify_field():
     storage._save_config()
     
     return jsonify({'success': True, 'message': '添加通知字段成功'})
+
+@app.route('/api/notify/fields', methods=['DELETE'])
+@login_required
+@handle_api_error
+def delete_notify_field():
+    """删除通知字段"""
+    if not storage:
+        return jsonify({'success': False, 'message': '存储未初始化'})
+        
+    data = request.get_json()
+    field_name = data.get('name', '').strip()
+    
+    if not field_name:
+        return jsonify({'success': False, 'message': '字段名称不能为空'})
+        
+    notify_config = storage.config.get('notify', {})
+    
+    # 检查字段在哪个配置中
+    field_deleted = False
+    
+    # 1. 检查direct_fields
+    if 'direct_fields' in notify_config and field_name in notify_config['direct_fields']:
+        del notify_config['direct_fields'][field_name]
+        field_deleted = True
+    
+    # 2. 检查custom_fields (兼容旧版本)
+    if not field_deleted and 'custom_fields' in notify_config and field_name in notify_config['custom_fields']:
+        del notify_config['custom_fields'][field_name]
+        field_deleted = True
+    
+    if not field_deleted:
+        return jsonify({'success': False, 'message': f'未找到字段: {field_name}'})
+    
+    storage.config['notify'] = notify_config
+    storage._save_config()
+    
+    # 重新初始化通知配置
+    if scheduler:
+        scheduler._init_notify()
+    
+    return jsonify({'success': True, 'message': f'字段 {field_name} 已删除'})
 
 @app.route('/api/task/reorder', methods=['POST'])
 @login_required

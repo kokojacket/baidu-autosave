@@ -442,12 +442,33 @@ class TaskScheduler:
             notify_config = self.storage.config.get('notify', {})
             if notify_config and notify_config.get('enabled'):
                 # 更新推送配置
-                from notify import push_config
-                for channel, config in notify_config.get('channels', {}).items():
-                    if channel == 'pushplus':
-                        push_config['PUSH_PLUS_TOKEN'] = config.get('token')
-                        push_config['PUSH_PLUS_USER'] = config.get('topic')
-                logger.info("通知配置已加载")
+                from notify import push_config, send as notify_send
+                
+                # 将通知配置应用到push_config
+                # 1. 处理直接字段 (新格式)
+                if 'direct_fields' in notify_config:
+                    for key, value in notify_config.get('direct_fields', {}).items():
+                        push_config[key] = value
+                    logger.info("已加载直接通知字段配置")
+                
+                # 2. 处理通道结构 (旧格式，向后兼容)
+                elif 'channels' in notify_config:
+                    for channel, config in notify_config.get('channels', {}).items():
+                        if channel == 'pushplus':
+                            # 设置token
+                            push_config['PUSH_PLUS_TOKEN'] = config.get('token')
+                            # 如果有topic则设置，没有也不影响功能
+                            if 'topic' in config:
+                                push_config['PUSH_PLUS_USER'] = config.get('topic')
+                    logger.info("已加载通道格式的通知配置")
+                
+                # 3. 处理自定义字段 (兼容旧版本)
+                if 'custom_fields' in notify_config:
+                    for key, value in notify_config.get('custom_fields', {}).items():
+                        push_config[key] = value
+                    logger.info("已加载自定义通知字段配置")
+                
+                logger.info("通知配置已加载完成")
             else:
                 logger.debug("通知功能未启用")
         except Exception as e:

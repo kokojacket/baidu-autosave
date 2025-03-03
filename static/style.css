@@ -1413,6 +1413,14 @@ textarea:focus {
 }
 
 /* 版本号样式 */
+.version-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    margin-right: 12px;
+}
+
 .version {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.7);
@@ -1420,6 +1428,40 @@ textarea:focus {
     padding: 2px 6px;
     border-radius: 10px;
     margin-left: 8px;
+    letter-spacing: 0.5px;
+}
+
+.update-indicator {
+    position: absolute;
+    top: -2px;
+    right: -5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--error-color);
+    display: none;
+}
+
+.update-indicator.active {
+    display: block;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7);
+    }
+    
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 5px rgba(255, 59, 48, 0);
+    }
+    
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);
+    }
 }
 
 /* GitHub图标样式 */
@@ -1448,11 +1490,16 @@ textarea:focus {
 /* 移动端适配 */
 @media screen and (max-width: 768px) {
     .nav-left {
-        gap: 8px;
+        flex-grow: 1;
     }
     
     .nav-title {
-        font-size: 1rem;
+        max-width: 150px;
+    }
+    
+    .version-container {
+        margin-left: 4px;
+        margin-right: 8px;
     }
     
     .version {
@@ -1460,8 +1507,15 @@ textarea:focus {
         padding: 1px 4px;
     }
     
+    .update-indicator {
+        width: 6px;
+        height: 6px;
+        top: -1px;
+        right: -3px;
+    }
+    
     .github-link {
-        margin-left: 8px;
+        margin-left: auto;
     }
     
     .github-icon {
@@ -2062,4 +2116,91 @@ textarea:focus {
         margin: 0 2px !important; /* 减少间距 */
         transform: scale(0.9); /* 统一缩放 */
     }
+}
+
+/* 通知字段样式 */
+.input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.notify-field {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background-color: var(--background-light);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+}
+
+.notify-field input {
+    flex: 1;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 14px;
+}
+
+.notify-field .field-name {
+    min-width: 180px;
+    font-weight: 500;
+}
+
+.notify-field .field-value {
+    flex: 1;
+}
+
+.icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.icon-btn:hover {
+    background-color: var(--hover-color);
+}
+
+.icon-btn.delete {
+    color: var(--error-color);
+}
+
+.icon-btn.add {
+    color: var(--success-color);
+}
+
+/* 进度条样式 */
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background-color: var(--background-color);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.progress {
+    height: 100%;
+    background-color: var(--primary-color);
+    transition: width 0.3s ease-in-out;
+}
+
+.quick-notify-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.small-btn {
+    font-size: 12px;
+    padding: 6px 12px;
 } 
