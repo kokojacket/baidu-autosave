@@ -1599,23 +1599,14 @@ async function handleUserSubmit(event) {
 // 检查应用更新
 async function checkForUpdates() {
     try {
-        // 通过后端代理请求GitHub API，避免前端直接请求的限制
-        const response = await fetch('/api/check_update', {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json'
-            },
-            // 缓存1小时，减少请求频率
-            cache: 'force-cache'
-        });
-        
+        const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
         if (!response.ok) {
-            console.log(`跳过版本检查: ${response.status} ${response.statusText}`);
+            console.warn('无法获取最新版本信息');
             return;
         }
         
-        const updateInfo = await response.json();
-        const latestVersion = updateInfo.latest_version;
+        const releaseInfo = await response.json();
+        const latestVersion = releaseInfo.tag_name;
         
         console.log(`检查版本：当前 ${APP_VERSION} 最新 ${latestVersion}`);
         
@@ -1637,8 +1628,7 @@ async function checkForUpdates() {
             }
         }
     } catch (error) {
-        // 静默处理错误，避免在控制台显示过多警告
-        console.log('跳过版本检查');
+        console.error('检查更新失败:', error);
     }
 }
 
