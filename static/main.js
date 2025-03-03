@@ -399,7 +399,7 @@ function createTaskElement(task) {
             </div>
             <div class="task-details">
                 <span class="save-dir">保存目录：${task.save_dir}</span>
-                <span class="cron-rule">${task.cron ? `自定义定时：${task.cron}` : `默认定时：${state.config.cron?.default_schedule?.join(';') || '未设置'}`}</span>
+                <span class="cron-rule">${task.cron ? `自定义定时：${task.cron}` : `默认定时：${state.config.cron?.default_schedule || '未设置'}`}</span>
                 <div class="last-execute-time">上次执行: ${lastExecuteTime}</div>
                 ${displayMessage ? `<div class="task-message ${task.status === 'error' ? 'error' : ''}">${displayMessage}</div>` : ''}
             </div>
