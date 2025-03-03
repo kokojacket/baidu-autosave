@@ -533,10 +533,18 @@ function renderConfig() {
     console.log('开始处理定时配置，完整配置对象:', state.config);
     const cronRules = [];
     
-    // 优先从cron配置中获取
-    if (state.config.cron && Array.isArray(state.config.cron.default_schedule)) {
-        console.log('从cron配置获取定时规则:', state.config.cron);
-        cronRules.push(...state.config.cron.default_schedule);
+    // 从cron配置中获取
+    if (state.config.cron) {
+        const defaultSchedule = state.config.cron.default_schedule;
+        console.log('从cron配置获取定时规则:', defaultSchedule);
+        
+        if (Array.isArray(defaultSchedule)) {
+            cronRules.push(...defaultSchedule);
+        } else if (typeof defaultSchedule === 'string') {
+            // 如果是字符串，按分号分割
+            const rules = defaultSchedule.split(';').map(rule => rule.trim()).filter(Boolean);
+            cronRules.push(...rules);
+        }
     }
     // 如果cron中没有，则从scheduler配置中获取
     else if (state.config.scheduler) {
@@ -547,6 +555,11 @@ function renderConfig() {
         if (Array.isArray(state.config.scheduler.additional_rules)) {
             cronRules.push(...state.config.scheduler.additional_rules);
         }
+    }
+    
+    // 如果没有任何规则，使用默认值
+    if (cronRules.length === 0) {
+        cronRules.push('*/5 * * * *');  // 使用配置模板中的默认值
     }
     
     // 设置输入框的值
@@ -1003,9 +1016,19 @@ async function addUser(data) {
     try {
         const result = await callApi('user/add', 'POST', data);
         state.users = result.users;
+        
+        // 如果是第一个用户，自动设为当前用户
+        if (state.users.length === 1) {
+            state.currentUser = state.users[0];
+            updateLoginStatus(state.currentUser);
+        }
+        
         renderUsers();
         hideModal('user-modal');
         showSuccess('用户添加成功');
+        
+        // 刷新页面状态
+        await initializeData();
     } catch (error) {
         showError('添加用户失败');
     }
