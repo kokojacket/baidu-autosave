@@ -13,8 +13,8 @@ from utils import generate_transfer_notification
 import time
 from threading import Lock
 import pytz
-import eventlet  # 添加 eventlet 导入
 import datetime
+import re
 
 class TaskScheduler:
     instance = None
@@ -84,52 +84,11 @@ class TaskScheduler:
                         if schedule and isinstance(schedule, str):  # 确保调度规则有效
                             self.add_single_task(task, schedule)
                             default_count += 1
-                        
+            
             logger.info(f"任务调度更新完成: {custom_count} 个自定义定时任务, {default_count} 个默认定时任务")
             
         except Exception as e:
             logger.error(f"更新任务调度失败: {str(e)}")
-
-    def add_single_task(self, task, schedule=None):
-        """添加单个任务的调度
-        Args:
-            task: 任务配置
-            schedule: 可选的定时规则，用于默认定时
-        """
-        try:
-            cron_schedule = schedule or task.get('cron')
-            if cron_schedule:
-                task_id = task.get('order', 0) - 1
-                try:
-                    # 合并解析逻辑，只解析一次
-                    parts = cron_schedule.split()
-                    if len(parts) != 5:
-                        raise ValueError("Invalid cron expression format")
-                    
-                    trigger = CronTrigger(
-                        minute=parts[0],
-                        hour=parts[1],
-                        day=parts[2],
-                        month=parts[3],
-                        day_of_week=parts[4],
-                        timezone=pytz.timezone('Asia/Shanghai')
-                    )
-
-                    self.scheduler.add_job(
-                        self._execute_single_task,
-                        trigger,
-                        args=[task],
-                        id=f'task_{task_id}',
-                        replace_existing=True
-                    )
-                    # 根据schedule参数判断是默认定时还是自定义定时
-                    schedule_type = "默认定时" if schedule else "自定义定时"
-                    logger.info(f"已添加{schedule_type}任务: {task.get('name', task['url'])}, 调度: {cron_schedule}")
-                except Exception as e:
-                    logger.error(f"解析cron表达式失败 '{cron_schedule}': {str(e)}")
-                    raise
-        except Exception as e:
-            logger.error(f"添加任务调度失败 ({task.get('name', task['url'])}): {str(e)}")
 
     def start(self):
         """启动调度器"""
@@ -228,23 +187,12 @@ class TaskScheduler:
                     if not task_order:
                         continue
                         
-                    # 替换原来的 CronTrigger.from_crontab(task['cron'])
-                    parts = task['cron'].split()
-                    if len(parts) != 5:
-                        raise ValueError("Invalid cron expression format")
-                    
+                    # 使用统一方法解析cron表达式
                     self.scheduler.add_job(
                         self._execute_single_task,
-                        CronTrigger(
-                            minute=parts[0],
-                            hour=parts[1],
-                            day=parts[2],
-                            month=parts[3],
-                            day_of_week=parts[4],
-                            timezone=pytz.timezone('Asia/Shanghai')
-                        ),
+                        CronTrigger.from_crontab(convert_cron_weekday(task['cron']), timezone=pytz.timezone('Asia/Shanghai')),
                         args=[task],
-                        id=f'task_order_{task_order}',
+                        id=f'task_{task_order - 1}',
                         replace_existing=True
                     )
                     logger.info(f"已添加自定义定时任务: {task.get('name', f'任务{task_order}')} -> {task['cron']}")
@@ -261,22 +209,11 @@ class TaskScheduler:
                         
                     for i, cron_exp in enumerate(cron_expressions):
                         try:
-                            parts = cron_exp.split()
-                            if len(parts) != 5:
-                                continue
-                                
                             self.scheduler.add_job(
                                 self._execute_single_task,
-                                CronTrigger(
-                                    minute=parts[0],
-                                    hour=parts[1],
-                                    day=parts[2],
-                                    month=parts[3],
-                                    day_of_week=parts[4],
-                                    timezone=pytz.timezone('Asia/Shanghai')
-                                ),
+                                CronTrigger.from_crontab(convert_cron_weekday(cron_exp), timezone=pytz.timezone('Asia/Shanghai')),
                                 args=[task],
-                                id=f'task_order_{task_order}_{i}',
+                                id=f'task_{task_order - 1}_{i}',
                                 replace_existing=True
                             )
                             logger.info(f"已添加默认定时任务: {task.get('name', f'任务{task_order}')} -> {cron_exp}")
@@ -303,7 +240,7 @@ class TaskScheduler:
         """保存配置文件"""
         try:
             with open('config/config.json', 'w', encoding='utf-8') as f:
-                json.dump(self.config, f, ensure_ascii=False, indent=4)
+                json.dump(self.storage.config, f, ensure_ascii=False, indent=4)
         except Exception as e:
             logger.error(f"保存配置文件失败: {str(e)}")
 
@@ -423,21 +360,22 @@ class TaskScheduler:
         """
         try:
             # 更新配置文件
-            tasks = self.config.get('baidu', {}).get('tasks', [])
+            tasks = self.storage.config.get('baidu', {}).get('tasks', [])
             for task in tasks:
                 if task.get('url') == task_url:
                     task['cron'] = cron_exp
+                    task_order = task.get('order')
+                    if task_order:
+                        # 使用统一的任务ID格式
+                        job_id = f"task_{task_order - 1}"
+                        if self.scheduler.get_job(job_id):
+                            self.scheduler.reschedule_job(
+                                job_id,
+                                trigger=CronTrigger.from_crontab(convert_cron_weekday(cron_exp), timezone=pytz.timezone('Asia/Shanghai'))
+                            )
+                            logger.success(f"已更新任务调度: {task_url} -> {cron_exp}")
                     break
             self._save_config()
-            
-            # 更新调度器中的任务
-            job_id = f"task_{task_url}"
-            if self.scheduler.get_job(job_id):
-                self.scheduler.reschedule_job(
-                    job_id,
-                    trigger=CronTrigger.from_crontab(cron_exp)
-                )
-                logger.success(f"已更新任务调度: {task_url} -> {cron_exp}")
             
         except Exception as e:
             logger.error(f"更新任务调度失败: {str(e)}")
@@ -451,7 +389,16 @@ class TaskScheduler:
             if isinstance(schedules, str):
                 schedules = [s.strip() for s in schedules.split(';') if s.strip()]
             
+            # 更新本地变量
             self.default_schedule = schedules
+            
+            # 更新存储中的配置
+            if 'cron' not in self.storage.config:
+                self.storage.config['cron'] = {}
+            self.storage.config['cron']['default_schedule'] = schedules
+            self._save_config()
+            
+            # 重新调度任务
             self.update_tasks()
             logger.info(f"已更新默认调度规则: {schedules}")
             return True
@@ -465,10 +412,27 @@ class TaskScheduler:
             task_url: 任务URL
         """
         try:
-            job_id = f"task_{task_url}"
-            if self.scheduler.get_job(job_id):
-                self.scheduler.remove_job(job_id)
+            # 先查找任务的order
+            tasks = self.storage.config.get('baidu', {}).get('tasks', [])
+            task = next((t for t in tasks if t.get('url') == task_url), None)
+            
+            if task and task.get('order'):
+                task_order = task.get('order')
+                base_job_id = f"task_{task_order - 1}"
+                
+                # 移除主任务
+                if self.scheduler.get_job(base_job_id):
+                    self.scheduler.remove_job(base_job_id)
+                
+                # 移除可能存在的默认定时任务(带索引)
+                for i in range(10):  # 假设最多10个默认定时
+                    job_id = f"{base_job_id}_{i}"
+                    if self.scheduler.get_job(job_id):
+                        self.scheduler.remove_job(job_id)
+                
                 logger.success(f"已移除任务: {task_url}")
+            else:
+                logger.warning(f"未找到要移除的任务: {task_url}")
         except Exception as e:
             logger.error(f"移除任务失败: {str(e)}")
 
@@ -524,6 +488,11 @@ class TaskScheduler:
         Args:
             task: 任务配置
         """
+        # 使用锁防止同一任务被并发执行
+        if not self._execution_lock.acquire(blocking=False):
+            logger.warning(f"任务已在执行中，跳过此次执行: {task.get('name', task.get('url', '未知任务'))}")
+            return False
+            
         try:
             # 获取最新的任务信息
             tasks = self.storage.config['baidu']['tasks']
@@ -647,6 +616,9 @@ class TaskScheduler:
             except:
                 pass
             return False
+        finally:
+            # 释放锁
+            self._execution_lock.release()
 
     def update_task_schedule(self, task_url, cron_exp=None):
         """更新任务调度"""
@@ -676,7 +648,7 @@ class TaskScheduler:
                 try:
                     self.scheduler.add_job(
                         self._execute_single_task,
-                        CronTrigger.from_crontab(final_cron),
+                        CronTrigger.from_crontab(convert_cron_weekday(final_cron)),
                         args=[current_task],
                         id=task_id,
                         replace_existing=True
@@ -717,6 +689,118 @@ class TaskScheduler:
         except Exception as e:
             logger.error(f"同步任务信息失败: {str(e)}")
             return False
+
+    def add_single_task(self, task, schedule=None):
+        """添加单个任务的调度
+        Args:
+            task: 任务配置
+            schedule: 可选的定时规则，用于默认定时
+        """
+        try:
+            cron_schedule = schedule or task.get('cron')
+            if not cron_schedule:
+                return
+                
+            task_order = task.get('order')
+            if not task_order:
+                logger.error(f"任务缺少order: {task.get('name', task.get('url', '未知任务'))}")
+                return
+                
+            task_id = task_order - 1
+            
+            try:
+                # 使用统一方法解析cron表达式
+                trigger = CronTrigger.from_crontab(convert_cron_weekday(cron_schedule), timezone=pytz.timezone('Asia/Shanghai'))
+
+                # 为默认定时任务添加索引
+                job_id = f'task_{task_id}'
+                if schedule:  # 使用默认定时
+                    # 查找已有的默认定时任务数量
+                    count = 0
+                    while self.scheduler.get_job(f'{job_id}_{count}'):
+                        count += 1
+                    job_id = f'{job_id}_{count}'
+                
+                self.scheduler.add_job(
+                    self._execute_single_task,
+                    trigger,
+                    args=[task],
+                    id=job_id,
+                    replace_existing=True
+                )
+                
+                # 根据schedule参数判断是默认定时还是自定义定时
+                schedule_type = "默认定时" if schedule else "自定义定时"
+                logger.info(f"已添加{schedule_type}任务: {task.get('name', task.get('url', f'任务{task_order}'))}, 调度: {cron_schedule}")
+            except Exception as e:
+                logger.error(f"解析cron表达式失败 '{cron_schedule}': {str(e)}")
+        except Exception as e:
+            logger.error(f"添加任务调度失败 ({task.get('name', task.get('url', '未知任务'))}): {str(e)}")
+
+def convert_cron_weekday(cron_exp):
+    """
+    转换cron表达式中的星期几字段，适配APScheduler的映射规则
+    标准cron: 0或7=周日, 1=周一, ..., 6=周六
+    APScheduler: 0=周一, 1=周二, ..., 6=周日
+    
+    转换规则:
+    - 使用英文简写 (sun, mon, tue, wed, thu, fri, sat) 不变
+    - 数字 0 转为 6 (周日)
+    - 数字 7 转为 6 (周日)
+    - 数字 1-6 转为 0-5 (周一到周六，减1)
+    """
+    if not cron_exp or not isinstance(cron_exp, str):
+        return cron_exp
+        
+    parts = cron_exp.strip().split()
+    if len(parts) != 5:  # 标准cron表达式有5个字段
+        return cron_exp
+        
+    dow_field = parts[4]  # 第5个字段是星期几 (0-7)
+    
+    # 如果包含英文简写，不做转换
+    if re.search(r'[a-zA-Z]', dow_field):
+        return cron_exp
+    
+    # 处理复杂表达式 (例如: 1-5,0 或 */2)
+    new_dow = []
+    for item in dow_field.split(','):
+        if '/' in item:  # 处理 */2 这样的格式
+            interval_parts = item.split('/')
+            if interval_parts[0] == '*':
+                new_dow.append(item)  # 保持不变
+            else:
+                # 这里可能需要更复杂的处理，暂时保持不变
+                new_dow.append(item)
+        elif '-' in item:  # 处理 1-5 这样的范围
+            range_parts = item.split('-')
+            start = int(range_parts[0])
+            end = int(range_parts[1])
+            # 转换范围边界
+            if start == 0 or start == 7:  # 0和7都表示周日
+                start = 6  # APScheduler中6表示周日
+            else:
+                start = start - 1  # 其他天减1
+                
+            if end == 0 or end == 7:  # 0和7都表示周日
+                end = 6  # APScheduler中6表示周日
+            else:
+                end = end - 1  # 其他天减1
+                
+            new_dow.append(f"{start}-{end}")
+        else:  # 处理单个数字
+            try:
+                day = int(item)
+                if day == 0 or day == 7:  # 0和7都表示周日
+                    new_dow.append('6')  # APScheduler中6表示周日
+                else:
+                    new_dow.append(str(day - 1))  # 其他天减1
+            except ValueError:
+                new_dow.append(item)  # 非数字，保持不变
+    
+    # 替换原表达式中的星期几字段
+    parts[4] = ','.join(new_dow)
+    return ' '.join(parts)
 
 def main():
     """命令行入口"""

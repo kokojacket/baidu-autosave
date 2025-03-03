@@ -13,17 +13,19 @@ COPY requirements.txt .
 COPY *.py ./
 COPY static/ static/
 COPY templates/ templates/
-COPY config/config.template.json /app/template/config.template.json
+COPY config/config.template.json ./template/config.template.json
 
 # 创建必要的目录
 RUN mkdir -p config && \
     mkdir -p log && \
-    mkdir -p template
+    mkdir -p template && \
+    chmod -R 777 config log template
 
 # 创建启动脚本
 RUN echo '#!/bin/sh\n\
 if [ ! -f /app/config/config.json ]; then\n\
     cp /app/template/config.template.json /app/config/config.json\n\
+    chmod 666 /app/config/config.json\n\
 fi\n\
 exec python web_app.py' > /app/start.sh && \
     chmod +x /app/start.sh
