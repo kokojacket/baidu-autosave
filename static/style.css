@@ -73,6 +73,44 @@ body {
     white-space: nowrap;
 }
 
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#logout-btn {
+    color: white;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+#logout-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+#logout-btn i {
+    font-size: 20px;
+}
+
+@media screen and (max-width: 768px) {
+    #logout-btn {
+        width: 32px;
+        height: 32px;
+    }
+    
+    #logout-btn i {
+        font-size: 18px;
+    }
+}
+
 /* 主内容区样式 */
 .main-content {
     min-height: 100vh;

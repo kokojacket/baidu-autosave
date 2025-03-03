@@ -1015,7 +1015,11 @@ async function verifyTaskUpdate(originalTask, updateData) {
 async function addUser(data) {
     try {
         const result = await callApi('user/add', 'POST', data);
-        state.users = result.users;
+        console.log('添加用户API响应:', result);
+        
+        // 刷新页面状态
+        await initializeData();
+        console.log('添加用户后刷新数据，当前用户列表:', state.users);
         
         // 如果是第一个用户，自动设为当前用户
         if (state.users.length === 1) {
@@ -1023,13 +1027,11 @@ async function addUser(data) {
             updateLoginStatus(state.currentUser);
         }
         
-        renderUsers();
+        // 隐藏模态框和显示成功消息
         hideModal('user-modal');
         showSuccess('用户添加成功');
-        
-        // 刷新页面状态
-        await initializeData();
     } catch (error) {
+        console.error('添加用户错误:', error);
         showError('添加用户失败');
     }
 }
@@ -1583,10 +1585,10 @@ async function handleUserSubmit(event) {
         const data = Object.fromEntries(formData.entries());
         
         await addUser(data);
-        hideModal('user-modal');
-        showSuccess('用户添加成功');
+        // 注意：成功消息和隐藏模态框已经在addUser中处理，不需要在这里重复
     } catch (error) {
-        showError(error.message || '添加用户失败');
+        // 不需要在这里显示错误，因为addUser会处理
+        console.error('用户添加错误:', error);
     } finally {
         // 恢复按钮状态
         submitBtn.disabled = false;
@@ -1911,12 +1913,7 @@ function updateLoginStatus(user) {
     
     if (user) {
         const displayName = user.name || user.username;
-        currentUserElement.innerHTML = `
-            <span class="user-name">${displayName}</span>
-            <button class="btn-icon logout-btn" onclick="logout()" title="退出登录">
-                <i class="material-icons">logout</i>
-            </button>
-        `;
+        currentUserElement.innerHTML = `<span class="user-name">${displayName}</span>`;
         currentUserElement.classList.add('logged-in');
         currentUserElement.title = `当前用户: ${displayName}`;
         console.log('用户已登录:', {

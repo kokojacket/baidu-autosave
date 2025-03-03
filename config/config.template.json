@@ -9,14 +9,13 @@
         "delay_seconds": 5
     },
     "cron": {
-        "default_schedule": "*/5 * * * *",
+        "default_schedule": "0 10 * * *",
         "auto_install": true
     },
     "notify": {
         "enabled": false,
         "direct_fields": {
-            "PUSH_PLUS_TOKEN": "",
-            "PUSH_PLUS_USER": ""
+            "PUSH_PLUS_TOKEN": ""
         }
     },
     "scheduler": {
