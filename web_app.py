@@ -190,7 +190,13 @@ def index():
                     'cron': storage.config.get('cron', {}),
                     'notify': storage.config.get('notify', {})
                 }
-                login_status = storage.is_valid()
+                # 同时检查管理员登录状态和百度用户登录状态
+                admin_logged_in = 'username' in session
+                baidu_logged_in = storage.is_valid()
+                login_status = admin_logged_in and baidu_logged_in
+                
+                # 记录日志
+                logger.info(f"登录状态检查 - 管理员: {admin_logged_in}, 百度用户: {baidu_logged_in}, 当前用户: {current_user}")
             except Exception as e:
                 logger.error(f"获取数据失败: {str(e)}")
                 init_error = str(e)
@@ -567,8 +573,19 @@ def get_users():
     """获取所有用户"""
     if not storage:
         return jsonify({'success': False, 'message': '存储未初始化'})
+    
     users = storage.list_users()
-    return jsonify({'success': True, 'users': users})
+    current_username = storage.config.get('baidu', {}).get('current_user')
+    
+    # 标记当前用户
+    for user in users:
+        user['is_current'] = user.get('username') == current_username
+    
+    return jsonify({
+        'success': True, 
+        'users': users,
+        'current_user': current_username
+    })
 
 @app.route('/api/user/add', methods=['POST'])
 @login_required
@@ -598,10 +615,27 @@ def switch_user():
     if not username:
         return jsonify({'success': False, 'message': '用户名不能为空'})
         
-    if storage.switch_user(username):
-        init_app()
-        return jsonify({'success': True, 'message': '切换用户成功'})
-    return jsonify({'success': False, 'message': '切换用户失败'})
+    try:
+        if storage.switch_user(username):
+            # 获取完整的用户信息
+            user = storage.get_user(username)
+            if not user:
+                return jsonify({'success': False, 'message': f'用户 {username} 不存在'})
+            
+            # 重新初始化应用
+            init_app()
+            
+            # 返回更新后的状态
+            return jsonify({
+                'success': True, 
+                'message': '切换用户成功',
+                'current_user': user,
+                'login_status': storage.is_valid()
+            })
+        return jsonify({'success': False, 'message': '切换用户失败'})
+    except Exception as e:
+        logger.error(f"切换用户失败: {str(e)}")
+        return jsonify({'success': False, 'message': f'切换用户失败: {str(e)}'})
 
 @app.route('/api/user/delete', methods=['POST'])
 @login_required
@@ -703,12 +737,19 @@ def get_config():
     """获取配置"""
     if not storage:
         return jsonify({'success': False, 'message': '存储未初始化'})
+    
+    # 获取当前用户的完整信息
+    current_user = None
+    current_username = storage.config.get('baidu', {}).get('current_user')
+    if current_username:
+        current_user = storage.get_user(current_username)
+    
     config = {
         'cron': storage.config.get('cron', {}),
         'notify': storage.config.get('notify', {}),
         'scheduler': storage.config.get('scheduler', {}),
         'baidu': {
-            'current_user': storage.config.get('baidu', {}).get('current_user')
+            'current_user': current_user  # 返回完整的用户信息
         }
     }
     return jsonify({'success': True, 'config': config})

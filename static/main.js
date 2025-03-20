@@ -64,7 +64,8 @@ const state = {
     users: [],
     config: {},
     currentUser: null,
-    categories: new Set() // 用于存储所有已使用的分类
+    categories: new Set(), // 用于存储所有已使用的分类
+    isLoggedIn: false // 添加登录状态标记
 };
 
 // WebSocket连接管理
@@ -494,18 +495,19 @@ function renderUsers() {
 function createUserElement(user) {
     const div = document.createElement('div');
     div.className = 'user-item';
-    if (state.currentUser && state.currentUser.username === user.username) {
+    const isCurrentUser = user.is_current || (state.currentUser && state.currentUser.username === user.username);
+    
+    if (isCurrentUser) {
         div.classList.add('active');
     }
     
     div.innerHTML = `
         <div class="user-name">
             <span>${user.name || user.username}</span>
-            ${state.currentUser && state.currentUser.username === user.username ? 
-                '<span class="badge">当前用户</span>' : ''}
+            ${isCurrentUser ? '<span class="badge">当前用户</span>' : ''}
         </div>
         <div class="user-actions">
-            ${state.currentUser && state.currentUser.username === user.username ? `
+            ${isCurrentUser ? `
                 <button class="btn-icon" onclick="editUser('${user.username}')" title="编辑用户">
                     <i class="material-icons">edit</i>
                 </button>
@@ -1206,22 +1208,26 @@ async function updateUser(data) {
 async function switchUser(username) {
     try {
         showLoading('正在切换用户...');
-        await callApi('user/switch', 'POST', { username });
+        const response = await callApi('user/switch', 'POST', { username });
         
-        // 更新当前用户
-        const user = state.users.find(u => u.username === username);
-        state.currentUser = user;
-        
-        // 更新UI
-        renderUsers();
-        updateLoginStatus(user);
-        
-        showSuccess('切换用户成功');
-        
-        // 刷新任务列表
-        await refreshTasks();
+        if (response.success) {
+            // 更新当前用户和登录状态
+            state.currentUser = response.current_user;
+            state.isLoggedIn = response.login_status;
+            
+            // 更新UI
+            renderUsers();
+            updateLoginStatus(response.current_user);
+            
+            showSuccess('切换用户成功');
+            
+            // 刷新任务列表
+            await refreshTasks();
+        } else {
+            showError(response.message || '切换用户失败');
+        }
     } catch (error) {
-        showError('切换用户失败');
+        showError('切换用户失败: ' + error.message);
     } finally {
         hideLoading();
     }
@@ -1611,6 +1617,10 @@ async function initializeData() {
         const usersResponse = await callApi('users', 'GET');
         if (usersResponse.success) {
             state.users = usersResponse.users;
+            // 更新当前用户
+            if (usersResponse.current_user) {
+                state.currentUser = state.users.find(u => u.username === usersResponse.current_user);
+            }
             // 渲染用户列表
             renderUsers();
         } else {
@@ -1621,8 +1631,18 @@ async function initializeData() {
         const configResponse = await callApi('config', 'GET');
         if (configResponse.success) {
             state.config = configResponse.config;
+            // 使用完整的用户信息
+            if (configResponse.config.baidu.current_user) {
+                state.currentUser = configResponse.config.baidu.current_user;
+                state.isLoggedIn = true;
+            } else {
+                state.currentUser = null;
+                state.isLoggedIn = false;
+            }
             // 渲染配置
             renderConfig();
+            // 更新登录状态显示
+            updateLoginStatus(state.currentUser);
         } else {
             showError(configResponse.message || '获取系统配置失败');
         }
@@ -2144,10 +2164,11 @@ function updateLoginStatus(user) {
         user,
         elementFound: !!currentUserElement,
         previousState: currentUserElement.className,
-        previousText: currentUserElement.textContent
+        previousText: currentUserElement.textContent,
+        isLoggedIn: state.isLoggedIn
     });
     
-    if (user) {
+    if (user && state.isLoggedIn) {
         const displayName = user.name || user.username;
         currentUserElement.innerHTML = `<span class="user-name">${displayName}</span>`;
         currentUserElement.classList.add('logged-in');
@@ -2163,6 +2184,38 @@ function updateLoginStatus(user) {
         console.log('用户未登录');
     }
 }
+
+// 检查登录状态
+async function checkLoginStatus() {
+    try {
+        const response = await fetch('/api/config');
+        if (response.status === 401 || response.redirected) {
+            // 未登录或会话过期，重定向到登录页
+            state.isLoggedIn = false;
+            window.location.href = '/login';
+            return;
+        }
+        
+        const result = await response.json();
+        if (result.success) {
+            state.isLoggedIn = true;
+            state.currentUser = result.config.baidu.current_user;
+            updateLoginStatus(state.currentUser);
+        } else {
+            state.isLoggedIn = false;
+            updateLoginStatus(null);
+        }
+    } catch (error) {
+        console.error('检查登录状态失败:', error);
+        state.isLoggedIn = false;
+        updateLoginStatus(null);
+    }
+}
+
+// 在页面加载和初始化数据时检查登录状态
+document.addEventListener('DOMContentLoaded', function() {
+    checkLoginStatus();
+});
 
 // 批量操作功能
 let selectedTasks = new Set();
