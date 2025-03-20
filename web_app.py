@@ -622,6 +622,80 @@ def delete_user():
         return jsonify({'success': True, 'message': '删除用户成功'})
     return jsonify({'success': False, 'message': '删除用户失败'})
 
+@app.route('/api/user/update', methods=['POST'])
+@login_required
+@handle_api_error
+def update_user():
+    """更新用户信息"""
+    data = request.get_json()
+    original_username = data.get('original_username', '').strip()
+    username = data.get('username', '').strip()
+    cookies = data.get('cookies', '').strip()
+    
+    if not original_username or not username or not cookies:
+        return jsonify({'success': False, 'message': '原始用户名、新用户名和cookies不能为空'})
+    
+    # 如果是重命名用户
+    if original_username != username:
+        # 检查新用户名是否已存在
+        if username in storage.config['baidu']['users']:
+            return jsonify({'success': False, 'message': f'用户名 {username} 已存在'})
+        
+        # 获取原用户信息
+        user_info = storage.get_user(original_username)
+        if not user_info:
+            return jsonify({'success': False, 'message': f'用户 {original_username} 不存在'})
+        
+        # 检查cookies是否发生变化
+        cookies_changed = user_info.get('cookies', '') != cookies
+        
+        # 如果仅重命名，无需验证cookies
+        if not cookies_changed:
+            # 复制用户信息到新用户名
+            storage.config['baidu']['users'][username] = storage.config['baidu']['users'][original_username].copy()
+            
+            # 如果是当前用户，更新当前用户名
+            if storage.config['baidu']['current_user'] == original_username:
+                storage.config['baidu']['current_user'] = username
+            
+            # 删除原用户
+            storage.remove_user(original_username)
+            
+            # 保存配置
+            storage._save_config()
+            
+            return jsonify({'success': True, 'message': '用户更新成功'})
+        else:
+            # 创建新用户
+            if storage.add_user_from_cookies(cookies, username):
+                # 如果是当前用户，更新当前用户名
+                if storage.config['baidu']['current_user'] == original_username:
+                    storage.switch_user(username)
+                
+                # 删除原用户
+                storage.remove_user(original_username)
+                
+                return jsonify({'success': True, 'message': '用户更新成功'})
+            else:
+                return jsonify({'success': False, 'message': '用户更新失败，cookies可能无效'})
+    else:
+        # 仅更新cookies
+        if storage.update_user(username, cookies):
+            init_app()
+            return jsonify({'success': True, 'message': '用户更新成功'})
+        return jsonify({'success': False, 'message': '用户更新失败，cookies可能无效'})
+
+@app.route('/api/user/<username>/cookies', methods=['GET'])
+@login_required
+@handle_api_error
+def get_user_cookies(username):
+    """获取用户cookies"""
+    user_info = storage.get_user(username)
+    if not user_info:
+        return jsonify({'success': False, 'message': f'用户 {username} 不存在'})
+    
+    return jsonify({'success': True, 'cookies': user_info.get('cookies', '')})
+
 @app.route('/api/config', methods=['GET'])
 @login_required
 @handle_api_error

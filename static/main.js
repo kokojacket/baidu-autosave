@@ -6,8 +6,23 @@ const GITHUB_REPO = 'kokojacket/baidu-autosave';
 const CACHE_KEY = {
     TASKS: 'baidu_autosave_tasks',
     USERS: 'baidu_autosave_users',
-    CONFIG: 'baidu_autosave_config'
+    CONFIG: 'baidu_autosave_config',
+    HISTORY: 'baidu_autosave_field_history'
 };
+
+// 检查是否有异常任务并更新异常按钮的状态
+function updateErrorIndicator() {
+    const hasErrorTasks = state.tasks.some(task => task.status === 'error');
+    const errorButton = document.querySelector('.status-btn[data-status="error"]');
+    
+    if (errorButton) {
+        if (hasErrorTasks) {
+            errorButton.classList.add('has-error');
+        } else {
+            errorButton.classList.remove('has-error');
+        }
+    }
+}
 
 function saveToCache(key, data) {
     try {
@@ -230,6 +245,33 @@ function updateTaskProgress(taskId, progress) {
         progressElement.style.width = `${progress}%`;
         progressElement.setAttribute('aria-valuenow', progress);
     }
+    
+    // 更新状态
+    const statusElement = taskElement.querySelector('.task-status');
+    if (statusElement) {
+        statusElement.className = `task-status ${status}`;
+        statusElement.textContent = getStatusText(status);
+    }
+    
+    // 更新任务元素的状态
+    taskElement.dataset.status = status;
+    
+    // 更新按钮状态
+    const buttons = taskElement.querySelectorAll('.btn-icon');
+    buttons.forEach(btn => {
+        btn.disabled = status === 'running';
+        btn.style.pointerEvents = status === 'running' ? 'none' : 'auto'; // 确保按钮状态不影响布局
+    });
+    
+    // 在任务状态中查找对应的任务并更新
+    const taskIndex = state.tasks.findIndex(t => t.order - 1 === parseInt(taskId));
+    if (taskIndex >= 0) {
+        state.tasks[taskIndex].status = status;
+        state.tasks[taskIndex].progress = progress;
+    }
+    
+    // 更新异常指示器
+    updateErrorIndicator();
 }
 
 // 加载状态管理
@@ -358,6 +400,9 @@ function renderTasks() {
     
     // 更新批量操作按钮状态
     updateBatchOperationUI();
+    
+    // 更新异常指示器
+    updateErrorIndicator();
 }
 
 // 创建任务元素
@@ -460,9 +505,16 @@ function createUserElement(user) {
                 '<span class="badge">当前用户</span>' : ''}
         </div>
         <div class="user-actions">
-            ${state.currentUser && state.currentUser.username === user.username ? '' : `
+            ${state.currentUser && state.currentUser.username === user.username ? `
+                <button class="btn-icon" onclick="editUser('${user.username}')" title="编辑用户">
+                    <i class="material-icons">edit</i>
+                </button>
+            ` : `
                 <button class="btn-icon" onclick="switchUser('${user.username}')" title="切换到该用户">
                     <i class="material-icons">swap_horiz</i>
+                </button>
+                <button class="btn-icon" onclick="editUser('${user.username}')" title="编辑用户">
+                    <i class="material-icons">edit</i>
                 </button>
                 <button class="btn-icon danger" onclick="deleteUser('${user.username}')" title="删除用户">
                     <i class="material-icons">delete</i>
@@ -645,25 +697,47 @@ function updateStatusBar(message = '') {
 // 模态框操作
 function showModal(modalId) {
     const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.add('active');
-        
+    if (!modal) return;
+    
+    // 重置表单错误提示
+    const form = modal.querySelector('form');
+    if (form) {
+        const errorElements = form.querySelectorAll('.error-message');
+        errorElements.forEach(element => element.remove());
+    }
+    
+    // 显示模态框
+    modal.classList.add('active');
+    
+    // 针对不同模态框的特殊处理
+    if (modalId === 'task-modal') {
         // 如果是任务表单且不是编辑模式（没有task_id），自动填充上一个任务的目录和分类
-        if (modalId === 'task-modal') {
-            const form = modal.querySelector('form');
-            const taskIdInput = form.querySelector('[name="task_id"]');
-            if (!taskIdInput.value) {  // 确保是新增任务而不是编辑任务
-                const tasks = state.tasks || [];
-                if (tasks.length > 0) {
-                    const lastTask = tasks[tasks.length - 1];
-                    form.querySelector('[name="save_dir"]').value = lastTask.save_dir || '';
-                    form.querySelector('[name="category"]').value = lastTask.category || '';
-                }
-                // 更新保存目录下拉列表
-                updateSaveDirList();
+        const taskIdInput = form.querySelector('[name="task_id"]');
+        if (!taskIdInput.value) {  // 确保是新增任务而不是编辑任务
+            const tasks = state.tasks || [];
+            if (tasks.length > 0) {
+                const lastTask = tasks[tasks.length - 1];
+                form.querySelector('[name="save_dir"]').value = lastTask.save_dir || '';
+                form.querySelector('[name="category"]').value = lastTask.category || '';
             }
-            // 更新分类列表
-            updateCategoryList();
+        }
+        
+        // 更新保存目录下拉列表
+        updateSaveDirList();
+        // 更新分类标签下拉列表
+        updateCategoryList();
+        // 更新定时规则下拉列表
+        updateCronList();
+    } else if (modalId === 'settings-modal') {
+        // 更新设置表单
+        updateSettingsForm();
+    } else if (modalId === 'user-modal') {
+        // 如果不是编辑模式，确保标题正确
+        if (!form.dataset.mode || form.dataset.mode !== 'edit') {
+            const modalTitle = modal.querySelector('.modal-header h2');
+            if (modalTitle) {
+                modalTitle.textContent = '添加用户';
+            }
         }
     }
 }
@@ -680,6 +754,18 @@ function hideModal(modalId) {
             const taskIdInput = form.querySelector('[name="task_id"]');
             if (taskIdInput) {
                 taskIdInput.value = '';
+            }
+            
+            // 如果是用户表单，清除编辑模式标记
+            if (modalId === 'user-modal') {
+                form.dataset.mode = '';
+                form.dataset.originalUsername = '';
+                
+                // 重置标题
+                const modalTitle = modal.querySelector('.modal-header h2');
+                if (modalTitle) {
+                    modalTitle.textContent = '添加用户';
+                }
             }
         }
     }
@@ -809,44 +895,45 @@ async function executeTask(taskId) {
 
 async function editTask(taskId) {
     try {
-        // 获取最新的任务列表
-        const response = await callApi('tasks', 'GET');
-        if (!response.success) {
-            showError(response.message || '获取任务信息失败');
-            return;
-        }
-        
-        // 按order排序
-        const tasks = response.tasks.sort((a, b) => (a.order || Infinity) - (b.order || Infinity));
-        
-        // 查找对应的任务
-        const task = tasks.find(t => t.order === taskId + 1);
+        // 获取任务信息
+        const task = findTaskById(taskId);
         if (!task) {
-            showError('未找到任务');
-            return;
+            throw new Error('任务不存在或已被删除');
         }
         
-        // 填充表单
+        // 获取表单和模态框
         const form = document.getElementById('task-form');
-        form.querySelector('[name="task_id"]').value = taskId;  // 使用task_id而不是order
+        const modal = document.getElementById('task-modal');
         
-        // 处理URL和密码
-        const url = task.pwd ? `${task.url}?pwd=${task.pwd}` : task.url;
-        form.querySelector('[name="url"]').value = url;
-        form.querySelector('[name="save_dir"]').value = task.save_dir || '';
+        if (!form || !modal) {
+            throw new Error('界面初始化失败，请刷新页面');
+        }
+        
+        // 填充表单数据
+        form.querySelector('[name="task_id"]').value = task.id;
         form.querySelector('[name="name"]').value = task.name || '';
+        
+        // 组合URL和密码
+        let fullUrl = task.url;
+        if (task.pwd) {
+            fullUrl += `?pwd=${task.pwd}`;
+        }
+        form.querySelector('[name="url"]').value = fullUrl;
+        
+        form.querySelector('[name="save_dir"]').value = task.save_dir || '';
         form.querySelector('[name="cron"]').value = task.cron || '';
         form.querySelector('[name="category"]').value = task.category || '';
         
-        // 更新下拉列表
-        updateCategoryList();
-        updateSaveDirList();
+        // 保存字段历史记录
+        if (task.save_dir) saveFieldHistory('save_dir', task.save_dir);
+        if (task.cron) saveFieldHistory('cron', task.cron);
+        if (task.category) saveFieldHistory('category', task.category);
         
         // 显示模态框
         showModal('task-modal');
         
     } catch (error) {
-        showError('编辑任务失败: ' + error.message);
+        showError(error.message || '编辑任务失败');
     }
 }
 
@@ -871,33 +958,45 @@ async function deleteTask(taskId) {
 
 // 刷新任务列表
 async function refreshTasks(retryCount = 3) {
-    for(let i = 0; i < retryCount; i++) {
-        try {
-            const result = await callApi('tasks');
-            if (result.success) {
-                // 检查任务数量变化
-                const prevCount = state.tasks.length;
-                const newCount = result.tasks.length;
-                
-                if (Math.abs(newCount - prevCount) > 1) {
-                    console.warn('任务数量变化异常:', {
-                        previous: prevCount,
-                        current: newCount
-                    });
-                    showError('任务同步可能存在问题，请检查任务列表');
-                }
-                
-                updateState({ tasks: result.tasks });
-                return;
+    try {
+        let result = await callApi('tasks');
+        
+        if (result.success) {
+            state.tasks = result.tasks || [];
+            
+            // 如果存在排序字段，则按order排序
+            if (state.tasks.length > 0 && 'order' in state.tasks[0]) {
+                state.tasks.sort((a, b) => {
+                    return (a.order || Infinity) - (b.order || Infinity);
+                });
             }
-        } catch (error) {
-            console.error(`刷新任务列表失败(第${i+1}次尝试):`, error);
-            if (i === retryCount - 1) {
-                showError('刷新任务列表失败，请手动刷新页面');
+            
+            renderTasks();
+            
+            // 如果已经挂载了拖放排序，重新初始化
+            if (window.taskListSortable) {
+                window.taskListSortable.destroy();
+                initDragAndDrop();
             }
+            
+            return state.tasks;
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (error) {
+        if (retryCount > 0) {
+            console.warn(`刷新任务失败，正在重试，还剩 ${retryCount} 次机会`, error);
             await new Promise(resolve => setTimeout(resolve, 1000));
+            return refreshTasks(retryCount - 1);
+        } else {
+            console.error('刷新任务失败:', error);
+            showError('加载任务失败，请刷新页面');
+            throw error;
         }
     }
+    
+    // 更新异常指示器
+    updateErrorIndicator();
 }
 
 // 修改任务更新函数
@@ -1033,6 +1132,74 @@ async function addUser(data) {
     } catch (error) {
         console.error('添加用户错误:', error);
         showError('添加用户失败');
+    }
+}
+
+// 编辑用户
+async function editUser(username) {
+    try {
+        showLoading('获取用户信息...');
+        
+        // 查找用户
+        const user = state.users.find(u => u.username === username);
+        if (!user) {
+            throw new Error('用户不存在');
+        }
+        
+        // 获取表单和模态框
+        const form = document.getElementById('user-form');
+        const modal = document.getElementById('user-modal');
+        const modalTitle = modal.querySelector('.modal-header h2');
+        
+        if (!form || !modal) {
+            throw new Error('界面初始化失败，请刷新页面');
+        }
+        
+        // 设置编辑模式
+        form.dataset.mode = 'edit';
+        form.dataset.originalUsername = username;
+        
+        // 更改标题
+        if (modalTitle) {
+            modalTitle.textContent = '编辑用户';
+        }
+        
+        // 填充表单数据
+        form.querySelector('[name="username"]').value = user.username || '';
+        
+        // 调用API获取用户的cookies
+        const result = await callApi(`user/${username}/cookies`, 'GET');
+        if (result.success && result.cookies) {
+            form.querySelector('[name="cookies"]').value = result.cookies;
+        } else {
+            form.querySelector('[name="cookies"]').value = '';
+        }
+        
+        // 显示模态框
+        showModal('user-modal');
+    } catch (error) {
+        showError(error.message || '获取用户信息失败');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 更新用户
+async function updateUser(data) {
+    try {
+        const result = await callApi('user/update', 'POST', data);
+        console.log('更新用户API响应:', result);
+        
+        // 刷新页面状态
+        await initializeData();
+        console.log('更新用户后刷新数据，当前用户列表:', state.users);
+        
+        // 隐藏模态框和显示成功消息
+        hideModal('user-modal');
+        showSuccess('用户更新成功');
+    } catch (error) {
+        console.error('更新用户错误:', error);
+        showError('更新用户失败');
     }
 }
 
@@ -1219,6 +1386,11 @@ async function handleTaskSubmit(event) {
             data.save_dir = '/' + data.save_dir;
         }
         
+        // 保存字段历史记录
+        saveFieldHistory('save_dir', data.save_dir);
+        if (data.cron) saveFieldHistory('cron', data.cron);
+        if (data.category) saveFieldHistory('category', data.category);
+        
         // 如果有task_id，说明是编辑任务
         if (data.task_id) {
             await updateTask(data);
@@ -1233,6 +1405,11 @@ async function handleTaskSubmit(event) {
                 category: data.category || ''
             });
         }
+        
+        // 更新所有下拉列表
+        updateSaveDirList();
+        updateCategoryList();
+        updateCronList();
     } catch (error) {
         showError(error.message || '操作失败');
     } finally {
@@ -1277,6 +1454,13 @@ function updateCategoryList() {
         });
     }
     
+    // 获取历史记录
+    const history = getFieldHistory('category');
+    history.forEach(category => state.categories.add(category));
+    
+    // 转换为排序后的数组
+    const sortedCategories = Array.from(state.categories).sort();
+    
     // 更新datalist
     const categoryList = document.getElementById('category-list');
     if (categoryList) {
@@ -1288,12 +1472,55 @@ function updateCategoryList() {
         categoryList.appendChild(defaultOption);
         
         // 添加已存在的分类
-        Array.from(state.categories).sort().forEach(category => {
+        sortedCategories.forEach(category => {
             const option = document.createElement('option');
             option.value = category;
             option.textContent = category;
             categoryList.appendChild(option);
         });
+    }
+    
+    // 更新自定义下拉列表
+    const dropdown = document.getElementById('category-dropdown');
+    if (dropdown) {
+        dropdown.innerHTML = '';
+        
+        // 添加"未分类"选项
+        const defaultItem = document.createElement('div');
+        defaultItem.className = 'dropdown-item';
+        defaultItem.textContent = '未分类';
+        defaultItem.onclick = () => {
+            const input = document.querySelector('input[name="category"]');
+            if (input) {
+                input.value = '';
+            }
+            hideDropdown('category-dropdown');
+        };
+        dropdown.appendChild(defaultItem);
+        
+        // 如果没有分类，添加提示
+        if (sortedCategories.length === 0) {
+            const item = document.createElement('div');
+            item.className = 'dropdown-item';
+            item.style.fontStyle = 'italic';
+            item.textContent = '暂无其他分类';
+            dropdown.appendChild(item);
+        } else {
+            // 添加已存在的分类
+            sortedCategories.forEach(category => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.textContent = category;
+                item.onclick = () => {
+                    const input = document.querySelector('input[name="category"]');
+                    if (input) {
+                        input.value = category;
+                    }
+                    hideDropdown('category-dropdown');
+                };
+                dropdown.appendChild(item);
+            });
+        }
     }
 }
 
@@ -1366,60 +1593,56 @@ function updateCategoryButtons(categories = []) {
 // 在初始化数据时调用获取分类
 async function initializeData() {
     try {
+        // 显示加载中提示
         showLoading('正在加载数据...');
         
-        // 并行请求数据
-        const [tasksResult, usersResult, configResult, categoriesResult] = await Promise.all([
-            callApi('tasks', 'GET', null, false),
-            callApi('users', 'GET', null, false),
-            callApi('config', 'GET', null, false),
-            callApi('categories', 'GET', null, false)
-        ]);
-        
-        // 更新状态
-        const users = usersResult.users || [];
-        const config = configResult.config || {};
-        
-        // 查找当前用户
-        let currentUser = null;
-        const currentUserName = config.baidu?.current_user;
-        
-        if (currentUserName && users.length > 0) {
-            currentUser = users.find(u => 
-                u.username === currentUserName || 
-                u.name === currentUserName
-            );
-            
-            // 如果找不到用户但有用户名，创建一个基本用户对象
-            if (!currentUser && currentUserName) {
-                currentUser = {
-                    username: currentUserName,
-                    name: currentUserName
-                };
-            }
-        } else if (users.length === 1) {
-            // 如果只有一个用户，就使用这个用户
-            currentUser = users[0];
+        // 1. 获取任务列表
+        const tasksResponse = await callApi('tasks', 'GET');
+        if (tasksResponse.success) {
+            // 按order排序
+            state.tasks = tasksResponse.tasks.sort((a, b) => (a.order || Infinity) - (b.order || Infinity));
+            // 渲染任务列表
+            renderTasks();
+        } else {
+            showError(tasksResponse.message || '获取任务列表失败');
         }
         
-        // 一次性更新所有状态，避免多次渲染
-        updateState({
-            tasks: tasksResult.tasks || [],
-            users: users,
-            config: config,
-            currentUser: currentUser,
-            categories: new Set(categoriesResult.categories || [])
-        });
-
-        // 更新分类按钮
-        updateCategoryButtons(categoriesResult.categories || []);
+        // 2. 获取用户列表
+        const usersResponse = await callApi('users', 'GET');
+        if (usersResponse.success) {
+            state.users = usersResponse.users;
+            // 渲染用户列表
+            renderUsers();
+        } else {
+            showError(usersResponse.message || '获取用户列表失败');
+        }
         
-        showSuccess('数据加载完成');
-    } catch (error) {
-        console.error('初始化数据失败:', error);
-        showError('加载数据失败，请刷新页面重试');
-    } finally {
+        // 3. 获取系统配置
+        const configResponse = await callApi('config', 'GET');
+        if (configResponse.success) {
+            state.config = configResponse.config;
+            // 渲染配置
+            renderConfig();
+        } else {
+            showError(configResponse.message || '获取系统配置失败');
+        }
+        
+        // 4. 获取分类列表
+        await refreshCategories();
+        
+        // 5. 更新下拉列表
+        updateCategoryList();
+        updateSaveDirList();
+        updateCronList();
+        
+        // 隐藏加载中提示
         hideLoading();
+        
+        return true;
+    } catch (error) {
+        hideLoading();
+        showError('初始化数据失败: ' + error.message);
+        return false;
     }
 }
 
@@ -1453,19 +1676,14 @@ function filterTasks() {
         
         task.style.display = statusMatch && categoryMatch ? 'flex' : 'none';
     });
+    
+    // 更新异常指示器
+    updateErrorIndicator();
 }
 
 // 在任务状态更改后更新分类
 async function refreshCategories() {
-    updateCategoryButtons();
-}
-
-// 在任务添加、更新或删除后调用
-async function afterTaskOperation() {
     try {
-        // 刷新任务列表
-        await refreshTasks();
-        
         // 获取最新的分类列表
         const result = await callApi('categories');
         if (result.success) {
@@ -1473,8 +1691,6 @@ async function afterTaskOperation() {
             state.categories = new Set(result.categories || []);
             // 更新分类按钮
             updateCategoryButtons(result.categories);
-            // 更新分类下拉列表
-            updateCategoryList();
         }
     } catch (error) {
         console.error('更新分类失败:', error);
@@ -1482,47 +1698,29 @@ async function afterTaskOperation() {
     }
 }
 
-// 处理任务进度更新
-function handleTaskProgress(data) {
-    const { taskId, progress, status } = data;
-    const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
-    if (!taskElement) return;
-    
-    // 更新进度条
-    let progressBar = taskElement.querySelector('.progress-bar');
-    if (!progressBar) {
-        // 如果不存在进度条，创建一个
-        const taskContent = taskElement.querySelector('.task-content');
-        progressBar = document.createElement('div');
-        progressBar.className = 'progress-bar';
-        const progressElement = document.createElement('div');
-        progressElement.className = 'progress';
-        progressBar.appendChild(progressElement);
-        taskContent.appendChild(progressBar);
+// 在任务添加、更新或删除后调用
+async function afterTaskOperation() {
+    try {
+        // 刷新任务列表
+        await refreshTasks();
+
+        // 刷新分类
+        await refreshCategories();
+
+        // 更新列表
+        updateCategoryList();
+        updateSaveDirList();
+        updateCronList();
+
+        // 重新绑定事件
+        bindTaskEvents();
+        
+        // 更新异常指示器
+        updateErrorIndicator();
+
+    } catch (error) {
+        console.error('任务操作后刷新失败:', error);
     }
-    
-    const progressElement = progressBar.querySelector('.progress');
-    if (progressElement) {
-        progressElement.style.width = `${progress}%`;
-        progressElement.setAttribute('aria-valuenow', progress);
-    }
-    
-    // 更新状态
-    const statusElement = taskElement.querySelector('.task-status');
-    if (statusElement) {
-        statusElement.className = `task-status ${status}`;
-        statusElement.textContent = getStatusText(status);
-    }
-    
-    // 更新任务元素的状态
-    taskElement.dataset.status = status;
-    
-    // 更新按钮状态
-    const buttons = taskElement.querySelectorAll('.btn-icon');
-    buttons.forEach(btn => {
-        btn.disabled = status === 'running';
-        btn.style.pointerEvents = status === 'running' ? 'none' : 'auto'; // 确保按钮状态不影响布局
-    });
 }
 
 // 处理任务日志
@@ -1568,6 +1766,9 @@ function handleStatusUpdate(data) {
             updateLoginStatus({ username: current_user, name: current_user });
         }
     }
+    
+    // 更新异常指示器
+    updateErrorIndicator();
 }
 
 // 处理用户表单提交
@@ -1584,11 +1785,34 @@ async function handleUserSubmit(event) {
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
         
-        await addUser(data);
-        // 注意：成功消息和隐藏模态框已经在addUser中处理，不需要在这里重复
+        // 判断是添加模式还是编辑模式
+        const isEditMode = form.dataset.mode === 'edit';
+        const originalUsername = form.dataset.originalUsername;
+        
+        if (isEditMode) {
+            // 编辑用户
+            await updateUser({
+                original_username: originalUsername,
+                username: data.username,
+                cookies: data.cookies
+            });
+        } else {
+            // 添加用户
+            await addUser(data);
+        }
+        
+        // 清除编辑模式标记
+        form.dataset.mode = '';
+        form.dataset.originalUsername = '';
+        
+        // 重置标题
+        const modalTitle = document.querySelector('#user-modal .modal-header h2');
+        if (modalTitle) {
+            modalTitle.textContent = '添加用户';
+        }
     } catch (error) {
         // 不需要在这里显示错误，因为addUser会处理
-        console.error('用户添加错误:', error);
+        console.error('用户操作错误:', error);
     } finally {
         // 恢复按钮状态
         submitBtn.disabled = false;
@@ -1632,17 +1856,23 @@ async function checkForUpdates() {
     }
 }
 
-// 初始化应用
+// 应用初始化
 async function initializeApp() {
     try {
-        // 1. 设置版本号显示
-        document.getElementById('app-version').textContent = APP_VERSION;
+        // 首先设置版本号
+        const versionElement = document.getElementById('app-version');
+        if (versionElement) {
+            versionElement.textContent = APP_VERSION;
+        }
         
-        // 2. 创建必要的UI元素
-        createNotificationContainer();
+        // 1. 获取当前登录状态
+        checkLoginStatus();
         
-        // 3. 初始化数据
+        // 2. 加载初始数据
         await initializeData();
+        
+        // 3. 初始化事件监听器
+        initializeEventListeners();
         
         // 4. 初始化WebSocket连接
         socket = initWebSocket();
@@ -1650,8 +1880,14 @@ async function initializeApp() {
         // 5. 检查是否有新版本
         checkForUpdates();
         
-        // 6. 添加事件监听
-        initializeEventListeners();
+        // 6. 初始化拖拽排序
+        initDragAndDrop();
+        
+        // 7. 初始化移动端事件
+        initMobileEvents();
+        
+        // 8. 更新异常指示器
+        updateErrorIndicator();
         
     } catch (error) {
         console.error('应用初始化失败:', error);
@@ -2210,14 +2446,17 @@ function updateSaveDirList() {
     if (Array.isArray(state.tasks)) {
         state.tasks.forEach(task => {
             if (task.save_dir) {
-                // 去掉最后一级目录
-                const dirPath = task.save_dir.split('/').slice(0, -1).join('/');
-                if (dirPath) {
-                    saveDirs.add(dirPath);
-                }
+                saveDirs.add(task.save_dir);
             }
         });
     }
+    
+    // 获取历史记录
+    const history = getFieldHistory('save_dir');
+    history.forEach(dir => saveDirs.add(dir));
+    
+    // 转换为排序后的数组
+    const sortedDirs = Array.from(saveDirs).sort();
     
     // 更新datalist
     const saveDirList = document.getElementById('save-dir-list');
@@ -2225,7 +2464,7 @@ function updateSaveDirList() {
         saveDirList.innerHTML = '';
         
         // 添加已存在的保存目录
-        Array.from(saveDirs).sort().forEach(dir => {
+        sortedDirs.forEach(dir => {
             const option = document.createElement('option');
             option.value = dir;
             option.textContent = dir;
@@ -2237,19 +2476,29 @@ function updateSaveDirList() {
     const dropdown = document.getElementById('save-dir-dropdown');
     if (dropdown) {
         dropdown.innerHTML = '';
-        Array.from(saveDirs).sort().forEach(dir => {
+        
+        // 如果没有目录，添加提示
+        if (sortedDirs.length === 0) {
             const item = document.createElement('div');
             item.className = 'dropdown-item';
-            item.textContent = dir;
-            item.onclick = () => {
-                const input = document.querySelector('input[name="save_dir"]');
-                if (input) {
-                    input.value = dir;
-                }
-                hideDropdown();
-            };
+            item.textContent = '暂无历史记录';
             dropdown.appendChild(item);
-        });
+        } else {
+            // 添加已存在的保存目录
+            sortedDirs.forEach(dir => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.textContent = dir;
+                item.onclick = () => {
+                    const input = document.querySelector('input[name="save_dir"]');
+                    if (input) {
+                        input.value = dir;
+                    }
+                    hideDropdown('save-dir-dropdown');
+                };
+                dropdown.appendChild(item);
+            });
+        }
     }
 }
 
@@ -2257,20 +2506,25 @@ function updateSaveDirList() {
 function toggleSaveDirDropdown() {
     const dropdown = document.getElementById('save-dir-dropdown');
     if (dropdown) {
-        dropdown.classList.toggle('active');
-        
-        // 如果下拉列表显示，添加点击外部区域关闭的事件监听
+        // 如果已经显示，则隐藏
         if (dropdown.classList.contains('active')) {
-            setTimeout(() => {
-                document.addEventListener('click', handleOutsideClick);
-            }, 0);
+            hideDropdown('save-dir-dropdown');
+            return;
         }
+        
+        // 否则显示下拉列表
+        dropdown.classList.add('active');
+        
+        // 延迟添加事件监听器，避免立即触发
+        setTimeout(() => {
+            document.addEventListener('click', e => handleOutsideClick(e, 'save-dir-dropdown'));
+        }, 10);
     }
 }
 
 // 隐藏下拉列表
-function hideDropdown() {
-    const dropdown = document.getElementById('save-dir-dropdown');
+function hideDropdown(dropdownId = 'save-dir-dropdown') {
+    const dropdown = document.getElementById(dropdownId);
     if (dropdown) {
         dropdown.classList.remove('active');
         document.removeEventListener('click', handleOutsideClick);
@@ -2278,12 +2532,18 @@ function hideDropdown() {
 }
 
 // 处理点击外部区域
-function handleOutsideClick(event) {
-    const dropdown = document.getElementById('save-dir-dropdown');
-    const dropdownBtn = document.querySelector('.dropdown-btn');
+function handleOutsideClick(event, dropdownId = 'save-dir-dropdown') {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
     
-    if (dropdown && !dropdown.contains(event.target) && !dropdownBtn.contains(event.target)) {
-        hideDropdown();
+    // 通过事件路径或事件目标检查用户是否点击了下拉按钮
+    const clickedOnDropdownBtn = event.composedPath().some(el => 
+        el.classList && el.classList.contains('dropdown-btn')
+    );
+    
+    // 如果点击的不是下拉列表也不是下拉按钮，则隐藏下拉列表
+    if (!dropdown.contains(event.target) && !clickedOnDropdownBtn) {
+        hideDropdown(dropdownId);
     }
 }
 
@@ -2343,5 +2603,190 @@ async function updateAuth(data) {
         }
     } catch (error) {
         showError('更新登录凭据失败: ' + error.message);
+    }
+}
+
+// 字段历史记录管理
+function saveFieldHistory(fieldName, value) {
+    if (!value) return;
+    
+    try {
+        // 获取现有历史记录
+        const historyObj = loadFromCache(CACHE_KEY.HISTORY) || {};
+        
+        // 为每个字段初始化一个数组
+        if (!historyObj[fieldName]) {
+            historyObj[fieldName] = [];
+        }
+        
+        // 如果值已存在，则移除它（稍后会添加到最前面）
+        const index = historyObj[fieldName].indexOf(value);
+        if (index > -1) {
+            historyObj[fieldName].splice(index, 1);
+        }
+        
+        // 将新值添加到数组开头
+        historyObj[fieldName].unshift(value);
+        
+        // 限制历史记录数量为10条
+        if (historyObj[fieldName].length > 10) {
+            historyObj[fieldName] = historyObj[fieldName].slice(0, 10);
+        }
+        
+        // 保存更新后的历史记录
+        saveToCache(CACHE_KEY.HISTORY, historyObj);
+    } catch (error) {
+        console.error('保存字段历史记录失败:', error);
+    }
+}
+
+function getFieldHistory(fieldName) {
+    try {
+        const historyObj = loadFromCache(CACHE_KEY.HISTORY) || {};
+        return historyObj[fieldName] || [];
+    } catch (error) {
+        console.error('获取字段历史记录失败:', error);
+        return [];
+    }
+}
+
+// 添加更新定时规则列表的函数
+function updateCronList() {
+    // 从任务中提取所有已使用的定时规则
+    const cronExpressions = new Set();
+    if (Array.isArray(state.tasks)) {
+        state.tasks.forEach(task => {
+            if (task.cron && task.cron.trim()) {
+                cronExpressions.add(task.cron.trim());
+            }
+        });
+    }
+    
+    // 获取历史记录
+    const history = getFieldHistory('cron');
+    history.forEach(cron => cronExpressions.add(cron));
+    
+    // 转换为排序后的数组
+    const sortedCrons = Array.from(cronExpressions).sort();
+    
+    // 更新datalist
+    const cronList = document.getElementById('cron-list');
+    if (cronList) {
+        cronList.innerHTML = '';
+        
+        // 添加所有定时规则
+        sortedCrons.forEach(cron => {
+            const option = document.createElement('option');
+            option.value = cron;
+            option.textContent = cron;
+            cronList.appendChild(option);
+        });
+    }
+    
+    // 更新自定义下拉列表
+    const dropdown = document.getElementById('cron-dropdown');
+    if (dropdown) {
+        dropdown.innerHTML = '';
+        
+        // 如果没有规则，添加提示
+        if (sortedCrons.length === 0) {
+            const item = document.createElement('div');
+            item.className = 'dropdown-item';
+            item.textContent = '暂无历史记录';
+            dropdown.appendChild(item);
+        } else {
+            // 添加所有定时规则
+            sortedCrons.forEach(cron => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.textContent = cron;
+                item.onclick = () => {
+                    const input = document.querySelector('input[name="cron"]');
+                    if (input) {
+                        input.value = cron;
+                    }
+                    hideDropdown('cron-dropdown');
+                };
+                dropdown.appendChild(item);
+            });
+        }
+    }
+}
+
+// 根据ID查找任务
+function findTaskById(taskId) {
+    if (!Array.isArray(state.tasks)) return null;
+    return state.tasks.find(task => task.id === taskId || task.order === taskId + 1);
+}
+
+// 绑定任务列表中每个任务的事件
+function bindTaskEvents() {
+    const taskItems = document.querySelectorAll('.task-item');
+    taskItems.forEach(item => {
+        const taskId = item.getAttribute('data-id');
+        
+        // 绑定执行按钮
+        const executeBtn = item.querySelector('.execute-btn');
+        if (executeBtn) {
+            executeBtn.onclick = () => executeTask(taskId);
+        }
+        
+        // 绑定编辑按钮
+        const editBtn = item.querySelector('.edit-btn');
+        if (editBtn) {
+            editBtn.onclick = () => editTask(taskId);
+        }
+        
+        // 绑定删除按钮
+        const deleteBtn = item.querySelector('.delete-btn');
+        if (deleteBtn) {
+            deleteBtn.onclick = () => confirmDelete(taskId);
+        }
+        
+        // 绑定任务选择框
+        const checkbox = item.querySelector('.task-checkbox');
+        if (checkbox) {
+            checkbox.onchange = () => toggleTaskSelection(taskId);
+        }
+    });
+}
+
+// 切换定时规则下拉列表
+function toggleCronDropdown() {
+    const dropdown = document.getElementById('cron-dropdown');
+    if (dropdown) {
+        // 如果已经显示，则隐藏
+        if (dropdown.classList.contains('active')) {
+            hideDropdown('cron-dropdown');
+            return;
+        }
+        
+        // 否则显示下拉列表
+        dropdown.classList.add('active');
+        
+        // 延迟添加事件监听器，避免立即触发
+        setTimeout(() => {
+            document.addEventListener('click', e => handleOutsideClick(e, 'cron-dropdown'));
+        }, 10);
+    }
+}
+
+// 切换分类标签下拉列表
+function toggleCategoryDropdown() {
+    const dropdown = document.getElementById('category-dropdown');
+    if (dropdown) {
+        // 如果已经显示，则隐藏
+        if (dropdown.classList.contains('active')) {
+            hideDropdown('category-dropdown');
+            return;
+        }
+        
+        // 否则显示下拉列表
+        dropdown.classList.add('active');
+        
+        // 延迟添加事件监听器，避免立即触发
+        setTimeout(() => {
+            document.addEventListener('click', e => handleOutsideClick(e, 'category-dropdown'));
+        }, 10);
     }
 }

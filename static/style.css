@@ -34,6 +34,10 @@ body {
     line-height: 1.5;
     color: var(--text-primary);
     background-color: var(--background-color);
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden; /* 禁止整体页面滚动 */
 }
 
 /* 导航栏样式 */
@@ -113,14 +117,14 @@ body {
 
 /* 主内容区样式 */
 .main-content {
-    min-height: 100vh;
-    padding-top: 56px;
     display: flex;
-    min-height: calc(100vh - 124px);
+    height: calc(100vh - 64px);
     max-width: 1200px;
     margin: 64px auto 0;
-    margin-bottom: 60px !important;
+    padding-top: 0;
+    margin-bottom: 0 !important;
     overflow: hidden;
+    position: relative;
 }
 
 /* 侧边栏样式 */
@@ -165,18 +169,22 @@ body {
     max-width: 100%;
     box-sizing: border-box;
     overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .panel {
     display: none;
     height: 100%;
     width: 100%;
-    overflow-y: auto;
+    overflow: hidden;
     box-sizing: border-box;
+    flex-direction: column;
 }
 
 .panel.active {
-    display: block;
+    display: flex;
 }
 
 /* 任务列表和用户列表容器统一样式 */
@@ -198,6 +206,9 @@ body {
     background: white;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: 16px;
+    position: relative; /* 添加相对定位 */
+    z-index: 1000; /* 设置z-index低于角标 */
+    overflow: visible; /* 确保内容不被裁剪 */
 }
 
 /* 操作栏上部 */
@@ -254,6 +265,9 @@ body {
     display: flex;
     gap: 8px;
     overflow-x: auto;
+    overflow-y: visible; /* 确保垂直方向内容不被裁剪 */
+    padding: 5px 0; /* 使用padding替代margin */
+    min-height: 50px; /* 确保有足够的高度显示角标 */
 }
 
 .status-btn {
@@ -266,6 +280,8 @@ body {
     border: none;
     background: var(--background-color);
     color: var(--text-secondary);
+    position: relative; /* 添加相对定位以支持徽标定位 */
+    margin: 5px 2px; /* 添加外边距，确保角标有足够空间 */
 }
 
 .status-btn:hover {
@@ -275,6 +291,25 @@ body {
 .status-btn.active {
     background: var(--primary-color);
     color: white;
+}
+
+/* 异常按钮徽标 */
+.status-btn[data-status="error"].has-error::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--error-color);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px white;
+    z-index: 1001; /* 增加z-index确保角标在最上层 */
+}
+
+.status-btn[data-status="error"].has-error.active::after {
+    background-color: white;
+    box-shadow: 0 0 0 2px var(--primary-color);
 }
 
 /* 响应式调整 */
@@ -288,23 +323,48 @@ body {
     }
     
     .main-content {
-        margin: 120px 0 60px !important; /* 增加顶部边距，为固定定位的导航栏和操作栏留出空间 */
+        margin-top: 64px;
+        margin-bottom: 56px;
+        height: calc(100vh - 120px); /* 调整高度适应底部导航 */
         padding: 0;
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
     }
     
     .content-panels {
-        padding: 16px 8px;
-        overflow: hidden;
+        padding: 12px;
+        height: 100%;
     }
     
     .panel {
-        overflow-y: auto;
-        padding-right: 0;
-        margin-right: 0;
+        height: 100%;
+        overflow: hidden;
+        padding: 0;
+    }
+    
+    /* 确保面板头部固定 */
+    .panel-header {
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    /* 操作栏适配 */
+    .operations-bar {
+        padding: 12px;
+    }
+    
+    /* 确保task-list能滚动且占据剩余空间 */
+    .task-list {
+        padding: 12px;
+        flex: 1;
+    }
+    
+    /* 任务项在小屏幕上的布局 */
+    .task-item {
+        grid-template-columns: auto 1fr auto;
+        padding: 10px;
+        margin-bottom: 8px;
     }
 }
 
@@ -364,6 +424,8 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    overflow: visible; /* 确保内容不被裁剪 */
+    padding-top: 3px; /* 增加顶部内边距 */
 }
 
 /* 按钮样式 */
@@ -738,6 +800,8 @@ body {
     flex-direction: column;
     gap: 12px;
     width: 100%;
+    overflow: visible; /* 确保溢出内容可见 */
+    padding: 2px; /* 添加内边距 */
 }
 
 .category-filter {
@@ -978,8 +1042,9 @@ body {
     }
 }
 
-/* 分类输入框样式 */
+/* Datalist 样式 */
 input[list] {
+    position: relative;
     width: 100%;
     padding: 8px 12px;
     border: 1px solid var(--border-color);
@@ -994,22 +1059,29 @@ input[list]:focus {
     box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
 }
 
-/* datalist 选项样式 */
+/* 修复浏览器默认行为，确保datalist下拉列表正常显示 */
+input[list]::-webkit-calendar-picker-indicator {
+    opacity: 1;
+    width: 20px;
+    height: 20px;
+    color: var(--text-hint);
+}
+
 datalist {
-    width: 100%;
-    background-color: white;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    box-shadow: var(--shadow-light);
+    max-height: 200px;
+    overflow-y: auto;
 }
 
-datalist option {
-    padding: 8px 12px;
-    cursor: pointer;
+/* 确保input的placeholder不会挡住datalist选项 */
+input[list]::placeholder {
+    opacity: 0.5;
 }
 
-datalist option:hover {
-    background-color: var(--background-color);
+/* 修复某些浏览器中datalist的显示问题 */
+@-moz-document url-prefix() {
+    input[list] {
+        padding-right: 30px; /* 为Firefox中的下拉图标留出空间 */
+    }
 }
 
 /* 进度日志窗口样式 */
@@ -1162,6 +1234,7 @@ datalist option:hover {
     justify-content: space-between;
     padding: 16px 24px;
     border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
 }
 
 .panel-header h2 {
@@ -1995,6 +2068,30 @@ textarea:focus {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    padding: 16px;
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    -ms-overflow-style: thin;
+}
+
+.task-list::-webkit-scrollbar {
+    width: 8px;
+    display: block;
+}
+
+.task-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.task-list::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+.task-list::-webkit-scrollbar-thumb:hover {
+    background: #999;
 }
 
 /* 任务项基础样式 */
@@ -2241,4 +2338,37 @@ textarea:focus {
 .small-btn {
     font-size: 12px;
     padding: 6px 12px;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: var(--shadow-medium);
+    z-index: 10;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+}
+
+.dropdown-menu.active {
+    display: block;
+}
+
+.dropdown-menu .dropdown-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.dropdown-menu .dropdown-item:hover {
+    background-color: #f1f3f4;
+}
+
+.input-with-dropdown {
+    position: relative;
 } 
