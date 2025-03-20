@@ -187,6 +187,15 @@ body {
     display: flex;
 }
 
+/* 设置面板特殊处理 */
+#settings-panel {
+    overflow-y: auto;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #fff;
+}
+
 /* 任务列表和用户列表容器统一样式 */
 .task-list,
 .user-list-container {
@@ -1265,12 +1274,7 @@ textarea:focus {
 
 /* 系统设置面板样式 */
 .settings-form {
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 20px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    width: 100%;
 }
 
 .settings-form .form-group {
