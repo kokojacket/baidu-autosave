@@ -13,4 +13,5 @@ python-engineio==4.8.0
 python-socketio==5.10.0
 Cython==3.0.6
 baidupcs-py==0.7.6
-eventlet==0.35.1 
+eventlet==0.35.1
+flask-sock>=0.4.0 

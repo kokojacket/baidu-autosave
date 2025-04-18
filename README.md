@@ -127,15 +127,24 @@ baidu-autosave/
 │   ├── config.json       # 运行时配置文件（自动生成）
 │   └── config.template.json  # 配置文件模板
 ├── log/                  # 日志目录
+│   └── web_app_*.log    # 应用日志文件
+├── static/               # 静态资源目录
+│   ├── style.css        # 样式表
+│   ├── main.js          # 主脚本文件
+│   └── favicon/         # 网站图标资源
+├── templates/            # 模板文件目录
+│   ├── index.html       # 主页面模板
+│   └── login.html       # 登录页面模板
+├── docs/                 # 文档目录
 ├── Dockerfile           # Docker构建文件
 ├── docker-compose.yml   # Docker编排文件
-├── web_app.py      # Web应用主程序
-├── storage.py      # 存储管理模块
-├── scheduler.py    # 任务调度模块
-├── utils.py        # 工具函数
-├── notify.py       # 通知模块
-└── templates/      # 模板文件
-    └── index.html  # 主页面
+├── requirements.txt     # 项目依赖
+├── LICENSE              # 许可证文件
+├── web_app.py           # Web应用主程序
+├── storage.py           # 存储管理模块
+├── scheduler.py         # 任务调度模块
+├── utils.py             # 工具函数
+└── notify.py            # 通知模块
 ```
 
 ### 主要模块说明

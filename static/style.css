@@ -218,6 +218,11 @@ body {
     position: relative; /* 添加相对定位 */
     z-index: 1000; /* 设置z-index低于角标 */
     overflow: visible; /* 确保内容不被裁剪 */
+    align-items: center; /* 修改为align-items实现水平居中 */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* 添加轻微阴影 */
+    border-radius: 8px; /* 添加圆角 */
+    margin: 0 auto 16px; /* 居中显示 */
+    max-width: 95%; /* 设置最大宽度 */
 }
 
 /* 操作栏上部 */
@@ -226,12 +231,14 @@ body {
     align-items: center;
     gap: 16px;
     justify-content: space-between;
+    margin-bottom: 10px; /* 增加与下方元素的间距 */
 }
 
 /* 搜索框 */
 .search-box {
     position: relative;
     min-width: 280px;
+    margin-right: 10px; /* 增加与右侧按钮的间距 */
 }
 
 .search-box input {
@@ -262,11 +269,12 @@ body {
 .action-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px; /* 增加按钮之间的间距 */
 }
 
 .action-group .btn {
     height: 36px;
+    min-width: 100px; /* 确保按钮足够宽 */
 }
 
 /* 状态筛选 */
@@ -277,6 +285,8 @@ body {
     overflow-y: visible; /* 确保垂直方向内容不被裁剪 */
     padding: 5px 0; /* 使用padding替代margin */
     min-height: 50px; /* 确保有足够的高度显示角标 */
+    justify-content: flex-start; /* 改为靠左对齐 */
+    flex-wrap: wrap; /* 允许按钮换行 */
 }
 
 .status-btn {
@@ -300,6 +310,8 @@ body {
 .status-btn.active {
     background: var(--primary-color);
     color: white;
+    box-shadow: 0 2px 5px rgba(26, 115, 232, 0.3); /* 添加阴影提升层次感 */
+    transform: translateY(-1px); /* 轻微上移效果 */
 }
 
 /* 异常按钮徽标 */
@@ -356,11 +368,58 @@ body {
         background: white;
         z-index: 10;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        justify-content: center; /* 水平居中操作栏 */
     }
     
     /* 操作栏适配 */
     .operations-bar {
         padding: 12px;
+        max-width: 98%; /* 移动端占据更多宽度 */
+    }
+    
+    /* 顶部操作布局 */
+    .operations-top {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    /* 搜索框和按钮在移动端垂直排列 */
+    .search-box {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+    
+    .action-group {
+        width: 100%;
+        justify-content: center;
+        display: grid; /* 使用网格布局 */
+        grid-template-columns: 1fr 1fr; /* 两列 */
+        grid-template-rows: auto auto; /* 两行 */
+        gap: 8px; /* 按钮之间的间距 */
+    }
+    
+    .action-group .btn {
+        width: 100%; /* 按钮宽度占满单元格 */
+        min-width: 0; /* 覆盖之前设置的最小宽度 */
+        margin: 0; /* 移除外边距 */
+        padding: 8px 5px; /* 减小内边距 */
+        font-size: 13px; /* 稍微减小字体大小 */
+    }
+    
+    /* 整体居中 */
+    .panel-header {
+        justify-content: center; /* 水平居中 panel-header 内部容器 */
+    }
+    .operations-bar {
+        align-items: center; /* 水平居中操作栏内元素 */
+    }
+    .operations-top {
+        align-items: center; /* 水平居中搜索框与按钮组 */
+    }
+    .operations-bottom {
+        justify-content: center; /* 水平居中分类按钮组 */
+        flex-wrap: wrap;
     }
     
     /* 确保task-list能滚动且占据剩余空间 */
@@ -417,6 +476,7 @@ body {
     cursor: pointer;
     transition: all 0.2s;
     box-shadow: var(--shadow-light);
+    white-space: nowrap; /* 防止文字换行 */
 }
 
 .add-task-btn:hover {
@@ -435,6 +495,8 @@ body {
     gap: 8px;
     overflow: visible; /* 确保内容不被裁剪 */
     padding-top: 3px; /* 增加顶部内边距 */
+    justify-content: center; /* 居中显示筛选区域 */
+    width: 100%; /* 确保宽度占满 */
 }
 
 /* 按钮样式 */
@@ -449,6 +511,9 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    white-space: nowrap; /* 防止文字换行 */
+    min-width: 90px; /* 设置最小宽度 */
+    justify-content: center; /* 确保内容居中 */
 }
 
 .btn.primary {
@@ -786,6 +851,7 @@ body {
 .task-item.selected {
     background-color: rgba(26, 115, 232, 0.05);
     border-color: var(--primary-color);
+    border-left-color: var(--primary-color); /* 确保左侧边框显示 */
 }
 
 /* 拖拽状态样式 */
@@ -847,6 +913,8 @@ body {
 .category-btn.active {
     background: var(--primary-color);
     color: white;
+    box-shadow: 0 2px 5px rgba(26, 115, 232, 0.3); /* 添加阴影提升层次感 */
+    transform: translateY(-1px); /* 轻微上移效果 */
 }
 
 /* 任务分类标签 */
@@ -2108,10 +2176,13 @@ textarea:focus {
     background: white;
     border-radius: 8px;
     box-shadow: var(--shadow-light);
+    margin-bottom: 12px; /* 增加任务项之间的间距 */
+    border-left: 3px solid transparent; /* 添加左侧边框 */
 }
 
 .task-item:hover {
     box-shadow: var(--shadow-medium);
+    border-left-color: var(--primary-color); /* 悬停时显示边框颜色 */
 }
 
 /* 任务项左侧布局 */
@@ -2216,44 +2287,56 @@ textarea:focus {
         gap: 8px;
     }
 
+    /* 搜索框调整 */
+    .search-box {
+        width: 100%;
+        min-width: auto;
+    }
+
+    /* 整体操作栏水平居中 */
+    .operations-bar {
+        align-items: center; /* 水平居中整体容器 */
+    }
+
+    /* 顶部操作布局 */
+    .operations-top {
+        flex-direction: column;
+        align-items: center; /* 水平居中搜索框与按钮组 */
+        gap: 8px;
+    }
+
+    /* 底部筛选按钮水平居中 */
+    .operations-bottom {
+        justify-content: center; /* 水平居中分类框 */
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* 任务项、左侧控件、按钮等其他调整 */
     .task-item {
         padding: 8px;
         gap: 8px;
-        align-items: center;
+        align-items: flex-start;
     }
 
     .task-item-left {
         gap: 4px;
         display: flex;
+        flex-direction: column;
         align-items: center;
-    }
-
-    .task-header {
-        gap: 4px;
-        margin-bottom: 2px;
-    }
-
-    .task-name {
-        font-size: 14px;
-        max-width: 100%;
-        line-height: 1.3;
-        margin-right: 4px;
-    }
-
-    .save-dir {
-        font-size: 12px;
+        justify-content: center;
     }
 
     .task-actions {
-        flex-direction: row !important; /* 覆盖之前的垂直布局 */
+        flex-direction: column !important;
         width: auto !important;
         padding: 0 !important;
         background: transparent !important;
+        gap: 4px;
     }
-    
     .task-actions .btn-icon {
-        margin: 0 2px !important; /* 减少间距 */
-        transform: scale(0.9); /* 统一缩放 */
+        margin: 0 !important;
+        transform: scale(0.9);
     }
 }
 

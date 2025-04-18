@@ -831,6 +831,7 @@ class BaiduStorage:
                         progress_callback('info', f'转存到目录 {dir_path} ({len(fs_ids)} 个文件)')
                     
                     try:
+                        logger.info(f"开始执行转存操作: 正在将 {len(fs_ids)} 个文件转存到 {dir_path}")
                         self.client.transfer_shared_paths(
                             remotedir=dir_path,
                             fs_ids=fs_ids,
@@ -841,14 +842,17 @@ class BaiduStorage:
                         )
                         success_count += len(fs_ids)
                         current_file += len(fs_ids)
+                        logger.success(f"转存操作成功完成: {len(fs_ids)} 个文件已转存到 {dir_path}")
                         if progress_callback:
                             progress_callback('success', f'成功转存到 {dir_path}')
                     except Exception as e:
                         if "error_code: -65" in str(e):  # 频率限制
                             if progress_callback:
                                 progress_callback('warning', '触发频率限制，等待10秒后重试...')
+                            logger.warning(f"转存操作受到频率限制，等待10秒后重试: {dir_path}")
                             time.sleep(10)
                             try:
+                                logger.info(f"重试转存操作: 正在将 {len(fs_ids)} 个文件转存到 {dir_path}")
                                 self.client.transfer_shared_paths(
                                     remotedir=dir_path,
                                     fs_ids=fs_ids,
@@ -858,13 +862,16 @@ class BaiduStorage:
                                     shared_url=share_url
                                 )
                                 success_count += len(fs_ids)
+                                logger.success(f"重试转存成功: {len(fs_ids)} 个文件已转存到 {dir_path}")
                                 if progress_callback:
                                     progress_callback('success', f'重试成功: {dir_path}')
                             except Exception as retry_e:
+                                logger.error(f"重试转存失败: {dir_path} - {str(retry_e)}")
                                 if progress_callback:
                                     progress_callback('error', f'转存失败: {dir_path} - {str(retry_e)}')
                                 return {'success': False, 'error': f'转存失败: {dir_path} - {str(retry_e)}'}
                         else:
+                            logger.error(f"转存操作失败: {dir_path} - {str(e)}")
                             if progress_callback:
                                 progress_callback('error', f'转存失败: {dir_path} - {str(e)}')
                             return {'success': False, 'error': f'转存失败: {dir_path} - {str(e)}'}
@@ -1139,7 +1146,7 @@ class BaiduStorage:
                         # 去掉开头的斜杠
                         file_info['path'] = file_info['path'].lstrip('/')
                         files.append(file_info)
-                        logger.debug(f"添加文件: {file_info}")
+                        logger.debug(f"发现共享文件: {file_info}")
                 
         except Exception as e:
             logger.error(f"获取目录 {path.path} 内容失败: {str(e)}")
