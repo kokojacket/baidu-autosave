@@ -1850,10 +1850,30 @@ async function checkForUpdates() {
             return;
         }
         
+        // 规范化版本号（移除 'v' 前缀并分割为数组）
+        const normalizeVersion = (version) => {
+            return version.replace(/^v/, '').split('.').map(Number);
+        };
+        
+        // 比较版本号
+        const compareVersions = (v1, v2) => {
+            const v1Parts = normalizeVersion(v1);
+            const v2Parts = normalizeVersion(v2);
+            
+            for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
+                const v1Part = v1Parts[i] || 0;
+                const v2Part = v2Parts[i] || 0;
+                if (v1Part > v2Part) return 1;
+                if (v1Part < v2Part) return -1;
+            }
+            return 0;
+        };
+        
         const latestVersion = response.version;
         console.log(`检查版本：当前 ${APP_VERSION} 最新 ${latestVersion}`);
         
-        if (latestVersion && latestVersion !== APP_VERSION) {
+        // 只有当最新版本号大于当前版本号时才显示更新提示
+        if (latestVersion && compareVersions(latestVersion, APP_VERSION) > 0) {
             // 显示更新指示器
             const updateIndicator = document.getElementById('update-indicator');
             if (updateIndicator) {
@@ -1868,6 +1888,12 @@ async function checkForUpdates() {
                         window.open(`https://github.com/${GITHUB_REPO}/releases/latest`, '_blank');
                     });
                 }
+            }
+        } else {
+            // 如果不需要更新，确保移除更新指示器
+            const updateIndicator = document.getElementById('update-indicator');
+            if (updateIndicator) {
+                updateIndicator.classList.remove('active');
             }
         }
     } catch (error) {
