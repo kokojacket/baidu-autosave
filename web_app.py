@@ -1236,6 +1236,45 @@ def update_auth():
     
     return jsonify({'success': True, 'message': '登录凭据更新成功'})
 
+@app.route('/api/version/check', methods=['GET'])
+@login_required
+@handle_api_error
+def check_version():
+    """检查最新版本"""
+    try:
+        import feedparser
+        import requests
+        
+        # 使用 feedparser 解析 GitHub releases feed
+        feed_url = f'https://github.com/{GITHUB_REPO}/releases.atom'
+        response = requests.get(feed_url)
+        if response.status_code != 200:
+            return jsonify({
+                'success': False,
+                'message': '无法获取版本信息'
+            })
+            
+        # 解析 feed
+        feed = feedparser.parse(response.content)
+        if not feed.entries:
+            return jsonify({
+                'success': False,
+                'message': '未找到版本信息'
+            })
+            
+        # 获取最新版本信息
+        latest_version = feed.entries[0].title
+        
+        return jsonify({
+            'success': True,
+            'version': latest_version
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'检查版本失败: {str(e)}'
+        })
+
 if __name__ == '__main__':
     try:
         # 启动时初始化应用

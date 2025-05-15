@@ -1843,28 +1843,14 @@ async function handleUserSubmit(event) {
 // 检查应用更新
 async function checkForUpdates() {
     try {
-        // 使用 releases.atom feed 而不是 GitHub API
-        const response = await fetch(`https://github.com/${GITHUB_REPO}/releases.atom`);
-        if (!response.ok) {
-            console.warn('无法获取最新版本信息');
+        // 通过后端API获取版本信息
+        const response = await callApi('version/check');
+        if (!response.success) {
+            console.warn('无法获取最新版本信息:', response.message);
             return;
         }
         
-        const xmlText = await response.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-        
-        // 获取最新的 release
-        const latestEntry = xmlDoc.querySelector('entry');
-        if (!latestEntry) {
-            console.warn('未找到任何发布版本');
-            return;
-        }
-        
-        // 从标题中提取版本号（通常格式为 "v1.0.0" 或类似格式）
-        const releaseTitle = latestEntry.querySelector('title')?.textContent || '';
-        const latestVersion = releaseTitle.trim();
-        
+        const latestVersion = response.version;
         console.log(`检查版本：当前 ${APP_VERSION} 最新 ${latestVersion}`);
         
         if (latestVersion && latestVersion !== APP_VERSION) {
