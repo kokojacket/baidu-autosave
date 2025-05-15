@@ -21,6 +21,9 @@ from gevent.queue import Queue
 from geventwebsocket.exceptions import WebSocketError
 import socket
 
+# GitHub 仓库信息
+GITHUB_REPO = 'kokojacket/baidu-autosave'
+
 # 创建日志目录
 os.makedirs('log', exist_ok=True)
 

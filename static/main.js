@@ -1,5 +1,5 @@
 // 应用版本号和配置
-const APP_VERSION = 'v1.0.7';
+const APP_VERSION = 'v1.0.8';
 const GITHUB_REPO = 'kokojacket/baidu-autosave';
 
 // 本地缓存管理
