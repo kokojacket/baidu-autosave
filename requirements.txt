@@ -4,15 +4,11 @@
 Flask==2.3.3
 Flask-Cors==4.0.0
 gevent==23.9.1
-gevent-websocket==0.10.1
 APScheduler==3.10.4
 loguru==0.7.2
 requests==2.31.0
 pytz==2023.3.post1
-python-engineio==4.8.0
-python-socketio==5.10.0
 Cython==3.0.6
 baidupcs-py==0.7.6
 eventlet==0.35.1
-flask-sock>=0.4.0 
 feedparser==6.0.10 

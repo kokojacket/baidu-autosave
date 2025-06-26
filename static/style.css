@@ -2458,4 +2458,84 @@ textarea:focus {
 
 .input-with-dropdown {
     position: relative;
+}
+
+/* 文件过滤和重命名样式 */
+.toggle-section {
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.toggle-header {
+    padding: 10px;
+    background-color: #f5f5f5;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    border-radius: 4px 4px 0 0;
+}
+
+.toggle-header:hover {
+    background-color: #eeeeee;
+}
+
+.toggle-icon {
+    margin-right: 8px;
+    transition: transform 0.3s;
+}
+
+.toggle-content {
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-top: 1px solid #e0e0e0;
+    border-radius: 0 0 4px 4px;
+}
+
+.form-row {
+    margin-bottom: 15px;
+}
+
+.form-row label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.radio-label {
+    margin-right: 20px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.radio-label input[type="radio"] {
+    margin-right: 5px;
+}
+
+/* 修复文件过滤单选按钮对齐问题 */
+.form-row .radio-label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.form-row .radio-label input[type="radio"] {
+    margin-right: 8px;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.rename-fields {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #e0e0e0;
 } 

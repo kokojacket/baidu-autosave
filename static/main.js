@@ -48,14 +48,13 @@ function clearCache() {
     });
 }
 
-// WebSocket配置
-const WS_CONFIG = {
-    maxRetries: 3,           // 最大重试次数
-    retryInterval: 5000,     // 初始重试间隔（毫秒）
-    reconnectBackoff: 1.5,   // 重试间隔增长系数
-    pingInterval: 20000,     // 心跳间隔（毫秒）
-    pingTimeout: 8000,       // 心跳超时时间（毫秒）
-    debug: true             // 是否启用调试日志
+// 移除WebSocket配置，添加轮询配置
+const POLLING_CONFIG = {
+    enabled: true,
+    interval: 5000, // 轮询间隔（毫秒）
+    tasks_interval: 5000, // 任务列表轮询间隔
+    task_status_interval: 3000, // 任务状态轮询间隔（执行中的任务）
+    timeout: 300000 // 轮询超时时间（毫秒），5分钟
 };
 
 // 全局状态管理
@@ -65,124 +64,148 @@ const state = {
     config: {},
     currentUser: null,
     categories: new Set(), // 用于存储所有已使用的分类
-    isLoggedIn: false // 添加登录状态标记
+    isLoggedIn: false, // 添加登录状态标记
+    sessionCheckInterval: null, // 添加会话检查定时器
+    runningTasks: new Set(), // 存储正在执行的任务ID
+    pollingTimers: {}, // 存储轮询定时器
+    lastPollingTime: 0 // 上次轮询时间
 };
 
-// WebSocket连接管理
-let socket = null;
-let wsRetryTimeout = null;
-let wsPingInterval = null;
-let wsPingTimeout = null;
-let retryCount = 0;
-let isConnecting = false;
-let lastPongTime = 0;
-let lastServerTime = 0;
-let heartbeatInterval = null;
+// 移除WebSocket连接管理相关代码
 
-// 初始化WebSocket连接
-function initWebSocket() {
-    // 如果已经存在连接，先关闭
-    if (socket) {
-        socket.close();
-        socket = null;
+// 添加轮询函数
+function startTaskPolling() {
+    // 清除已有的轮询
+    if (state.pollingTimers.tasks) {
+        clearTimeout(state.pollingTimers.tasks);
     }
     
-    // 清除之前的心跳定时器
-    if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
-    }
-    
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = window.location.hostname || '127.0.0.1';
-    const wsPort = window.location.port || '5000';
-    const ws = new WebSocket(`${wsProtocol}//${wsHost}:${wsPort}/ws`);
-    
-    let reconnectTimer = null;
-    let isReconnecting = false;
-    
-    ws.onopen = function() {
-        console.log('WebSocket 连接已建立');
-        isReconnecting = false;
-        // 发送初始状态请求
-        ws.send(JSON.stringify({ type: 'get_status' }));
+    // 定期轮询所有任务状态
+    function pollTasks() {
+        if (!POLLING_CONFIG.enabled || !state.isLoggedIn) return;
         
-        // 设置新的心跳
-        heartbeatInterval = setInterval(() => {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'ping' }));
-            }
-        }, 30000);
-    };
+        callApi('/api/tasks', 'GET', null, false)
+            .then(response => {
+                if (response && response.success) {
+                    // 更新本地任务状态
+                    updateTasksWithChangedStatus(response.tasks);
+                    
+                    // 检查是否有运行中的任务，为这些任务设置更高频率的状态轮询
+                    const runningTasks = response.tasks.filter(task => task.status === 'running');
+                    runningTasks.forEach(task => {
+                        const taskId = task.order - 1; // 转换为前端的task_id
+                        if (!state.runningTasks.has(taskId)) {
+                            state.runningTasks.add(taskId);
+                            startTaskStatusPolling(taskId);
+                        }
+                    });
+                    
+                    // 移除已经完成的任务
+                    const runningIds = new Set(runningTasks.map(task => task.order - 1));
+                    Array.from(state.runningTasks).forEach(taskId => {
+                        if (!runningIds.has(taskId)) {
+                            state.runningTasks.delete(taskId);
+                            if (state.pollingTimers[`task_${taskId}`]) {
+                                clearTimeout(state.pollingTimers[`task_${taskId}`]);
+                                delete state.pollingTimers[`task_${taskId}`];
+                            }
+                        }
+                    });
+                }
+            })
+            .catch(error => console.error('轮询任务失败:', error))
+            .finally(() => {
+                // 设置下一次轮询
+                state.pollingTimers.tasks = setTimeout(pollTasks, POLLING_CONFIG.tasks_interval);
+            });
+    }
     
-    ws.onmessage = function(event) {
-        try {
-            const data = JSON.parse(event.data);
-            
-            // 处理心跳ping
-            if (data.type === 'ping') {
-                ws.send(JSON.stringify({type: 'pong'}));
-                return;
-            }
-            
-            // 处理其他消息类型
-            switch(data.type) {
-                case 'task_log':
-                    handleTaskLog(data.data);
-                    break;
-                case 'task_progress':
-                    handleTaskProgress(data.data);
-                    break;
-            }
-        } catch (error) {
-            console.error('处理WebSocket消息时出错:', error);
-        }
-    };
-    
-    ws.onclose = function(event) {
-        console.log(`WebSocket 连接已关闭，代码: ${event.code} 原因: ${event.reason}`);
-        if (retryCount < WS_CONFIG.maxRetries) {
-            const delay = Math.min(1000 * Math.pow(2, retryCount), WS_CONFIG.retryInterval);
-            console.log(`${Math.round(delay/1000)}秒后尝试重新连接(${retryCount + 1}/${WS_CONFIG.maxRetries})`);
-            setTimeout(() => {
-                retryCount++;
-                socket = initWebSocket();
-            }, delay);
-        }
-    };
-    
-    ws.onerror = function(error) {
-        console.error('WebSocket 错误:', error);
-    };
-    
-    return ws;
+    // 启动初次轮询
+    pollTasks();
 }
 
-// 处理WebSocket消息
-function handleWebSocketMessage(data) {
-    if (!data || !data.type) return;
+// 为特定正在运行的任务启动高频率轮询
+function startTaskStatusPolling(taskId) {
+    if (state.pollingTimers[`task_${taskId}`]) {
+        clearTimeout(state.pollingTimers[`task_${taskId}`]);
+    }
     
-    switch (data.type) {
-        case 'task_status':
-            // 更新任务状态
-            if (data.task_id !== undefined && data.status) {
-                updateTaskStatus(data.task_id, data.status, data.message);
-            }
-            break;
+    let startTime = Date.now();
+    
+    function pollTaskStatus() {
+        if (!state.runningTasks.has(taskId) || !state.isLoggedIn) return;
+        
+        // 检查是否超过超时时间
+        if (Date.now() - startTime > POLLING_CONFIG.timeout) {
+            state.runningTasks.delete(taskId);
+            return;
+        }
+        
+        callApi(`/api/tasks/${taskId}/status`, 'GET', null, false)
+            .then(response => {
+                if (response && response.success) {
+                    const taskStatus = response.status;
+                    if (taskStatus) {
+                        // 更新任务状态
+                        updateTaskStatus(taskId, taskStatus.status, taskStatus.message);
+                        
+                        // 如果任务已完成或出错，停止轮询
+                        if (taskStatus.status !== 'running') {
+                            state.runningTasks.delete(taskId);
+                            return;
+                        }
+                    }
+                }
+            })
+            .catch(error => console.error(`轮询任务状态失败 (任务ID: ${taskId}):`, error))
+            .finally(() => {
+                // 如果任务仍在运行，设置下一次轮询
+                if (state.runningTasks.has(taskId)) {
+                    state.pollingTimers[`task_${taskId}`] = setTimeout(pollTaskStatus, POLLING_CONFIG.task_status_interval);
+                }
+            });
+    }
+    
+    // 立即开始轮询
+    pollTaskStatus();
+}
+
+// 更新任务列表，比较新旧状态
+function updateTasksWithChangedStatus(newTasks) {
+    if (!newTasks || !Array.isArray(newTasks)) return;
+    
+    // 确保任务按order排序
+    newTasks.sort((a, b) => (a.order || 0) - (b.order || 0));
+    
+    let tasksChanged = false;
+    
+    // 检查任务是否有更改
+    if (state.tasks.length !== newTasks.length) {
+        tasksChanged = true;
+    } else {
+        for (let i = 0; i < newTasks.length; i++) {
+            const oldTask = state.tasks[i];
+            const newTask = newTasks[i];
             
-        case 'task_progress':
-            // 更新任务进度
-            if (data.task_id !== undefined && data.progress !== undefined) {
-                updateTaskProgress(data.task_id, data.progress);
+            if (!oldTask || 
+                oldTask.status !== newTask.status || 
+                oldTask.last_execute_time !== newTask.last_execute_time) {
+                tasksChanged = true;
+                break;
             }
-            break;
-            
-        case 'refresh':
-            // 刷新任务列表
-            refreshTasks();
-            break;
+        }
+    }
+    
+    // 如果有更改，更新状态并重新渲染
+    if (tasksChanged) {
+        state.tasks = newTasks;
+        saveToCache(CACHE_KEY.TASKS, state.tasks);
+        renderTasks();
+        updateErrorIndicator();
     }
 }
+
+// 移除WebSocket消息处理相关函数
 
 // 更新任务状态
 function updateTaskStatus(taskId, status, message) {
@@ -222,6 +245,11 @@ function updateTaskStatus(taskId, status, message) {
     if (message) {
         showNotification(message, status === 'error' ? 'error' : 'info');
     }
+    
+    // 如果任务完成，也刷新一次任务列表
+    if (status === 'completed' || status === 'error') {
+        refreshTasks();
+    }
 }
 
 // 更新任务进度
@@ -246,36 +274,9 @@ function updateTaskProgress(taskId, progress) {
         progressElement.style.width = `${progress}%`;
         progressElement.setAttribute('aria-valuenow', progress);
     }
-    
-    // 更新状态
-    const statusElement = taskElement.querySelector('.task-status');
-    if (statusElement) {
-        statusElement.className = `task-status ${status}`;
-        statusElement.textContent = getStatusText(status);
-    }
-    
-    // 更新任务元素的状态
-    taskElement.dataset.status = status;
-    
-    // 更新按钮状态
-    const buttons = taskElement.querySelectorAll('.btn-icon');
-    buttons.forEach(btn => {
-        btn.disabled = status === 'running';
-        btn.style.pointerEvents = status === 'running' ? 'none' : 'auto'; // 确保按钮状态不影响布局
-    });
-    
-    // 在任务状态中查找对应的任务并更新
-    const taskIndex = state.tasks.findIndex(t => t.order - 1 === parseInt(taskId));
-    if (taskIndex >= 0) {
-        state.tasks[taskIndex].status = status;
-        state.tasks[taskIndex].progress = progress;
-    }
-    
-    // 更新异常指示器
-    updateErrorIndicator();
 }
 
-// 加载状态管理
+// 显示加载中效果
 function showLoading(message = '加载中...') {
     const loading = document.createElement('div');
     loading.className = 'loading-overlay';
@@ -284,13 +285,6 @@ function showLoading(message = '加载中...') {
         <div class="loading-message">${message}</div>
     `;
     document.body.appendChild(loading);
-}
-
-function hideLoading() {
-    const loading = document.querySelector('.loading-overlay');
-    if (loading) {
-        loading.remove();
-    }
 }
 
 // 通知显示
@@ -816,82 +810,30 @@ function clearLog() {
 // 修改任务执行函数
 async function executeTask(taskId) {
     try {
-        // 获取任务的order
-        const task = state.tasks.find(t => t.order === taskId + 1);
-        if (!task) {
-            showError('任务不存在');
-            return;
-        }
-
-        // 禁用执行按钮
-        const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
-        const executeBtn = taskElement?.querySelector('button[onclick^="executeTask"]');
-        if (executeBtn) {
-            executeBtn.disabled = true;
-        }
-        
-        // 清空并显示日志窗口
-        clearLog();
-        showModal('progress-modal');
-        
-        // 添加初始日志
-        const taskName = task.name || `任务${task.order}`;
-        appendLog(`开始执行任务: ${taskName}`, 'info');
-        appendLog(`分享链接: ${task.url}`, 'info');
-        appendLog(`保存目录: ${task.save_dir}`, 'info');
-        if (task.pwd) {
-            appendLog(`提取码: ${task.pwd}`, 'info');
-        }
-        
-        // 发送执行请求，使用task_id作为标识
-        const response = await callApi('task/execute', 'POST', { task_id: taskId }, false);
+        showLoading('正在执行任务...');
+        const response = await callApi('/api/task/execute', 'POST', { task_id: taskId });
         
         if (response.success) {
-            // 处理转存文件列表
-            if (response.transferred_files && response.transferred_files.length > 0) {
-                appendLog('\n成功转存以下文件:', 'success');
-                // 按目录分组显示文件
-                const filesByDir = {};
-                response.transferred_files.forEach(file => {
-                    const dir = file.split('/').slice(0, -1).join('/') || '/';
-                    if (!filesByDir[dir]) {
-                        filesByDir[dir] = [];
-                    }
-                    filesByDir[dir].push(file.split('/').pop());
-                });
-                
-                // 显示分组后的文件
-                Object.entries(filesByDir).forEach(([dir, files]) => {
-                    appendLog(`\n目录: ${dir}`, 'info');
-                    files.sort().forEach(file => {
-                        appendLog(`  - ${file}`, 'info');
-                    });
-                });
-            } else if (response.message.includes('没有新文件')) {
-                appendLog('\n检查文件更新:', 'info');
-                appendLog('没有发现新文件需要转存', 'warning');
-            }
+            showNotification('任务开始执行', 'info');
             
-            appendLog(`\n执行结果: ${response.message}`, 'success');
-            showSuccess(response.message);
+            // 更新任务状态为运行中
+            updateTaskStatus(taskId, 'running', '任务开始执行');
             
-            // 刷新任务列表
-            await refreshTasks();
+            // 将任务添加到正在运行的任务集合并开始状态轮询
+            state.runningTasks.add(taskId);
+            startTaskStatusPolling(taskId);
+            
+            return true;
         } else {
-            appendLog(`\n执行失败: ${response.message}`, 'error');
-            showError(response.message);
+            showNotification(response.message || '执行任务失败', 'error');
+            return false;
         }
     } catch (error) {
         console.error('执行任务失败:', error);
-        appendLog(`\n执行出错: ${error.message || '未知错误'}`, 'error');
-        showError(error.message || '执行任务失败');
+        showNotification('执行任务失败: ' + error.message, 'error');
+        return false;
     } finally {
-        // 恢复执行按钮状态
-        const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
-        const executeBtn = taskElement?.querySelector('button[onclick^="executeTask"]');
-        if (executeBtn) {
-            executeBtn.disabled = false;
-        }
+        hideLoading();
     }
 }
 
@@ -925,6 +867,71 @@ async function editTask(taskId) {
         form.querySelector('[name="save_dir"]').value = task.save_dir || '';
         form.querySelector('[name="cron"]').value = task.cron || '';
         form.querySelector('[name="category"]').value = task.category || '';
+        
+        // 加载文件过滤配置
+        if (task.file_filters) {
+            // 显示过滤区域
+            const filterSection = document.getElementById('filter-section');
+            filterSection.style.display = 'block';
+            const icon = document.querySelector('.toggle-header[onclick="toggleFilterSection()"] .toggle-icon');
+            icon.textContent = 'expand_less';
+            
+            // 设置过滤类型
+            const filterType = task.file_filters.type || 'include';
+            const filterTypeInput = form.querySelector(`input[name="filter_type"][value="${filterType}"]`);
+            if (filterTypeInput) {
+                filterTypeInput.checked = true;
+            }
+            
+            // 设置模式匹配
+            if (task.file_filters.patterns && Array.isArray(task.file_filters.patterns)) {
+                form.querySelector('[name="filter_patterns"]').value = task.file_filters.patterns.join(', ');
+            }
+            
+            // 设置正则表达式
+            if (task.file_filters.regex) {
+                form.querySelector('[name="filter_regex"]').value = task.file_filters.regex;
+            }
+        }
+        
+        // 加载重命名配置
+        if (task.rename_rules) {
+            // 显示重命名区域
+            const renameSection = document.getElementById('rename-section');
+            renameSection.style.display = 'block';
+            const icon = document.querySelector('.toggle-header[onclick="toggleRenameSection()"] .toggle-icon');
+            icon.textContent = 'expand_less';
+            
+            // 设置重命名类型
+            const renameType = task.rename_rules.type;
+            if (renameType) {
+                const renameTypeSelect = form.querySelector('[name="rename_type"]');
+                renameTypeSelect.value = renameType;
+                
+                // 显示对应的字段
+                updateRenameFields();
+                
+                // 设置具体规则
+                const rules = task.rename_rules.rules || {};
+                switch (renameType) {
+                    case 'pattern':
+                        form.querySelector('[name="rename_pattern"]').value = rules.pattern || '';
+                        form.querySelector('[name="rename_replacement"]').value = rules.replacement || '';
+                        break;
+                    case 'prefix':
+                        form.querySelector('[name="rename_prefix"]').value = rules.prefix || '';
+                        break;
+                    case 'suffix':
+                        form.querySelector('[name="rename_suffix"]').value = rules.suffix || '';
+                        break;
+                    case 'exact':
+                        if (rules.exact_match) {
+                            form.querySelector('[name="rename_exact_match"]').value = JSON.stringify(rules.exact_match, null, 2);
+                        }
+                        break;
+                }
+            }
+        }
         
         // 保存字段历史记录
         if (task.save_dir) saveFieldHistory('save_dir', task.save_dir);
@@ -1392,6 +1399,18 @@ async function handleTaskSubmit(event) {
             data.save_dir = '/' + data.save_dir;
         }
         
+        // 构建文件过滤配置
+        const fileFilters = buildFileFiltersConfig();
+        if (fileFilters) {
+            data.file_filters = fileFilters;
+        }
+        
+        // 构建重命名规则配置
+        const renameRules = buildRenameRulesConfig();
+        if (renameRules) {
+            data.rename_rules = renameRules;
+        }
+        
         // 保存字段历史记录
         saveFieldHistory('save_dir', data.save_dir);
         if (data.cron) saveFieldHistory('cron', data.cron);
@@ -1408,7 +1427,9 @@ async function handleTaskSubmit(event) {
                 save_dir: data.save_dir,
                 name: data.name || '',
                 cron: data.cron || '',
-                category: data.category || ''
+                category: data.category || '',
+                file_filters: data.file_filters,
+                rename_rules: data.rename_rules
             });
         }
         
@@ -1904,39 +1925,35 @@ async function checkForUpdates() {
 // 应用初始化
 async function initializeApp() {
     try {
-        // 首先设置版本号
-        const versionElement = document.getElementById('app-version');
-        if (versionElement) {
-            versionElement.textContent = APP_VERSION;
+        // 设置版本号
+        document.getElementById('app-version').textContent = APP_VERSION;
+        
+        // 检查登录状态
+        await checkLoginStatus();
+        
+        if (state.isLoggedIn) {
+            // 加载初始数据
+            await initializeData();
+            
+            // 初始化事件监听器
+            initializeEventListeners();
+            
+            // 开启拖拽功能
+            initDragAndDrop();
+            
+            // 初始化移动端事件
+            initMobileEvents();
+            
+            // 检查是否有更新
+            // 初始化导航
+            initNavigation();
+            
+            // 添加任务状态轮询
+            startTaskPolling();
         }
-        
-        // 1. 获取当前登录状态
-        checkLoginStatus();
-        
-        // 2. 加载初始数据
-        await initializeData();
-        
-        // 3. 初始化事件监听器
-        initializeEventListeners();
-        
-        // 4. 初始化WebSocket连接
-        socket = initWebSocket();
-        
-        // 5. 检查是否有新版本
-        checkForUpdates();
-        
-        // 6. 初始化拖拽排序
-        initDragAndDrop();
-        
-        // 7. 初始化移动端事件
-        initMobileEvents();
-        
-        // 8. 更新异常指示器
-        updateErrorIndicator();
-        
     } catch (error) {
-        console.error('应用初始化失败:', error);
-        showError('应用初始化失败，请刷新页面重试');
+        console.error('初始化应用失败:', error);
+        showNotification('初始化应用失败: ' + error.message, 'error');
     }
 }
 
@@ -2217,6 +2234,7 @@ async function checkLoginStatus() {
         if (response.status === 401 || response.redirected) {
             // 未登录或会话过期，重定向到登录页
             state.isLoggedIn = false;
+            clearInterval(state.sessionCheckInterval); // 清除定时器
             window.location.href = '/login';
             return;
         }
@@ -2229,18 +2247,41 @@ async function checkLoginStatus() {
         } else {
             state.isLoggedIn = false;
             updateLoginStatus(null);
+            window.location.href = '/login';
         }
     } catch (error) {
         console.error('检查登录状态失败:', error);
         state.isLoggedIn = false;
         updateLoginStatus(null);
+        window.location.href = '/login';
     }
+}
+
+// 启动定期检查会话状态
+function startSessionCheck() {
+    // 清除可能存在的旧定时器
+    if (state.sessionCheckInterval) {
+        clearInterval(state.sessionCheckInterval);
+    }
+    
+    // 每分钟检查一次会话状态
+    state.sessionCheckInterval = setInterval(checkLoginStatus, 60000);
 }
 
 // 在页面加载和初始化数据时检查登录状态
 document.addEventListener('DOMContentLoaded', function() {
     checkLoginStatus();
+    startSessionCheck(); // 启动定期检查
 });
+
+// 添加登出功能
+function logout() {
+    // 清除定时器
+    if (state.sessionCheckInterval) {
+        clearInterval(state.sessionCheckInterval);
+    }
+    window.location.href = '/logout';
+}
 
 // 批量操作功能
 let selectedTasks = new Set();
@@ -2511,11 +2552,6 @@ function checkLoginStatus() {
 document.addEventListener('DOMContentLoaded', function() {
     checkLoginStatus();
 });
-
-// 添加登出功能
-function logout() {
-    window.location.href = '/logout';
-}
 
 // 更新保存目录下拉列表
 function updateSaveDirList() {
@@ -2867,4 +2903,162 @@ function toggleCategoryDropdown() {
             document.addEventListener('click', e => handleOutsideClick(e, 'category-dropdown'));
         }, 10);
     }
+}
+
+// 文件过滤与重命名相关函数
+function toggleFilterSection() {
+    const section = document.getElementById('filter-section');
+    const icon = document.querySelector('.toggle-header[onclick="toggleFilterSection()"] .toggle-icon');
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        icon.textContent = 'expand_less';
+    } else {
+        section.style.display = 'none';
+        icon.textContent = 'expand_more';
+    }
+}
+
+function toggleRenameSection() {
+    const section = document.getElementById('rename-section');
+    const icon = document.querySelector('.toggle-header[onclick="toggleRenameSection()"] .toggle-icon');
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        icon.textContent = 'expand_less';
+    } else {
+        section.style.display = 'none';
+        icon.textContent = 'expand_more';
+    }
+}
+
+function updateRenameFields() {
+    // 隐藏所有重命名字段
+    const allFields = document.querySelectorAll('.rename-fields');
+    allFields.forEach(field => field.style.display = 'none');
+    
+    // 获取选择的重命名类型
+    const renameType = document.querySelector('select[name="rename_type"]').value;
+    if (!renameType) return;
+    
+    // 显示对应的字段
+    const fieldsToShow = document.getElementById(`rename_${renameType}_fields`);
+    if (fieldsToShow) {
+        fieldsToShow.style.display = 'block';
+    }
+}
+
+// 构建文件过滤配置对象
+function buildFileFiltersConfig() {
+    const filterSection = document.getElementById('filter-section');
+    
+    // 如果过滤区域未显示，返回null
+    if (filterSection.style.display === 'none') {
+        return null;
+    }
+    
+    const filterType = document.querySelector('input[name="filter_type"]:checked').value;
+    const patternsInput = document.querySelector('input[name="filter_patterns"]').value.trim();
+    const regexInput = document.querySelector('input[name="filter_regex"]').value.trim();
+    
+    // 如果没有任何过滤条件，返回null
+    if (!patternsInput && !regexInput) {
+        return null;
+    }
+    
+    const fileFilters = {
+        type: filterType
+    };
+    
+    // 处理文件模式匹配
+    if (patternsInput) {
+        fileFilters.patterns = patternsInput.split(',').map(p => p.trim()).filter(p => p);
+    }
+    
+    // 处理正则表达式
+    if (regexInput) {
+        fileFilters.regex = regexInput;
+    }
+    
+    return fileFilters;
+}
+
+// 构建重命名规则配置对象
+function buildRenameRulesConfig() {
+    const renameSection = document.getElementById('rename-section');
+    
+    // 如果重命名区域未显示，返回null
+    if (renameSection.style.display === 'none') {
+        return null;
+    }
+    
+    const renameType = document.querySelector('select[name="rename_type"]').value;
+    
+    // 如果没有选择重命名类型，返回null
+    if (!renameType) {
+        return null;
+    }
+    
+    const renameRules = {
+        type: renameType,
+        rules: {}
+    };
+    
+    // 根据类型处理规则
+    switch (renameType) {
+        case 'pattern':
+            const pattern = document.querySelector('input[name="rename_pattern"]').value.trim();
+            const replacement = document.querySelector('input[name="rename_replacement"]').value.trim();
+            if (pattern && replacement) {
+                renameRules.rules = {
+                    pattern: pattern,
+                    replacement: replacement
+                };
+            } else {
+                return null;  // 如果缺少必填项，返回null
+            }
+            break;
+            
+        case 'prefix':
+            const prefix = document.querySelector('input[name="rename_prefix"]').value.trim();
+            if (prefix) {
+                renameRules.rules = {
+                    prefix: prefix
+                };
+            } else {
+                return null;
+            }
+            break;
+            
+        case 'suffix':
+            const suffix = document.querySelector('input[name="rename_suffix"]').value.trim();
+            if (suffix) {
+                renameRules.rules = {
+                    suffix: suffix
+                };
+            } else {
+                return null;
+            }
+            break;
+            
+        case 'exact':
+            const exactMatchText = document.querySelector('textarea[name="rename_exact_match"]').value.trim();
+            try {
+                if (exactMatchText) {
+                    const exactMatch = JSON.parse(exactMatchText);
+                    renameRules.rules = {
+                        exact_match: exactMatch
+                    };
+                } else {
+                    return null;
+                }
+            } catch (e) {
+                showError('精确匹配替换规则格式错误，请使用正确的JSON格式');
+                return null;
+            }
+            break;
+            
+        default:
+            return null;
+    }
+    
+    return renameRules;
 }

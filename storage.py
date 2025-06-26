@@ -43,9 +43,9 @@ class BaiduStorage:
                 # 添加 auth 配置结构
                 if 'auth' not in config:
                     config['auth'] = {
-                        'users': 'admin',
-                        'password': 'admin123',
-                        'session_timeout': 3600
+                        'username': 'admin',
+                        'password': 'admin',
+                        'session_timeout': 86400  # 改为24小时
                     }
                 return config
         except FileNotFoundError:
@@ -60,9 +60,9 @@ class BaiduStorage:
                     'auto_install': True
                 },
                 'auth': {
-                    'users': 'admin',
-                    'password': 'admin123',
-                    'session_timeout': 3600
+                    'username': 'admin',
+                    'password': 'admin',
+                    'session_timeout': 86400  # 改为24小时
                 }
             }
         except Exception as e:
@@ -468,7 +468,7 @@ class BaiduStorage:
             logger.error(f"调整任务顺序失败: {str(e)}")
             return False
 
-    def add_task(self, url, save_dir, pwd=None, name=None, cron=None, category=None):
+    def add_task(self, url, save_dir, pwd=None, name=None, cron=None, category=None, file_filters=None, rename_rules=None):
         """添加任务"""
         try:
             if not url or not save_dir:
@@ -500,6 +500,10 @@ class BaiduStorage:
                 new_task['cron'] = cron
             if category:
                 new_task['category'] = category.strip()
+            if file_filters:
+                new_task['file_filters'] = file_filters
+            if rename_rules:
+                new_task['rename_rules'] = rename_rules
             
             # 添加任务
             tasks = self.config['baidu'].get('tasks', [])
@@ -688,7 +692,7 @@ class BaiduStorage:
             logger.error(f"处理文件夹结构时出错: {str(e)}")
             return save_dir, False
 
-    def transfer_share(self, share_url, pwd=None, new_files=None, save_dir=None, progress_callback=None):
+    def transfer_share(self, share_url, pwd=None, new_files=None, save_dir=None, progress_callback=None, file_filters=None, rename_rules=None):
         """转存分享文件
         Args:
             share_url: 分享链接
@@ -696,6 +700,8 @@ class BaiduStorage:
             new_files: 指定要转存的文件列表
             save_dir: 保存目录
             progress_callback: 进度回调函数
+            file_filters: 文件过滤规则
+            rename_rules: 重命名规则
         Returns:
             dict: {
                 'success': bool,  # 是否成功
@@ -703,6 +709,8 @@ class BaiduStorage:
                 'error': str,     # 失败时的错误信息
                 'skipped': bool,  # 是否跳过（没有新文件）
                 'transferred_files': list  # 成功转存的文件列表
+                'filtered_files': list  # 被过滤的文件列表（如果有过滤规则）
+                'renamed_files': dict  # 重命名的文件映射（如果有重命名规则）
             }
         """
         try:
@@ -711,6 +719,10 @@ class BaiduStorage:
             
             if progress_callback:
                 progress_callback('info', f'准备转存到目录: {save_dir}')
+            
+            # 初始化过滤和重命名结果
+            filtered_files = []
+            rename_map = {}  # 存储原文件路径到新文件路径的映射
             
             # 获取本地文件列表
             local_files = []
@@ -764,6 +776,21 @@ class BaiduStorage:
                                 progress_callback('info', f'文件已存在，跳过: {clean_path}')
                             continue
                         
+                        # 新增：文件过滤
+                        if not self._filter_file(clean_path, file_filters):
+                            if progress_callback:
+                                progress_callback('info', f'文件被过滤，跳过: {clean_path}')
+                            filtered_files.append(clean_path)
+                            continue
+                        
+                        # 新增：重命名处理
+                        new_file_path = self._get_new_filename(clean_path, rename_rules)
+                        if new_file_path:
+                            if progress_callback:
+                                progress_callback('info', f'文件将被重命名: {clean_path} -> {new_file_path}')
+                            rename_map[posixpath.join(target_dir, clean_path)] = posixpath.join(target_dir, new_file_path)
+                            clean_path = new_file_path
+                        
                         if new_files is None or clean_path in new_files:
                             # 使用 posixpath.join 确保使用正斜杠
                             target_path = posixpath.join(target_dir, clean_path)
@@ -790,19 +817,41 @@ class BaiduStorage:
                                     progress_callback('info', f'文件已存在，跳过: {clean_path}')
                                 continue
                             
+                            # 新增：文件过滤
+                            if not self._filter_file(clean_path, file_filters):
+                                if progress_callback:
+                                    progress_callback('info', f'文件被过滤，跳过: {clean_path}')
+                                filtered_files.append(clean_path)
+                                continue
+                            
+                            # 新增：重命名处理
+                            new_file_path = self._get_new_filename(clean_path, rename_rules)
+                            if new_file_path:
+                                if progress_callback:
+                                    progress_callback('info', f'文件将被重命名: {clean_path} -> {new_file_path}')
+                                rename_map[posixpath.join(target_dir, clean_path)] = posixpath.join(target_dir, new_file_path)
+                                clean_path = new_file_path
+                            
                             if new_files is None or clean_path in new_files:
-                                target_path = os.path.join(target_dir, clean_path)
-                                transfer_list.append((file_info['fs_id'], os.path.dirname(target_path), clean_path))
+                                target_path = posixpath.join(target_dir, clean_path)
+                                transfer_list.append((file_info['fs_id'], posixpath.dirname(target_path), clean_path))
                                 if progress_callback:
                                     progress_callback('info', f'添加文件: {clean_path}')
                 
                 if not transfer_list:
+                    filtered_msg = f"，{len(filtered_files)} 个文件被过滤" if filtered_files else ""
                     if progress_callback:
-                        progress_callback('info', '没有找到需要转存的文件')
-                    return {'success': True, 'skipped': True, 'message': '没有新文件需要转存'}
+                        progress_callback('info', f'没有找到需要转存的文件{filtered_msg}')
+                    return {
+                        'success': True, 
+                        'skipped': True, 
+                        'message': f'没有新文件需要转存{filtered_msg}',
+                        'filtered_files': filtered_files
+                    }
                 
                 if progress_callback:
-                    progress_callback('info', f'找到 {len(transfer_list)} 个新文件需要转存')
+                    filtered_msg = f"，{len(filtered_files)} 个文件被过滤" if filtered_files else ""
+                    progress_callback('info', f'找到 {len(transfer_list)} 个新文件需要转存{filtered_msg}')
                 
                 # 创建所有必要的目录
                 created_dirs = set()
@@ -881,29 +930,45 @@ class BaiduStorage:
                 # 记录转存的文件列表
                 transferred_files = [clean_path for _, _, clean_path in transfer_list]
                 
+                # 新增：如果有重命名操作，执行重命名
+                renamed_files = {}
+                if rename_map and success_count > 0:
+                    if progress_callback:
+                        progress_callback('info', f'开始执行重命名操作，共 {len(rename_map)} 个文件')
+                    rename_result = self._rename_transferred_files(rename_map, progress_callback)
+                    renamed_files = rename_result.get('renamed_files', {})
+                
                 # 根据转存结果返回不同状态
+                filtered_msg = f"，{len(filtered_files)} 个文件被过滤" if filtered_files else ""
+                renamed_msg = f"，{len(renamed_files)} 个文件被重命名" if renamed_files else ""
+                
                 if success_count == total_files:  # 全部成功
                     if progress_callback:
-                        progress_callback('success', f'转存完成，成功转存 {success_count}/{total_files} 个文件')
+                        progress_callback('success', f'转存完成，成功转存 {success_count}/{total_files} 个文件{filtered_msg}{renamed_msg}')
                     return {
                         'success': True,
-                        'message': f'成功转存 {success_count}/{total_files} 个文件',
-                        'transferred_files': transferred_files
+                        'message': f'成功转存 {success_count}/{total_files} 个文件{filtered_msg}{renamed_msg}',
+                        'transferred_files': transferred_files,
+                        'filtered_files': filtered_files,
+                        'renamed_files': renamed_files
                     }
                 elif success_count > 0:  # 部分成功
                     if progress_callback:
-                        progress_callback('warning', f'部分转存成功，成功转存 {success_count}/{total_files} 个文件')
+                        progress_callback('warning', f'部分转存成功，成功转存 {success_count}/{total_files} 个文件{filtered_msg}{renamed_msg}')
                     return {
                         'success': True,
-                        'message': f'部分转存成功，成功转存 {success_count}/{total_files} 个文件',
-                        'transferred_files': transferred_files[:success_count]
+                        'message': f'部分转存成功，成功转存 {success_count}/{total_files} 个文件{filtered_msg}{renamed_msg}',
+                        'transferred_files': transferred_files[:success_count],
+                        'filtered_files': filtered_files,
+                        'renamed_files': renamed_files
                     }
                 else:  # 全部失败
                     if progress_callback:
                         progress_callback('error', '转存失败，没有文件成功转存')
                     return {
                         'success': False,
-                        'error': '转存失败，没有文件成功转存'
+                        'error': '转存失败，没有文件成功转存',
+                        'filtered_files': filtered_files
                     }
                 
             except Exception as e:
@@ -1268,6 +1333,20 @@ class BaiduStorage:
                 else:  # 如果分类为空，删除分类字段
                     tasks[index].pop('category', None)
             
+            # 处理文件过滤规则
+            if 'file_filters' in task_data:
+                if task_data['file_filters']:  # 如果有新过滤规则
+                    tasks[index]['file_filters'] = task_data['file_filters']
+                else:  # 如果过滤规则为空，删除过滤规则字段
+                    tasks[index].pop('file_filters', None)
+            
+            # 处理重命名规则
+            if 'rename_rules' in task_data:
+                if task_data['rename_rules']:  # 如果有新重命名规则
+                    tasks[index]['rename_rules'] = task_data['rename_rules']
+                else:  # 如果重命名规则为空，删除重命名规则字段
+                    tasks[index].pop('rename_rules', None)
+            
             # 处理cron字段
             new_cron = task_data.get('cron')
             if new_cron is not None:
@@ -1287,11 +1366,11 @@ class BaiduStorage:
                 logger.info(f"已更新任务调度: {url}")
             
             logger.success(f"更新任务成功: {tasks[index]}")
-            return True, True  # 第二个True表示调度器已更新
+            return True
             
         except Exception as e:
             logger.error(f"更新任务失败: {str(e)}")
-            return False, False
+            return False
 
     def get_task_categories(self):
         """获取所有任务分类
@@ -1427,10 +1506,10 @@ class BaiduStorage:
             logger.error(f"删除任务失败: {str(e)}")
             return False
 
-    def update_task_by_order(self, order, task_data):
-        """基于order更新任务信息
+    def update_task_by_order(self, task_order, task_data):
+        """基于order更新任务
         Args:
-            order: 任务顺序号
+            task_order: 任务的顺序值
             task_data: 新的任务数据
         Returns:
             bool: 是否更新成功
@@ -1438,13 +1517,15 @@ class BaiduStorage:
         try:
             tasks = self.config['baidu']['tasks']
             task_index = None
+            
+            # 查找对应order的任务
             for i, task in enumerate(tasks):
-                if task.get('order') == order:
+                if task.get('order') == task_order:
                     task_index = i
                     break
-                    
+            
             if task_index is None:
-                raise ValueError(f"未找到任务: order={order}")
+                raise ValueError(f"未找到任务(order={task_order})")
             
             # 保存旧任务配置用于比较
             old_task = tasks[task_index].copy()
@@ -1480,6 +1561,20 @@ class BaiduStorage:
                 else:  # 如果分类为空，删除分类字段
                     tasks[task_index].pop('category', None)
             
+            # 处理文件过滤规则
+            if 'file_filters' in task_data:
+                if task_data['file_filters']:  # 如果有新过滤规则
+                    tasks[task_index]['file_filters'] = task_data['file_filters']
+                else:  # 如果过滤规则为空，删除过滤规则字段
+                    tasks[task_index].pop('file_filters', None)
+            
+            # 处理重命名规则
+            if 'rename_rules' in task_data:
+                if task_data['rename_rules']:  # 如果有新重命名规则
+                    tasks[task_index]['rename_rules'] = task_data['rename_rules']
+                else:  # 如果重命名规则为空，删除重命名规则字段
+                    tasks[task_index].pop('rename_rules', None)
+            
             # 处理cron字段
             new_cron = task_data.get('cron')
             if new_cron is not None:
@@ -1504,3 +1599,155 @@ class BaiduStorage:
         except Exception as e:
             logger.error(f"更新任务失败: {str(e)}")
             return False
+
+    def _filter_file(self, file_path, file_filters):
+        """根据过滤规则判断文件是否应该被转存
+        Args:
+            file_path: 文件路径
+            file_filters: 过滤规则
+        Returns:
+            bool: 是否应该转存该文件
+        """
+        if not file_filters:
+            return True
+            
+        # 获取过滤规则配置
+        filter_type = file_filters.get('type', 'include')  # 默认为包含模式
+        patterns = file_filters.get('patterns', [])
+        regex = file_filters.get('regex', '')
+        
+        # 判断文件是否匹配规则
+        is_matched = False
+        
+        # 模式匹配（支持通配符如 *.mp4）
+        if patterns:
+            for pattern in patterns:
+                if self._match_wildcard(file_path, pattern):
+                    is_matched = True
+                    break
+        
+        # 正则表达式匹配
+        if not is_matched and regex:
+            try:
+                if re.search(regex, file_path):
+                    is_matched = True
+            except re.error:
+                logger.error(f"正则表达式格式错误: {regex}")
+        
+        # 根据过滤类型返回结果
+        if filter_type == 'include':
+            return is_matched  # 包含模式：匹配则转存
+        else:
+            return not is_matched  # 排除模式：匹配则不转存
+
+    def _match_wildcard(self, file_path, pattern):
+        """使用通配符匹配文件路径
+        Args:
+            file_path: 文件路径
+            pattern: 通配符模式（如 *.mp4）
+        Returns:
+            bool: 是否匹配
+        """
+        # 将通配符转换为正则表达式
+        pattern = pattern.replace('.', '\\.')
+        pattern = pattern.replace('*', '.*')
+        pattern = pattern.replace('?', '.')
+        pattern = f"^{pattern}$"
+        
+        # 只匹配文件名部分
+        file_name = os.path.basename(file_path)
+        
+        try:
+            return bool(re.search(pattern, file_name))
+        except re.error:
+            logger.error(f"通配符转换为正则表达式失败: {pattern}")
+            return False
+
+    def _get_new_filename(self, file_path, rename_rules):
+        """根据重命名规则获取新文件名
+        Args:
+            file_path: 原文件路径
+            rename_rules: 重命名规则
+        Returns:
+            str: 新文件名，如无需重命名则返回None
+        """
+        if not rename_rules:
+            return None
+            
+        # 获取重命名规则配置
+        rule_type = rename_rules.get('type', '')
+        rules = rename_rules.get('rules', {})
+        
+        # 获取文件名和目录部分
+        dir_name = os.path.dirname(file_path)
+        file_name = os.path.basename(file_path)
+        
+        # 根据不同类型实现重命名
+        new_file_name = None
+        
+        if rule_type == 'exact':
+            # 精确匹配替换
+            exact_match = rules.get('exact_match', {})
+            if file_name in exact_match:
+                new_file_name = exact_match[file_name]
+                
+        elif rule_type == 'pattern':
+            # 正则表达式替换
+            pattern = rules.get('pattern', '')
+            replacement = rules.get('replacement', '')
+            if pattern and replacement:
+                try:
+                    new_file_name = re.sub(pattern, replacement, file_name)
+                    # 如果没有变化，则不需要重命名
+                    if new_file_name == file_name:
+                        new_file_name = None
+                except re.error:
+                    logger.error(f"正则表达式替换失败: {pattern} -> {replacement}")
+                
+        elif rule_type == 'prefix':
+            # 添加前缀
+            prefix = rules.get('prefix', '')
+            if prefix:
+                new_file_name = f"{prefix}{file_name}"
+                
+        elif rule_type == 'suffix':
+            # 添加后缀（在扩展名之前）
+            suffix = rules.get('suffix', '')
+            if suffix:
+                name_parts = file_name.rsplit('.', 1)
+                if len(name_parts) > 1:
+                    # 有扩展名
+                    name, ext = name_parts
+                    new_file_name = f"{name}{suffix}.{ext}"
+                else:
+                    # 无扩展名
+                    new_file_name = f"{file_name}{suffix}"
+        
+        # 如果有新文件名，构建完整路径
+        if new_file_name:
+            return os.path.join(dir_name, new_file_name)
+        
+        return None
+
+    def _rename_transferred_files(self, rename_map, progress_callback):
+        """执行重命名操作
+        Args:
+            rename_map: 原文件路径到新文件路径的映射
+            progress_callback: 进度回调函数
+        Returns:
+            dict: 重命名结果
+        """
+        renamed_files = {}
+        for old_path, new_path in rename_map.items():
+            if progress_callback:
+                progress_callback('info', f"开始重命名文件: {old_path} -> {new_path}")
+            try:
+                self.client.rename(old_path, new_path)
+                renamed_files[old_path] = new_path
+                if progress_callback:
+                    progress_callback('success', f"重命名成功: {old_path} -> {new_path}")
+            except Exception as e:
+                logger.error(f"重命名失败: {old_path} -> {new_path} - {str(e)}")
+                if progress_callback:
+                    progress_callback('error', f"重命名失败: {old_path} -> {new_path} - {str(e)}")
+        return {'renamed_files': renamed_files}

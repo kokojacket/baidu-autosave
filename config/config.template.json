@@ -21,7 +21,8 @@
     "scheduler": {
         "max_workers": 1,
         "misfire_grace_time": 3600,
-        "coalesce": true
+        "coalesce": true,
+        "max_instances": 1
     },
     "auth": {
         "users": "admin",

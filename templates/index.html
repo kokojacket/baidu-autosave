@@ -262,115 +262,183 @@
         </button>
     </nav>
 
-    <!-- 任务表单模态框 -->
+    <!-- 通知容器 -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <!-- 加载提示 -->
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-message">加载中...</div>
+    </div>
+
+    <!-- 添加/编辑任务模态框 -->
     <div id="task-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>添加/编辑任务</h2>
-                <button class="close-btn" onclick="hideModal('task-modal')">
-                    <i class="material-icons">close</i>
-                </button>
+                <h2 id="task-modal-title">添加任务</h2>
+                <span class="close" onclick="hideModal('task-modal')">&times;</span>
             </div>
-            <form id="task-form" onsubmit="handleTaskSubmit(event)">
-                <!-- 使用task_id作为任务标识 -->
-                <input type="hidden" name="task_id">
-                
-                <div class="form-group">
-                    <label>任务名称</label>
-                    <input type="text" name="name" placeholder="可选，默认使用分享的文件/文件夹名称">
-                    <div class="form-help">用于在任务列表中显示，如不填写则使用分享的文件/文件夹名称</div>
-                </div>
-                
-                <div class="form-group">
-                    <label class="required">分享链接</label>
-                    <input type="text" name="url" required placeholder="请输入百度网盘分享链接，如果有提取码请直接加在链接后面，例如: https://pan.baidu.com/s/xxx?pwd=1234">
-                    <div class="form-help">支持带密码的分享链接，格式：链接?pwd=密码</div>
-                </div>
-                
-                <div class="form-group">
-                    <label class="required">保存目录</label>
-                    <div class="input-with-dropdown">
-                        <input type="text" name="save_dir" required placeholder="请输入保存目录，例如: /downloads">
-                        <datalist id="save-dir-list"></datalist>
-                        <button type="button" class="dropdown-btn" onclick="toggleSaveDirDropdown()">
-                            <i class="material-icons">arrow_drop_down</i>
-                        </button>
-                        <div id="save-dir-dropdown" class="dropdown-menu"></div>
+            <div class="modal-body">
+                <form id="task-form">
+                    <input type="hidden" id="task-id">
+                    <div class="input-group">
+                        <label for="task-url">分享链接</label>
+                        <input type="text" id="task-url" name="url" placeholder="请输入百度网盘分享链接" required>
                     </div>
-                    <div class="form-help">目录必须以/开头，可以使用已有目录或创建新目录</div>
-                </div>
-                
-                <div class="form-group">
-                    <label>定时规则</label>
-                    <div class="input-with-dropdown">
-                        <input type="text" name="cron" placeholder="可选，使用cron表达式，例如: */5 * * * *">
-                        <datalist id="cron-list"></datalist>
-                        <button type="button" class="dropdown-btn" onclick="toggleCronDropdown()">
-                            <i class="material-icons">arrow_drop_down</i>
-                        </button>
-                        <div id="cron-dropdown" class="dropdown-menu"></div>
+                    <div class="input-group">
+                        <label for="task-pwd">提取码</label>
+                        <input type="text" id="task-pwd" name="pwd" placeholder="请输入提取码（选填）">
                     </div>
-                    <div class="form-help">留空则使用默认定时规则，支持cron表达式，例如：*/5 * * * * 表示每5分钟执行一次</div>
-                </div>
-                
-                <div class="form-group">
-                    <label>分类标签</label>
-                    <div class="input-with-dropdown">
-                        <input type="text" name="category" placeholder="可选，用于对任务进行分类">
-                        <datalist id="category-list"></datalist>
-                        <button type="button" class="dropdown-btn" onclick="toggleCategoryDropdown()">
-                            <i class="material-icons">arrow_drop_down</i>
-                        </button>
-                        <div id="category-dropdown" class="dropdown-menu"></div>
+                    <div class="input-group">
+                        <label for="task-name">任务名称</label>
+                        <input type="text" id="task-name" name="name" placeholder="请输入任务名称（选填）">
                     </div>
-                    <div class="form-help">可以给任务添加分类标签，方便管理和筛选</div>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="button" class="btn secondary" onclick="hideModal('task-modal')">取消</button>
-                    <button type="submit" class="btn primary">保存</button>
-                </div>
-            </form>
+                    <div class="input-group">
+                        <label for="task-category">分类标签</label>
+                        <div class="dropdown-wrapper">
+                            <div class="dropdown-control" onclick="toggleCategoryDropdown()">
+                                <input type="text" id="task-category" name="category" placeholder="请输入分类（选填）">
+                                <i class="material-icons">arrow_drop_down</i>
+                            </div>
+                            <div id="category-dropdown" class="dropdown-menu">
+                                <!-- 分类选项将通过JavaScript动态添加 -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="task-save-dir">保存路径</label>
+                        <div class="dropdown-wrapper">
+                            <div class="dropdown-control" onclick="toggleSaveDirDropdown()">
+                                <input type="text" id="task-save-dir" name="save_dir" placeholder="请输入保存路径" value="/我的资源" required>
+                                <i class="material-icons">arrow_drop_down</i>
+                            </div>
+                            <div id="save-dir-dropdown" class="dropdown-menu">
+                                <!-- 保存路径选项将通过JavaScript动态添加 -->
+                            </div>
+                        </div>
+                        <div class="help-text">路径必须以 / 开头，例如：/我的资源/文档</div>
+                    </div>
+                    <div class="input-group">
+                        <label for="task-cron">定时规则</label>
+                        <div class="dropdown-wrapper">
+                            <div class="dropdown-control" onclick="toggleCronDropdown()">
+                                <input type="text" id="task-cron" name="cron" placeholder="请输入cron表达式（留空使用全局定时）">
+                                <i class="material-icons">arrow_drop_down</i>
+                            </div>
+                            <div id="cron-dropdown" class="dropdown-menu">
+                                <div class="dropdown-item" data-value="">使用全局定时</div>
+                                <div class="dropdown-item" data-value="*/30 * * * *">每30分钟</div>
+                                <div class="dropdown-item" data-value="0 */1 * * *">每1小时</div>
+                                <div class="dropdown-item" data-value="0 */3 * * *">每3小时</div>
+                                <div class="dropdown-item" data-value="0 */6 * * *">每6小时</div>
+                                <div class="dropdown-item" data-value="0 0 * * *">每天0点</div>
+                                <div class="dropdown-item" data-value="0 0 * * 1">每周一0点</div>
+                                <div class="dropdown-item" data-value="0 0 1 * *">每月1日0点</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="accordion">
+                            <div class="accordion-header" onclick="toggleFilterSection()">
+                                <span>文件过滤设置</span>
+                                <i class="material-icons">expand_more</i>
+                            </div>
+                            <div class="accordion-content" id="filter-section">
+                                <div class="input-group">
+                                    <label>过滤类型</label>
+                                    <div class="radio-group">
+                                        <div class="radio-item">
+                                            <input type="radio" id="filter-type-allow" name="filter-type" value="allow" checked>
+                                            <label for="filter-type-allow">仅转存指定文件</label>
+                                        </div>
+                                        <div class="radio-item">
+                                            <input type="radio" id="filter-type-deny" name="filter-type" value="deny">
+                                            <label for="filter-type-deny">排除指定文件</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label>匹配规则</label>
+                                    <div class="filter-rules-container">
+                                        <div class="filter-rule">
+                                            <input type="text" class="filter-pattern" placeholder="文件名通配符，例如: *.mp4">
+                                            <button type="button" class="remove-filter-rule"><i class="material-icons">close</i></button>
+                                        </div>
+                                        <button type="button" id="add-filter-rule" class="add-rule-btn">
+                                            <i class="material-icons">add</i> 添加规则
+                                        </button>
+                                    </div>
+                                    <div class="help-text">
+                                        支持通配符：* 匹配任意字符，? 匹配单个字符<br>
+                                        例如：*.mp4 匹配所有MP4文件，file?.txt 匹配file1.txt, fileA.txt等
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion">
+                            <div class="accordion-header" onclick="toggleRenameSection()">
+                                <span>转存后重命名规则</span>
+                                <i class="material-icons">expand_more</i>
+                            </div>
+                            <div class="accordion-content" id="rename-section">
+                                <div class="rename-rules-container">
+                                    <div class="rename-rule">
+                                        <input type="text" class="rename-pattern" placeholder="文件名通配符，例如: *.mp4">
+                                        <input type="text" class="rename-format" placeholder="新文件名格式，例如: {name}_done.mp4">
+                                        <button type="button" class="remove-rename-rule"><i class="material-icons">close</i></button>
+                                    </div>
+                                    <button type="button" id="add-rename-rule" class="add-rule-btn">
+                                        <i class="material-icons">add</i> 添加规则
+                                    </button>
+                                </div>
+                                <div class="help-text">
+                                    重命名支持以下变量：<br>
+                                    {name} - 文件名（不含扩展名）<br>
+                                    {ext} - 扩展名（包含.）<br>
+                                    {dir} - 文件所在目录<br>
+                                    例如: 原文件video.mp4，使用{name}_new{ext}将重命名为video_new.mp4
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-btns">
+                        <button type="button" onclick="hideModal('task-modal')" class="btn secondary">取消</button>
+                        <button type="submit" class="btn primary">保存</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-
-    <!-- 用户表单模态框 -->
-    <div class="modal" id="user-modal">
+    
+    <!-- 添加/编辑用户模态框 -->
+    <div id="user-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>添加用户</h2>
-                <button class="close-btn" onclick="hideModal('user-modal')">
-                    <i class="material-icons">close</i>
-                </button>
+                <h2 id="user-modal-title">添加用户</h2>
+                <span class="close" onclick="hideModal('user-modal')">&times;</span>
             </div>
-            <form id="user-form">
-                <div class="form-group">
-                    <label>用户名</label>
-                    <input type="text" name="username" required>
-                </div>
-                <div class="form-group">
-                    <label>Cookies</label>
-                    <textarea name="cookies" required rows="5" placeholder="请输入百度网盘的cookies"></textarea>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn secondary" onclick="hideModal('user-modal')">取消</button>
-                    <button type="submit" class="btn primary">保存</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- 进度日志窗口 -->
-    <div id="progress-modal" class="modal">
-        <div class="modal-content progress-modal-content">
-            <div class="modal-header">
-                <h2>任务执行进度</h2>
-                <button class="close-btn" onclick="hideModal('progress-modal')">
-                    <i class="material-icons">close</i>
-                </button>
-            </div>
-            <div class="progress-log-container">
-                <div id="progress-log" class="progress-log"></div>
+            <div class="modal-body">
+                <form id="user-form">
+                    <input type="hidden" id="user-action" value="add">
+                    <input type="hidden" id="user-old-name">
+                    <div class="input-group">
+                        <label for="user-name">用户名</label>
+                        <input type="text" id="user-name" name="username" required>
+                        <div class="help-text">百度网盘账号标识，仅用于本地区分不同账号</div>
+                    </div>
+                    <div class="input-group">
+                        <label for="user-cookies">Cookies</label>
+                        <textarea id="user-cookies" name="cookies" rows="5" required></textarea>
+                        <div class="help-text">
+                            百度网盘登录后的Cookies，需包含BDUSS和STOKEN。<br>
+                            获取方式：登录百度网盘网页版，F12打开开发者工具，从请求头中复制Cookie值
+                        </div>
+                    </div>
+                    <div class="form-btns">
+                        <button type="button" onclick="hideModal('user-modal')" class="btn secondary">取消</button>
+                        <button type="submit" class="btn primary">保存</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

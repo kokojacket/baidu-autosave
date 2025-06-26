@@ -20,7 +20,10 @@ class TaskScheduler:
     instance = None
     
     def __init__(self, storage=None):
-        self._execution_lock = Lock()
+        # 修改为任务级别的锁字典，而不是全局锁
+        self._execution_locks = {}
+        # 添加任务队列字典
+        self._task_queues = {}
         self.storage = storage or BaiduStorage()
         self.scheduler = None
         self.is_running = False
@@ -131,7 +134,7 @@ class TaskScheduler:
             # 配置调度器
             job_defaults = {
                 'coalesce': scheduler_config.get('coalesce', True),  # 堆积的任务只运行一次
-                'max_instances': 1,  # 同一个任务同时只能有一个实例
+                'max_instances': 1,  # 限制每个任务只能有一个实例，使用我们的队列机制来管理排队
                 'misfire_grace_time': scheduler_config.get('misfire_grace_time', 3600)  # 错过执行的容错时间
             }
             
@@ -245,113 +248,199 @@ class TaskScheduler:
             logger.error(f"保存配置文件失败: {str(e)}")
 
     def _execute_task_group(self, tasks=None):
-        """执行任务组 - 这是执行默认定时任务的方法
-        Args:
-            tasks: 要执行的任务列表，如果为None则执行所有默认任务
-        """
+        """执行多个任务"""
+        if not tasks:
+            # 获取所有任务
+            tasks = self._get_current_tasks()
+            
+        if not tasks:
+            logger.info("没有任务需要执行")
+            return
+            
+        success_count = 0
+        error_count = 0
+        
+        # 初始化任务锁
+        for task in tasks:
+            task_url = task.get('url')
+            if task_url and task_url not in self._execution_locks:
+                self._execution_locks[task_url] = Lock()
+                self._task_queues[task_url] = []
+        
+        for task in tasks:
+            # 获取任务URL
+            task_url = task.get('url')
+            if not task_url:
+                continue
+                
+            # 检查任务锁状态
+            lock = self._execution_locks.get(task_url)
+            if lock and lock.locked():
+                logger.info(f"任务 {task.get('name', task_url)} 正在执行中，已加入队列")
+                # 将任务加入队列
+                task_queue = self._task_queues.get(task_url, [])
+                task_queue.append(task)
+                self._task_queues[task_url] = task_queue
+                continue
+                
+            try:
+                result = self._execute_single_task(task)
+                if result:
+                    success_count += 1
+                else:
+                    error_count += 1
+            except Exception as e:
+                logger.error(f"执行任务 {task.get('name', task_url)} 时出错: {str(e)}")
+                error_count += 1
+                
+        logger.info(f"任务组执行完成: {success_count} 个成功, {error_count} 个失败")
+        return success_count, error_count
+        
+    def _execute_single_task(self, task):
+        """执行单个任务"""
+        # 获取任务URL
+        task_url = task.get('url')
+        if not task_url:
+            logger.error("任务URL为空")
+            return False
+            
+        task_name = task.get('name', task_url)
+        task_order = task.get('order')
+            
+        # 检查任务是否已经在运行
+        lock = self._execution_locks.get(task_url)
+        if lock and lock.locked():
+            logger.info(f"任务 {task_name} 正在执行中，已加入队列")
+            # 将任务加入队列
+            task_queue = self._task_queues.get(task_url, [])
+            task_queue.append(task)
+            self._task_queues[task_url] = task_queue
+            return False
+            
+        # 如果没有锁，则创建一个
+        if not lock:
+            lock = Lock()
+            self._execution_locks[task_url] = lock
+            self._task_queues[task_url] = []
+            
+        # 尝试获取锁
+        if not lock.acquire(False):
+            logger.info(f"无法获取任务 {task_name} 的锁，任务可能正在执行")
+            return False
+            
+        # 获取到锁，执行任务
         try:
-            logger.info(f"=== 开始执行定时任务组 === 时间: {time.strftime('%Y-%m-%d %H:%M:%S')} ===")
+            # 更新任务状态为运行中
+            self._update_task_status(task_url, 'running')
             
-            results = {
-                'success': [],
-                'failed': [],
-                'skipped': [],
-                'transferred_files': {}
-            }
+            # 定义进度回调
+            def progress_callback(status, msg):
+                """任务进度回调函数"""
+                if status == 'progress':
+                    # 这是进度更新
+                    logger.info(f"任务 {task_name} 进度: {msg}")
+                    
+                    # 更新任务状态，但不修改状态字段
+                    if isinstance(msg, dict):
+                        progress = msg.get('progress', 0)
+                        status_text = msg.get('status', '')
+                        self.storage.update_task_status_by_order(
+                            task_order, 
+                            'running', 
+                            f"执行中: {status_text} - {progress}%",
+                            transferred_files=msg.get('transferred_files', [])
+                        )
+                else:
+                    # 这是日志消息
+                    logger.info(f"任务 {task_name} {status}: {msg}")
             
-            # 如果没有指定任务列表，获取所有没有自定义cron的任务
-            if tasks is None:
-                tasks = [t for t in self._get_current_tasks() if not t.get('cron')]
+            # 获取任务参数
+            save_dir = task.get('save_dir')
+            pwd = task.get('pwd')
+            file_filters = task.get('file_filters')
+            rename_rules = task.get('rename_rules')
             
-            for task in tasks:
-                try:
-                    task_name = task.get('name', task['url'])
-                    logger.info(f"--- 开始处理任务: {task_name} ---")
+            # 执行转存任务
+            logger.info(f"开始执行任务: {task_name}")
+            result = self.storage.transfer_share(
+                share_url=task_url,
+                pwd=pwd,
+                save_dir=save_dir,
+                progress_callback=progress_callback,
+                file_filters=file_filters,
+                rename_rules=rename_rules
+            )
+            
+            # 解析结果
+            if result and isinstance(result, dict):
+                success = result.get('success', False)
+                message = result.get('message', '')
+                transferred_files = result.get('transferred_files', [])
+                
+                if success:
+                    status = 'skipped' if result.get('skipped') else 'completed'
+                    logger.info(f"任务 {task_name} 执行成功: {message}")
                     
-                    # 用于收集转存的文件
-                    transferred_files = []
-                    
-                    def progress_callback(status, msg):
-                        logger.info(f"转存进度 - {status}: {msg}")
-                        # 从进度消息中提取转存文件信息
-                        if status == 'info' and msg.startswith('添加文件:'):
-                            # 提取完整的文件路径
-                            file_path = msg.replace('添加文件:', '').strip()
-                            # 保持文件的完整路径结构
-                            transferred_files.append(file_path)
-                    
-                    # 执行转存
-                    result = self.storage.transfer_share(
-                        task['url'],
-                        task.get('pwd'),
-                        None,
-                        task.get('save_dir'),
-                        progress_callback
+                    # 更新任务状态
+                    self._update_task_status(
+                        task_url, 
+                        status, 
+                        message,
+                        transferred_files=transferred_files
                     )
-
-                    if result.get('success'):
-                        if result.get('skipped'):
-                            logger.info(f"任务 {task_name} 无需更新（所有文件已存在）")
-                            results['skipped'].append(task)
-                        else:
-                            logger.success(f"任务 {task_name} 执行成功")
-                            results['success'].append(task)
-                            if transferred_files:
-                                # 按目录分组显示文件
-                                files_by_dir = {}
-                                for file_path in transferred_files:
-                                    dir_path = os.path.dirname(file_path)
-                                    if not dir_path:
-                                        dir_path = '/'
-                                    files_by_dir.setdefault(dir_path, []).append(os.path.basename(file_path))
-                                
-                                # 显示分组后的文件
-                                for dir_path, files in files_by_dir.items():
-                                    logger.info(f"转存到 {dir_path}:")
-                                    for file in sorted(files):
-                                        logger.info(f"  - {file}")
-                                
-                                results['transferred_files'][task['url']] = transferred_files
-                    else:
-                        error_msg = result.get('error', '未知错误')
-                        logger.error(f"任务 {task_name} 转存失败：{error_msg}")
-                        results['failed'].append(task)
-
-                except Exception as e:
-                    logger.error(f"执行任务 {task_name} 时发生错误: {str(e)}")
-                    task['error'] = str(e)
-                    results['failed'].append(task)
-            
-            # 发送通知
-            if results['success'] or results['failed']:
-                try:
-                    notification_content = generate_transfer_notification(results)
-                    logger.info(f"准备发送通知:\n{notification_content}")
-                    notify_send("百度网盘自动追更", notification_content)
-                    logger.info("通知发送成功")
-                except Exception as e:
-                    logger.error(f"发送通知失败: {str(e)}")
-            
-            logger.info(f"=== 任务组执行完成 === 时间: {time.strftime('%Y-%m-%d %H:%M:%S')} ===")
-            logger.info(f"成功: {len(results['success'])} 个, 跳过: {len(results['skipped'])} 个, 失败: {len(results['failed'])} 个")
+                    
+                    # 发送通知
+                    try:
+                        notify_text = generate_transfer_notification(task, transferred_files)
+                        notify_send(notify_text)
+                    except Exception as e:
+                        logger.error(f"发送通知失败: {str(e)}")
+                    
+                    return True
+                else:
+                    logger.error(f"任务 {task_name} 执行失败: {message}")
+                    # 更新任务状态
+                    self._update_task_status(task_url, 'error', message)
+                    return False
+            else:
+                logger.error(f"任务 {task_name} 返回无效结果")
+                # 更新任务状态
+                self._update_task_status(task_url, 'error', '任务返回无效结果')
+                return False
                 
         except Exception as e:
-            logger.error(f"执行任务组失败: {str(e)}")
+            logger.error(f"执行任务 {task_name} 时出错: {str(e)}")
+            # 更新任务状态
+            self._update_task_status(task_url, 'error', str(e))
+            return False
+            
+        finally:
+            # 释放锁
+            lock.release()
+            
+            # 检查任务队列
+            task_queue = self._task_queues.get(task_url, [])
+            if task_queue:
+                # 取出队列中的下一个任务
+                next_task = task_queue.pop(0)
+                self._task_queues[task_url] = task_queue
+                
+                # 递归执行下一个任务
+                logger.info(f"执行队列中的下一个任务: {next_task.get('name', task_url)}")
+                self._execute_single_task(next_task)
 
     def stop(self):
         """停止调度器"""
         try:
-            if self.scheduler and self.is_running:
-                self.scheduler.shutdown()
+            if self.scheduler and self.scheduler.running:
+                self.scheduler.shutdown(wait=False)
                 self.is_running = False
                 logger.info("调度器已停止")
             else:
-                logger.info("调度器未在运行")
+                logger.info("调度器未运行，无需停止")
         except Exception as e:
-            logger.error(f"停止调度器失败: {str(e)}")
-        finally:
-            self.scheduler = None
-
+            logger.error(f"停止调度器时出错: {str(e)}")
+    
     def update_task(self, task_url, cron_exp):
         """更新任务的调度时间
         Args:
@@ -484,162 +573,12 @@ class TaskScheduler:
         logger.info("通知配置已更新")
 
     def _update_task_status(self, task_url, status, error_msg=''):
-        """更新任务状态
-        Args:
-            task_url: 任务URL
-            status: 状态 (success/failed/skipped)
-            error_msg: 错误信息
-        """
+        """更新任务状态"""
         try:
-            tasks = self.config.get('baidu', {}).get('tasks', [])
-            for task in tasks:
-                if task['url'] == task_url:
-                    task['status'] = status
-                    if error_msg:
-                        task['error'] = error_msg
-                    elif 'error' in task:
-                        del task['error']
-                    break
-            self._save_config()
+            self.storage.update_task_status(task_url, status, message=error_msg)
+            logger.info(f"任务状态更新为: {status}")
         except Exception as e:
             logger.error(f"更新任务状态失败: {str(e)}")
-
-    def _execute_single_task(self, task):
-        """执行单个任务
-        Args:
-            task: 任务配置
-        """
-        # 使用锁防止同一任务被并发执行
-        if not self._execution_lock.acquire(blocking=False):
-            logger.warning(f"任务已在执行中，跳过此次执行: {task.get('name', task.get('url', '未知任务'))}")
-            return False
-            
-        try:
-            # 获取最新的任务信息
-            tasks = self.storage.config['baidu']['tasks']
-            task_order = task.get('order')
-            if not task_order:
-                logger.error(f"任务缺少order: {task.get('name', task.get('url', '未知任务'))}")
-                return False
-                
-            current_task = next((t for t in tasks if t.get('order') == task_order), None)
-            
-            if not current_task:
-                logger.error(f"未找到任务: order={task_order}")
-                return False
-            
-            task_id = task_order - 1  # 转换为前端使用的task_id
-            task_name = current_task.get('name', f'任务{task_order}')
-            logger.info(f"开始执行任务: {task_name}")
-            logger.info(f"分享链接: {current_task.get('url', '')}")
-            logger.info(f"保存目录: {current_task.get('save_dir', '')}")
-            logger.info(f"提取码: {current_task.get('pwd', '')}")
-            logger.info("")
-            
-            # 确保存储实例可用
-            if not self.storage.is_valid():
-                logger.warning("存储实例状态异常，尝试刷新登录状态")
-                if not self.storage.refresh_login():
-                    logger.error("刷新登录状态失败")
-                    return False
-
-            # 更新结果字典的结构
-            results = {
-                'success': [],
-                'failed': [],
-                'skipped': [],
-                'transferred_files': {}
-            }
-
-            # 使用最新的任务信息执行
-            def progress_callback(status, message):
-                logger.info(f"[{task_name}] {status}: {message}")
-                if status == 'info' and message.startswith('添加文件:'):
-                    file_path = message.replace('添加文件:', '').strip()
-                    if task_id not in results['transferred_files']:
-                        results['transferred_files'][task['url']] = []  # 使用 url 作为 key
-                    results['transferred_files'][task['url']].append(file_path)
-
-            # 验证必要的任务信息
-            if not current_task.get('url') or not current_task.get('save_dir'):
-                error_msg = "任务缺少必要信息(url或save_dir)"
-                logger.error(error_msg)
-                self.storage.update_task_status_by_order(task_order, 'failed', error_msg)
-                return False
-
-            result = self.storage.transfer_share(
-                current_task['url'],
-                current_task.get('pwd', ''),  # 使用空字符串作为默认值
-                None,
-                current_task['save_dir'],
-                progress_callback
-            )
-            
-            # 更新任务状态和结果
-            try:
-                if result.get('success'):
-                    if result.get('skipped'):
-                        self.storage.update_task_status_by_order(
-                            task_order,
-                            'skipped',
-                            '没有新文件需要转存'
-                        )
-                    else:
-                        self.storage.update_task_status_by_order(
-                            task_order,
-                            'success',
-                            '转存成功',
-                            transferred_files=result.get('transferred_files', [])
-                        )
-                        # 添加到成功列表
-                        results['success'].append(current_task)
-                        # 更新转存文件列表
-                        if result.get('transferred_files'):
-                            results['transferred_files'][current_task['url']] = result['transferred_files']
-                else:
-                    self.storage.update_task_status_by_order(
-                        task_order,
-                        'failed',
-                        result.get('error', '转存失败')
-                    )
-                    current_task['error'] = result.get('error')
-                    results['failed'].append(current_task)
-                
-                # 发送通知
-                if results['success'] or results['failed']:
-                    notification_content = generate_transfer_notification(results)
-                    if notification_content.strip():  # 只在有内容时发送通知
-                        logger.info(f"准备发送通知:\n{notification_content}")
-                        notify_send("百度网盘自动追更", notification_content)
-                        logger.info("通知发送成功")
-                    else:
-                        logger.warning("生成的通知内容为空，跳过发送")
-                
-                return result.get('success', False)
-                
-            except Exception as e:
-                logger.error(f"更新任务状态失败: {str(e)}")
-                return False
-            
-        except Exception as e:
-            logger.error(f"执行任务失败: {str(e)}")
-            try:
-                self.storage.update_task_status_by_order(task_order, 'failed', str(e))
-                # 添加失败通知
-                results = {
-                    'success': [],
-                    'failed': [task],
-                    'transferred_files': {}
-                }
-                notification_content = generate_transfer_notification(results)
-                if notification_content.strip():
-                    notify_send("百度网盘自动追更", notification_content)
-            except:
-                pass
-            return False
-        finally:
-            # 释放锁
-            self._execution_lock.release()
 
     def update_task_schedule(self, task_url, cron_exp=None):
         """更新任务调度"""
@@ -757,6 +696,16 @@ class TaskScheduler:
                 logger.error(f"解析cron表达式失败 '{cron_schedule}': {str(e)}")
         except Exception as e:
             logger.error(f"添加任务调度失败 ({task.get('name', task.get('url', '未知任务'))}): {str(e)}")
+
+    def _sort_task_queue(self, task_order):
+        """按order排序任务队列
+        Args:
+            task_order: 任务order
+        """
+        if task_order in self._task_queues and len(self._task_queues[task_order]) > 1:
+            # 按任务的order属性排序，order值小的优先级高
+            self._task_queues[task_order].sort(key=lambda t: t.get('order', 999))
+            logger.info(f"任务队列已排序，当前队列长度: {len(self._task_queues[task_order])}")
 
 def convert_cron_weekday(cron_exp):
     """

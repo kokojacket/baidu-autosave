@@ -13,12 +13,7 @@ from utils import generate_transfer_notification
 from notify import send as notify_send
 from datetime import datetime
 from flask_cors import CORS
-from geventwebsocket.handler import WebSocketHandler
-from geventwebsocket.websocket import WebSocket
-from gevent.pywsgi import WSGIServer
 import time
-from gevent.queue import Queue
-from geventwebsocket.exceptions import WebSocketError
 import socket
 
 # GitHub 仓库信息
@@ -48,9 +43,6 @@ CORS(app)
 storage = None
 scheduler = None
 
-# WebSocket连接管理
-clients = set()
-
 # 登录装饰器
 def login_required(f):
     @wraps(f)
@@ -60,7 +52,7 @@ def login_required(f):
             
         # 检查会话是否过期
         auth_config = storage.config.get('auth', {})
-        session_timeout = auth_config.get('session_timeout', 3600)
+        session_timeout = auth_config.get('session_timeout', 86400)  # 改为24小时
         if time.time() - session.get('login_time', 0) > session_timeout:
             session.clear()
             return redirect(url_for('login'))
@@ -69,26 +61,6 @@ def login_required(f):
         session['login_time'] = time.time()
         return f(*args, **kwargs)
     return decorated_function
-
-def broadcast_message(message):
-    """广播消息到所有WebSocket客户端"""
-    disconnected_clients = set()
-    for client in clients:
-        try:
-            if client and client.closed:
-                disconnected_clients.add(client)
-                continue
-            client.send(json.dumps(message))
-        except Exception as e:
-            logger.error(f"发送WebSocket消息失败: {str(e)}")
-            disconnected_clients.add(client)
-    
-    # 清理断开的连接
-    for client in disconnected_clients:
-        try:
-            clients.remove(client)
-        except:
-            pass
 
 def init_app():
     """初始化应用"""
@@ -275,6 +247,8 @@ def add_task():
     name = data.get('name', '').strip()
     cron = data.get('cron', '').strip()
     category = data.get('category', '').strip()
+    file_filters = data.get('file_filters')
+    rename_rules = data.get('rename_rules')
     
     if not url or not save_dir:
         return jsonify({'success': False, 'message': '分享链接和保存目录不能为空'})
@@ -290,19 +264,7 @@ def add_task():
         
     try:
         # 添加任务 - storage.py 内部会处理调度器更新
-        if storage.add_task(url, save_dir, pwd, name, cron, category):
-            # 广播任务添加消息
-            broadcast_message({
-                'type': 'task_added',
-                'data': {
-                    'url': url,
-                    'save_dir': save_dir,
-                    'name': name,
-                    'cron': cron,
-                    'category': category
-                }
-            })
-            
+        if storage.add_task(url, save_dir, pwd, name, cron, category, file_filters, rename_rules):
             return jsonify({'success': True, 'message': '添加任务成功'})
             
     except Exception as e:
@@ -359,38 +321,17 @@ def update_task():
         'name': data.get('name', '').strip(),
         'cron': data.get('cron', '').strip(),
         'category': data.get('category', '').strip(),
+        'file_filters': data.get('file_filters'),
+        'rename_rules': data.get('rename_rules'),
         'order': task_order,  # 保持原有的order
         'status': task.get('status', 'normal'),  # 保持原有的状态
         'message': task.get('message', ''),  # 保持原有的消息
         'last_update': int(time.time())  # 添加更新时间戳
     }
     
-    # 验证必填字段
-    if not update_data['url']:
-        return jsonify({'success': False, 'message': '分享链接不能为空'})
-    if not update_data['save_dir']:
-        return jsonify({'success': False, 'message': '保存目录不能为空'})
-        
     try:
-        # 更新任务
-        success = storage.update_task_by_order(task_order, update_data)
-        if not success:
-            return jsonify({'success': False, 'message': '更新任务失败'})
-        
-        # 只在成功时广播一次
-        broadcast_message({
-            'type': 'task_updated',
-            'data': {
-                'task_id': task_id,
-                'task': update_data
-            }
-        })
-        
-        return jsonify({
-            'success': True, 
-            'message': '更新任务成功',
-            'task': update_data
-        })
+        if storage.update_task_by_order(task_order, update_data):
+            return jsonify({'success': True, 'message': '更新任务成功'})
     except Exception as e:
         logger.error(f"更新任务失败: {str(e)}")
         return jsonify({'success': False, 'message': f'更新任务失败: {str(e)}'})
@@ -417,157 +358,142 @@ def delete_task():
             return jsonify({'success': True, 'message': '删除任务成功'})
     return jsonify({'success': False, 'message': '任务不存在'})
 
-def broadcast_task_log(message, type='info'):
-    """广播任务日志"""
-    broadcast_message({
-        'type': 'task_log',
-        'data': {
-            'message': message,
-            'type': type,
-            'timestamp': int(time.time() * 1000)
-        }
-    })
-
-def broadcast_task_progress(task_id, progress, status):
-    """广播任务进度"""
-    broadcast_message({
-        'type': 'task_progress',
-        'data': {
-            'task_id': task_id,
-            'progress': progress,
-            'status': status
-        }
-    })
-
-def broadcast_task_status(task_id, status, message=None):
-    """广播任务状态"""
-    broadcast_message({
-        'type': 'task_status',
-        'data': {
-            'task_id': task_id,
-            'status': status,
-            'message': message
-        }
-    })
-
 @app.route('/api/task/execute', methods=['POST'])
 @login_required
 @handle_api_error
 def execute_task():
-    """执行指定的任务"""
-    data = request.get_json()
-    
-    # 获取并验证task_id
-    try:
-        task_id = int(data.get('task_id', -1))
-    except (TypeError, ValueError):
-        return jsonify({'success': False, 'message': '无效的任务ID'})
-    
+    """执行单个任务"""
     if not storage:
         return jsonify({'success': False, 'message': '存储未初始化'})
-
+        
+    data = request.get_json()
+    task_id = data.get('task_id')
+    
+    if task_id is None:
+        return jsonify({'success': False, 'message': '未指定任务ID'})
+    
     # 获取任务列表
     tasks = storage.list_tasks()
-    if not tasks:
-        return jsonify({'success': False, 'message': '任务列表为空'})
-    
-    # 按order排序
+    # 按 order 排序，确保 task_id 对应正确的任务
     tasks.sort(key=lambda x: x.get('order', float('inf')))
     
-    # 查找对应的任务
-    task = None
-    task_order = task_id + 1  # 前端task_id从0开始，order从1开始
-    
-    for t in tasks:
-        if t.get('order') == task_order:
-            task = t
-            break
-    
-    if not task:
-        return jsonify({'success': False, 'message': f'未找到任务(order={task_order})'})
-    
-    task_name = task.get('name') or f'任务{task_order}'
-    
-    # 更新为运行状态
-    storage.update_task_status_by_order(task_order, 'running', '正在执行任务')
-    broadcast_task_log(f'开始执行任务: {task_name}', 'info')
-    broadcast_task_progress(task_id, 0, 'running')
-    
-    try:
-        def progress_callback(status, message):
-            broadcast_task_log(message, status)
-            if status == 'info' and message.startswith('添加文件:'):
-                broadcast_task_progress(task_id, 50, 'running')
-            elif status == 'info' and '正在转存' in message:
-                broadcast_task_progress(task_id, 75, 'running')
-
-        result = storage.transfer_share(
-            task['url'],
-            task.get('pwd'),
-            None,
-            task.get('save_dir'),
-            progress_callback
+    if 0 <= task_id < len(tasks):
+        task = tasks[task_id]
+    else:
+        return jsonify({'success': False, 'message': f'无效的任务ID: {task_id}'})
+        
+    # 将执行交给后端，不再使用WebSocket进行实时通信
+    # 由前端通过轮询获取状态
+    def execute_task_thread():
+        task_url = task.get('url')
+        if not task_url:
+            logger.error(f"任务 {task_id} 没有有效的链接")
+            return
+            
+        # 设置任务状态为运行中
+        storage.update_task_status_by_order(
+            task.get('order'), 
+            'running',
+            message='任务开始执行'
         )
         
-        if result.get('success'):
-            transferred_files = result.get('transferred_files', [])
-            if transferred_files:
-                task_results = {
-                    'success': [task],
-                    'failed': [],
-                    'transferred_files': {task['url']: transferred_files}
-                }
+        try:
+            # 执行任务
+            logger.info(f"开始执行任务: {task.get('name', task_url)}")
+            
+            # 重新获取存储和任务，确保使用最新状态
+            task_order = task.get('order')
+            current_tasks = storage.list_tasks()
+            current_task = next((t for t in current_tasks if t.get('order') == task_order), None)
+            
+            if not current_task:
+                logger.error(f"任务 {task_id} 不存在")
+                return
                 
-                try:
-                    # 发送转存成功通知
-                    notify_send('百度自动追更', generate_transfer_notification(task_results))
-                except Exception as e:
-                    logger.error(f"发送转存成功通知失败: {str(e)}")
+            # 获取保存路径
+            save_path = current_task.get('save_dir', '/我的资源')
+            
+            # 获取密码
+            pwd = current_task.get('pwd')
+            
+            # 获取文件过滤和重命名规则
+            file_filters = current_task.get('file_filters')
+            rename_rules = current_task.get('rename_rules')
+            
+            # 定义回调函数
+            def task_progress_callback(type, message):
+                if type == 'progress':
+                    # 移除WebSocket广播，现在仅更新数据库中的状态
+                    progress_data = message
+                    logger.info(f"任务进度: {progress_data['progress']}%, 状态: {progress_data['status']}")
+                    
+                    # 更新任务状态
+                    storage.update_task_status_by_order(
+                        task_order, 
+                        'running',
+                        message=f"执行中: {progress_data['status']}",
+                        transferred_files=progress_data.get('transferred_files', [])
+                    )
+                elif type == 'log':
+                    # 记录日志但不再广播
+                    logger.info(f"任务日志: {message}")
+            
+            # 执行转存
+            result = storage.transfer_share(
+                task_url, 
+                pwd=pwd,
+                save_dir=save_path,
+                progress_callback=task_progress_callback,
+                file_filters=file_filters,
+                rename_rules=rename_rules
+            )
+            
+            # 更新任务状态
+            if result and isinstance(result, dict):
+                # 提取成功转存的文件列表
+                transferred_files = result.get('transferred_files', [])
                 
+                # 更新任务状态
                 storage.update_task_status_by_order(
                     task_order, 
-                    'normal',
-                    '转存成功',
+                    'completed',
+                    message=f"执行完成: 成功转存 {len(transferred_files)} 个文件",
                     transferred_files=transferred_files
                 )
                 
-                broadcast_task_log('转存成功', 'success')
-                broadcast_task_progress(task_id, 100, 'normal')
-                
-                return jsonify({
-                    'success': True, 
-                    'message': '任务执行成功',
-                    'transferred_files': transferred_files
-                })
+                # 发送通知
+                try:
+                    notify_text = generate_transfer_notification(current_task, transferred_files)
+                    notify_send(notify_text)
+                except Exception as e:
+                    logger.error(f"发送通知失败: {str(e)}")
             else:
-                storage.update_task_status_by_order(task_order, 'normal', '没有新文件需要转存')
-                broadcast_task_log('没有新文件需要转存', 'info')
-                broadcast_task_progress(task_id, 100, 'normal')
-                return jsonify({'success': True, 'message': '没有新文件需要转存'})
-        else:
-            error_msg = result.get('error', '转存失败')
-            storage.update_task_status_by_order(task_order, 'error', error_msg)
-            broadcast_task_log(f'执行失败: {error_msg}', 'error')
-            broadcast_task_progress(task_id, 100, 'error')
-            return jsonify({'success': False, 'message': error_msg})
-
-    except Exception as e:
-        error_msg = str(e)
-        is_share_forbidden = "error_code: 115" in error_msg
-        
-        if is_share_forbidden:
-            error_msg = "该分享链接已失效（文件禁止分享）"
-            try:
-                storage.remove_task_by_order(task_order)
-                storage._update_task_orders()
-                broadcast_task_log(f"已自动删除失效的任务: {task_name}", 'warning')
-            except Exception as del_err:
-                broadcast_task_log(f"删除失效任务失败: {str(del_err)}", 'error')
-        
-        storage.update_task_status_by_order(task_order, 'error', error_msg)
-        broadcast_task_log(f'执行出错: {error_msg}', 'error')
-        broadcast_task_progress(task_id, 100, 'error')
-        return jsonify({'success': False, 'message': error_msg})
+                logger.error(f"任务 {task_id} 执行失败: 未返回有效结果")
+                storage.update_task_status_by_order(
+                    task_order, 
+                    'error',
+                    message="执行失败: 未返回有效结果"
+                )
+            
+        except Exception as e:
+            logger.error(f"执行任务 {task_id} 失败: {str(e)}")
+            # 将任务标记为错误
+            storage.update_task_status_by_order(
+                task.get('order'), 
+                'error',
+                message=f"执行失败: {str(e)}"
+            )
+    
+    # 创建线程执行任务
+    import threading
+    thread = threading.Thread(target=execute_task_thread)
+    thread.daemon = True
+    thread.start()
+    
+    return jsonify({
+        'success': True,
+        'message': '任务已开始执行'
+    })
 
 @app.route('/api/users', methods=['GET'])
 @login_required
@@ -1068,49 +994,6 @@ def reorder_task():
         return jsonify({'success': True, 'message': '任务重排序成功'})
     return jsonify({'success': False, 'message': '任务重排序失败'})
 
-@app.route('/ws')
-def ws():
-    """WebSocket连接处理"""
-    if request.environ.get('wsgi.websocket'):
-        ws = request.environ['wsgi.websocket']
-        clients.add(ws)
-        try:
-            # 设置WebSocket连接的ping_interval和ping_timeout
-            ws.stream.handler.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-            ws.stream.handler.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 30)
-            ws.stream.handler.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
-            ws.stream.handler.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
-
-            last_ping = time.time()
-            while True:
-                # 每30秒发送一次ping
-                if time.time() - last_ping > 30:
-                    ws.send(json.dumps({'type': 'ping'}))
-                    last_ping = time.time()
-                
-                message = ws.receive()
-                if message is None:
-                    break
-                    
-                # 处理客户端的pong响应
-                try:
-                    data = json.loads(message)
-                    if data.get('type') == 'pong':
-                        continue
-                except:
-                    pass
-                    
-        except WebSocketError as e:
-            logger.warning(f"WebSocket错误: {str(e)}")
-        except Exception as e:
-            logger.error(f"WebSocket异常: {str(e)}")
-        finally:
-            try:
-                clients.remove(ws)
-            except:
-                pass
-    return ''
-
 # 静态文件路由
 @app.route('/static/<path:path>')
 def send_static(path):
@@ -1291,10 +1174,9 @@ if __name__ == '__main__':
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
         
-        # 使用gevent-websocket替代默认的服务器
-        http_server = WSGIServer(('0.0.0.0', 5000), app, handler_class=WebSocketHandler)
+        # 使用Flask内置服务器而不是WebSocketHandler
         print('Server started at http://0.0.0.0:5000')
-        http_server.serve_forever()
+        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
     except KeyboardInterrupt:
         logger.info("接收到 Ctrl+C，正在退出...")
         signal_handler(signal.SIGINT, None)
