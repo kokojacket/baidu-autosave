@@ -2,12 +2,21 @@
 const APP_VERSION = 'v1.0.8';
 const GITHUB_REPO = 'kokojacket/baidu-autosave';
 
+// 版本检查配置
+const VERSION_CHECK_CONFIG = {
+    enabled: true,           // 是否启用版本检查
+    checkOnStartup: true,    // 启动时检查
+    checkInterval: 24 * 60 * 60 * 1000, // 检查间隔（毫秒），默认24小时
+    lastCheckTime: 0         // 上次检查时间
+};
+
 // 本地缓存管理
 const CACHE_KEY = {
     TASKS: 'baidu_autosave_tasks',
     USERS: 'baidu_autosave_users',
     CONFIG: 'baidu_autosave_config',
-    HISTORY: 'baidu_autosave_field_history'
+    HISTORY: 'baidu_autosave_field_history',
+    LAST_VERSION_CHECK: 'baidu_autosave_last_version_check' // 添加版本检查缓存键
 };
 
 // 轮询配置
@@ -315,7 +324,7 @@ function hideLoading() {
 }
 
 // 通知显示
-function showNotification(message, level = 'info') {
+function showNotification(message, level = 'info', autoClose = true) {
     const notification = document.createElement('div');
     notification.className = `notification ${level}`;
     notification.textContent = message;
@@ -327,6 +336,13 @@ function showNotification(message, level = 'info') {
         notification.classList.add('fade-out');
         setTimeout(() => notification.remove(), 300);
     }, 3000);
+    
+    if (autoClose) {
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
 }
 
 function createNotificationContainer() {
@@ -1961,58 +1977,115 @@ async function handleUserSubmit(event) {
 // 检查应用更新
 async function checkForUpdates() {
     try {
-        // 通过后端API获取版本信息
-        const response = await callApi('version/check');
-        if (!response.success) {
-            console.warn('无法获取最新版本信息:', response.message);
+        // 尝试不同的数据源
+        const sources = ['github', 'dockerhub', '1ms']; // 添加1ms作为数据源
+        let response = null;
+        let successSource = null;
+        
+        // 依次尝试各个数据源，直到成功
+        for (const source of sources) {
+            try {
+                const result = await callApi(`version/check?source=${source}`, 'GET', null, false);
+                if (result.success) {
+                    response = result;
+                    successSource = source;
+                    break;
+                } else {
+                    console.warn(`${source}更新检查失败:`, result.message);
+                }
+            } catch (error) {
+                console.warn(`${source}更新检查出错:`, error);
+            }
+        }
+        
+        // 如果所有源都失败，则退出
+        if (!response || !response.success) {
+            console.warn('所有更新源检查都失败');
             return;
         }
         
-        // 规范化版本号（移除 'v' 前缀并分割为数组）
+        const latestVersion = response.version;
+        const currentVersion = APP_VERSION;
+        
+        // 规范化版本号以便比较
         const normalizeVersion = (version) => {
-            return version.replace(/^v/, '').split('.').map(Number);
+            // 处理GitHub返回的"Release v1.0.8"格式
+            if (typeof version === 'string') {
+                // 提取版本号，匹配形如v1.0.8或1.0.8的格式
+                const versionMatch = version.match(/v?(\d+\.\d+\.\d+)/);
+                if (versionMatch) {
+                    version = versionMatch[0];
+                }
+            }
+            
+            // 移除v前缀
+            version = version.replace(/^v/, '');
+            
+            // 处理latest标签
+            if (version === 'latest') {
+                return '999.999.999'; // 确保latest总是被视为最新版本
+            }
+            
+            // 分割为主版本、次版本和补丁版本
+            const parts = version.split('.');
+            
+            // 确保至少有三个部分，不足的补0
+            while (parts.length < 3) parts.push('0');
+            
+            // 将每个部分转换为数字并填充到3位
+            return parts.map(p => {
+                // 提取数字部分
+                const num = parseInt(p.replace(/[^\d]/g, '')) || 0;
+                return num.toString().padStart(3, '0');
+            }).join('.');
         };
         
         // 比较版本号
         const compareVersions = (v1, v2) => {
-            const v1Parts = normalizeVersion(v1);
-            const v2Parts = normalizeVersion(v2);
+            const norm1 = normalizeVersion(v1);
+            const norm2 = normalizeVersion(v2);
             
-            for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
-                const v1Part = v1Parts[i] || 0;
-                const v2Part = v2Parts[i] || 0;
-                if (v1Part > v2Part) return 1;
-                if (v1Part < v2Part) return -1;
-            }
-            return 0;
+            if (norm1 === norm2) return 0;
+            return norm1 < norm2 ? -1 : 1;
         };
         
-        const latestVersion = response.version;
-        console.log(`检查版本：当前 ${APP_VERSION} 最新 ${latestVersion}`);
-        
-        // 只有当最新版本号大于当前版本号时才显示更新提示
-        if (latestVersion && compareVersions(latestVersion, APP_VERSION) > 0) {
-            // 显示更新指示器
-            const updateIndicator = document.getElementById('update-indicator');
-            if (updateIndicator) {
-                updateIndicator.classList.add('active');
-                
-                // 添加点击事件，点击后导航到发布页面
-                const versionContainer = document.querySelector('.version-container');
-                if (versionContainer) {
-                    versionContainer.style.cursor = 'pointer';
-                    versionContainer.title = `发现新版本 ${latestVersion}，点击查看更新`;
-                    versionContainer.addEventListener('click', () => {
-                        window.open(`https://github.com/${GITHUB_REPO}/releases/latest`, '_blank');
-                    });
-                }
+        // 检查是否有新版本
+        if (compareVersions(currentVersion, latestVersion) < 0) {
+            // 根据更新源选择更新链接
+            let updateLink;
+            let sourceName;
+            
+            if (response.source === 'dockerhub') {
+                updateLink = response.link || `https://hub.docker.com/r/kokojacket/baidu-autosave/tags`;
+                sourceName = 'Docker Hub';
+            } else if (response.source === '1ms') {
+                updateLink = response.link || `https://hub.docker.com/r/kokojacket/baidu-autosave/tags`;
+                sourceName = '1ms.run API';
+            } else {
+                updateLink = response.link || `https://github.com/${GITHUB_REPO}/releases/latest`;
+                sourceName = 'GitHub';
             }
+            
+            // 显示更新通知
+            const message = `
+                <div class="update-notification">
+                    <p>发现新版本: <strong>${latestVersion}</strong> (当前版本: ${currentVersion})</p>
+                    <p>来源: ${sourceName}</p>
+                    ${response.published ? `<p>发布时间: ${response.published}</p>` : ''}
+                    <a href="${updateLink}" target="_blank" class="btn btn-sm btn-primary mt-2">查看更新</a>
+                </div>
+            `;
+            showNotification(message, 'info', 0); // 0表示不自动关闭
+            
+            // 更新上次检查时间
+            VERSION_CHECK_CONFIG.lastCheckTime = Date.now();
+            saveToCache(CACHE_KEY.LAST_VERSION_CHECK, { time: VERSION_CHECK_CONFIG.lastCheckTime });
         } else {
-            // 如果不需要更新，确保移除更新指示器
-            const updateIndicator = document.getElementById('update-indicator');
-            if (updateIndicator) {
-                updateIndicator.classList.remove('active');
-            }
+            console.log(`当前已是最新版本: ${currentVersion}`);
+            
+            // 更新上次检查时间
+            VERSION_CHECK_CONFIG.lastCheckTime = Date.now();
+            saveToCache(CACHE_KEY.LAST_VERSION_CHECK, { time: VERSION_CHECK_CONFIG.lastCheckTime });
         }
     } catch (error) {
         console.error('检查更新失败:', error);
@@ -2022,44 +2095,50 @@ async function checkForUpdates() {
 // 应用初始化
 async function initializeApp() {
     try {
-        // 首先设置版本号
-        const versionElement = document.getElementById('app-version');
-        if (versionElement) {
-            versionElement.textContent = APP_VERSION;
+        // 初始化版本检查配置
+        initVersionCheckConfig();
+        
+        // 检查登录状态
+        await checkLoginStatus();
+        
+        if (state.isLoggedIn) {
+            // 初始化数据
+            await initializeData();
+            
+            // 初始化事件监听
+            initializeEventListeners();
+            
+            // 初始化拖放功能
+            initDragAndDrop();
+            
+            // 初始化导航
+            initNavigation();
+            
+            // 初始化移动端事件
+            initMobileEvents();
+            
+            // 初始化轮询
+            if (POLLING_CONFIG.enabled) {
+                initPolling();
+            }
+            
+            // 初始化WebSocket
+            if (WS_CONFIG.enabled) {
+                socket = initWebSocket();
+            }
+            
+            // 检查更新
+            if (VERSION_CHECK_CONFIG.enabled && VERSION_CHECK_CONFIG.checkOnStartup) {
+                // 如果距离上次检查超过了检查间隔，则检查更新
+                const now = Date.now();
+                if (now - VERSION_CHECK_CONFIG.lastCheckTime > VERSION_CHECK_CONFIG.checkInterval) {
+                    setTimeout(() => checkForUpdates(), 2000); // 延迟2秒检查，避免与应用初始化冲突
+                }
+            }
         }
-        
-        // 1. 获取当前登录状态
-        checkLoginStatus();
-        
-        // 2. 加载初始数据
-        await initializeData();
-        
-        // 3. 初始化事件监听器
-        initializeEventListeners();
-        
-        // 4. 初始化通信方式（只使用轮询，禁用WebSocket）
-        // WebSocket已禁用
-        
-        // 初始化轮询
-        if (POLLING_CONFIG.enabled) {
-            initPolling();
-        }
-        
-        // 5. 检查是否有新版本
-        checkForUpdates();
-        
-        // 6. 初始化拖拽排序
-        initDragAndDrop();
-        
-        // 7. 初始化移动端事件
-        initMobileEvents();
-        
-        // 8. 更新异常指示器
-        updateErrorIndicator();
-        
     } catch (error) {
         console.error('应用初始化失败:', error);
-        showError('应用初始化失败，请刷新页面重试');
+        showError('应用初始化失败: ' + error.message);
     }
 }
 
@@ -3252,5 +3331,14 @@ async function shareTask(taskId) {
         showError(error.message || '生成分享链接失败');
     } finally {
         hideLoading();
+    }
+}
+
+// 初始化版本检查配置
+function initVersionCheckConfig() {
+    // 从缓存加载上次检查时间
+    const lastCheck = loadFromCache(CACHE_KEY.LAST_VERSION_CHECK);
+    if (lastCheck) {
+        VERSION_CHECK_CONFIG.lastCheckTime = lastCheck.time || 0;
     }
 }
