@@ -1056,6 +1056,10 @@ async function deleteTask(taskId) {
 // 刷新任务列表
 async function refreshTasks(retryCount = 3) {
     try {
+        // 保存当前选中的状态和分类
+        const selectedStatus = document.querySelector('.status-btn.active')?.dataset.status || 'all';
+        const selectedCategory = document.querySelector('.category-btn.active')?.dataset.category || 'all';
+        
         let result = await callApi('tasks');
         
         if (result.success) {
@@ -1069,6 +1073,26 @@ async function refreshTasks(retryCount = 3) {
             }
             
             renderTasks();
+            
+            // 恢复选中的状态和分类
+            if (selectedStatus !== 'all') {
+                const statusBtn = document.querySelector(`.status-btn[data-status="${selectedStatus}"]`);
+                if (statusBtn) {
+                    document.querySelectorAll('.status-btn').forEach(btn => btn.classList.remove('active'));
+                    statusBtn.classList.add('active');
+                }
+            }
+            
+            if (selectedCategory !== 'all') {
+                const categoryBtn = document.querySelector(`.category-btn[data-category="${selectedCategory}"]`);
+                if (categoryBtn) {
+                    document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+                    categoryBtn.classList.add('active');
+                }
+            }
+            
+            // 重新应用筛选
+            filterTasks();
             
             // 如果已经挂载了拖放排序，重新初始化
             if (window.taskListSortable) {
@@ -1707,13 +1731,22 @@ function updateCategoryButtons(categories = []) {
         }
     });
 
+    // 如果当前分类不在新的分类列表中，且不是"全部"或"未分类"，保持当前选中的分类
+    if (currentCategory !== 'all' && currentCategory !== 'uncategorized' && !categories.includes(currentCategory)) {
+        // 如果当前选中的分类不在新的分类列表中，添加它
+        const button = document.createElement('button');
+        button.className = 'category-btn active';
+        button.setAttribute('data-category', currentCategory);
+        button.textContent = currentCategory;
+        button.onclick = () => filterByCategory(currentCategory);
+        categoryFilter.appendChild(button);
+    }
     // 如果当前没有找到选中的分类按钮，默认选中"全部分类"
-    if (!document.querySelector('.category-btn.active')) {
+    else if (!document.querySelector('.category-btn.active')) {
         allButton.classList.add('active');
     }
 
-    // 重新应用过滤器
-    filterTasks();
+    // 不在这里调用filterTasks，避免重复筛选
 }
 
 // 在初始化数据时调用获取分类
@@ -1824,6 +1857,9 @@ function filterTasks() {
 // 在任务状态更改后更新分类
 async function refreshCategories() {
     try {
+        // 保存当前选中的分类
+        const selectedCategory = document.querySelector('.category-btn.active')?.dataset.category || 'all';
+        
         // 获取最新的分类列表
         const result = await callApi('categories');
         if (result.success) {
@@ -1831,6 +1867,18 @@ async function refreshCategories() {
             state.categories = new Set(result.categories || []);
             // 更新分类按钮
             updateCategoryButtons(result.categories);
+            
+            // 恢复选中的分类
+            if (selectedCategory !== 'all') {
+                const categoryBtn = document.querySelector(`.category-btn[data-category="${selectedCategory}"]`);
+                if (categoryBtn) {
+                    document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+                    categoryBtn.classList.add('active');
+                }
+            }
+            
+            // 重新应用筛选
+            filterTasks();
         }
     } catch (error) {
         console.error('更新分类失败:', error);
