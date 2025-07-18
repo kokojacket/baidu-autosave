@@ -734,6 +734,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    max-width: 400px;
 }
 
 .notification {
@@ -743,6 +744,7 @@ body {
     font-size: 14px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     animation: slideIn 0.3s ease-out;
+    width: 100%;
 }
 
 .notification.info {
@@ -763,6 +765,34 @@ body {
 
 .notification.fade-out {
     animation: fadeOut 0.3s ease-in forwards;
+}
+
+/* 更新通知样式 */
+.update-notification {
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: var(--shadow-medium);
+    color: var(--text-primary);
+    width: 100%;
+}
+
+.update-notification strong {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 8px;
+    color: var(--primary-color);
+}
+
+.update-notification p {
+    margin: 4px 0;
+    font-size: 14px;
+}
+
+.update-notification a.btn {
+    margin-top: 12px;
+    display: inline-block;
 }
 
 @keyframes slideIn {

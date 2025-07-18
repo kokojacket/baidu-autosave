@@ -35,10 +35,10 @@ except ImportError:
 GITHUB_REPO = 'kokojacket/baidu-autosave'
 # Docker Hub 信息
 DOCKER_HUB_RSS = 'https://rsshub.rssforever.com/dockerhub/tag/kokojacket/baidu-autosave'
-# 备用 Docker Hub RSS源
-DOCKER_HUB_RSS_BACKUP = 'https://rss.kuaisouxia.com/dockerhub/tag/kokojacket/baidu-autosave'
-# Docker Hub API (JSON格式)
-DOCKER_HUB_API = 'https://1ms.run/api/v1/registry/get_tags?repositories=kokojacket%2Fbaidu-autosave&page=1&page_size=10&search='
+# 备用 Docker Hub RSS 源
+DOCKER_HUB_RSS_ALT = 'https://rss.kuaisouxia.com/dockerhub/tag/kokojacket/baidu-autosave'
+# 1ms.run API 源
+MS_RUN_API = 'https://1ms.run/api/v1/registry/get_tags'
 
 # 创建日志目录
 os.makedirs('log', exist_ok=True)
@@ -1366,7 +1366,6 @@ def check_version():
         import requests
         from requests.exceptions import RequestException
         import re
-        import json
         
         # 获取查询参数，确定使用哪个源检查更新
         source = request.args.get('source', 'github')
@@ -1374,43 +1373,83 @@ def check_version():
         if source == 'dockerhub':
             # 使用 Docker Hub RSS 检查更新
             feed_url = DOCKER_HUB_RSS
-            backup_url = DOCKER_HUB_RSS_BACKUP
-            use_backup = False
-            
+        elif source == 'dockerhub_alt':
+            # 使用备用 Docker Hub RSS 源
+            feed_url = DOCKER_HUB_RSS_ALT
+        elif source in ['msrun', '1ms']:
+            # 使用 1ms.run API 获取版本信息
             try:
-                # 设置超时，避免长时间等待
-                response = requests.get(feed_url, timeout=5)
-                response.raise_for_status()  # 如果响应状态码不是200，抛出异常
-            except RequestException as e:
-                logger.warning(f"获取主Docker Hub RSS源失败: {str(e)}，尝试备用源")
-                use_backup = True
-                try:
-                    response = requests.get(backup_url, timeout=5)
-                    response.raise_for_status()
-                except RequestException as e:
-                    logger.warning(f"获取备用Docker Hub RSS源也失败: {str(e)}")
-                    return jsonify({
-                        'success': False,
-                        'message': f'无法获取Docker Hub版本信息: {str(e)}',
-                        'source': source
-                    })
-        elif source == '1ms':
-            # 使用1ms.run API检查更新
-            api_url = DOCKER_HUB_API
-            try:
-                response = requests.get(api_url, timeout=5)
+                params = {
+                    "repositories": "kokojacket/baidu-autosave",
+                    "page": 1,
+                    "page_size": 10,
+                    "search": ""
+                }
+                response = requests.get(MS_RUN_API, params=params, timeout=5)
                 response.raise_for_status()
-            except RequestException as e:
-                logger.warning(f"获取1ms.run API失败: {str(e)}")
+                data = response.json()
+                
+                if data.get('code') == 0 and data.get('data', {}).get('list'):
+                    # 查找最新的正式版本（格式为vX.Y.Z）
+                    version_tags = []
+                    latest_tag = None
+                    
+                    # 首先找到latest标签
+                    for tag_info in data['data']['list']:
+                        if tag_info['tag_name'] == 'latest':
+                            latest_tag = tag_info
+                            break
+                    
+                    if latest_tag:
+                        # 找到与latest标签具有相同digest的版本标签
+                        latest_digest = latest_tag.get('digest')
+                        for tag_info in data['data']['list']:
+                            if re.match(r'^v\d+\.\d+\.\d+$', tag_info['tag_name']) and tag_info.get('digest') == latest_digest:
+                                version_tags.append(tag_info)
+                    
+                    # 如果没有找到与latest相同digest的版本标签，则收集所有版本标签
+                    if not version_tags:
+                        for tag_info in data['data']['list']:
+                            if re.match(r'^v\d+\.\d+\.\d+$', tag_info['tag_name']):
+                                version_tags.append(tag_info)
+                    
+                    if version_tags:
+                        # 按更新时间排序，选择最新的
+                        version_tags.sort(key=lambda x: x.get('tag_last_pushed', ''), reverse=True)
+                        latest_version = version_tags[0]['tag_name']
+                        published = version_tags[0].get('tag_last_pushed')
+                        link = f"https://hub.docker.com/layers/kokojacket/baidu-autosave/{latest_version}/images/{version_tags[0].get('digest', '').split(':')[-1]}"
+                        
+                        logger.info(f"从1ms.run API获取到最新版本: {latest_version}")
+                        return jsonify({
+                            'success': True,
+                            'version': latest_version,
+                            'published': published,
+                            'link': link,
+                            'source': '1ms'
+                        })
+                
+                # 如果没有找到有效的版本信息，返回错误
+                logger.warning("1ms.run API未返回有效的版本信息")
                 return jsonify({
                     'success': False,
-                    'message': f'无法获取1ms.run版本信息: {str(e)}',
-                    'source': source
+                    'message': '1ms.run API未返回有效的版本信息',
+                    'source': '1ms'
+                })
+                
+            except Exception as e:
+                logger.warning(f"从1ms.run API获取版本信息失败: {str(e)}")
+                return jsonify({
+                    'success': False,
+                    'message': f'从1ms.run API获取版本信息失败: {str(e)}',
+                    'source': '1ms'
                 })
         else:
             # 默认使用 GitHub releases feed
             feed_url = f'https://github.com/{GITHUB_REPO}/releases.atom'
-            
+        
+        # 如果是使用RSS源，则执行以下代码
+        if source in ['github', 'dockerhub', 'dockerhub_alt']:
             try:
                 # 设置超时，避免长时间等待
                 response = requests.get(feed_url, timeout=5)
@@ -1422,168 +1461,94 @@ def check_version():
                     'message': f'无法获取{source}版本信息: {str(e)}',
                     'source': source
                 })
-            
-        # 获取最新版本信息
-        if source == '1ms':
-            # 使用API (JSON格式)
-            try:
-                data = response.json()
-                if data.get('code') != 0 or 'data' not in data or 'list' not in data['data']:
-                    logger.warning(f"1ms.run API返回数据格式错误: {response.text}")
-                    return jsonify({
-                        'success': False,
-                        'message': '1ms.run API返回数据格式错误',
-                        'source': source
-                    })
                 
-                # 查找latest标签和版本标签
-                latest_tag = None
-                version_tag = None
-                latest_digest = None
+            # 解析 feed
+            feed = feedparser.parse(response.content)
+            if not feed.entries:
+                logger.warning(f"{source}未找到版本信息")
+                return jsonify({
+                    'success': False,
+                    'message': f'{source}未找到版本信息',
+                    'source': source
+                })
                 
-                # 先找到latest标签
-                for item in data['data']['list']:
-                    if item.get('tag_name') == 'latest':
-                        latest_tag = item
-                        latest_digest = item.get('digest')
+            # 获取最新版本信息
+            if source in ['dockerhub', 'dockerhub_alt']:
+                # 首先查找latest标签的条目
+                latest_entry = None
+                latest_guid = None
+                version_entry = None
+                
+                for entry in feed.entries:
+                    if ':latest' in entry.title:
+                        latest_entry = entry
+                        # 提取镜像ID（guid的@后面部分）
+                        guid_match = re.search(r'@([a-f0-9]+)$', entry.guid)
+                        if guid_match:
+                            latest_guid = guid_match.group(1)
                         break
                 
-                if not latest_tag:
-                    logger.warning("1ms.run API中未找到latest标签")
+                if not latest_entry:
+                    logger.warning("Docker Hub中未找到latest标签")
                     # 如果没有找到latest标签，使用第一个条目
-                    if data['data']['list']:
-                        latest_tag = data['data']['list'][0]
+                    latest_entry = feed.entries[0]
                 
-                # 如果找到了latest的digest，查找对应的版本号标签
-                if latest_digest:
-                    for item in data['data']['list']:
-                        # 检查是否是版本号标签（如v1.0.8）并且与latest有相同的digest
-                        if re.match(r'v\d+\.\d+\.\d+', item.get('tag_name', '')) and item.get('digest') == latest_digest:
-                            version_tag = item
+                # 如果找到了latest的guid，查找对应的版本号条目
+                if latest_guid:
+                    for entry in feed.entries:
+                        # 检查是否是版本号标签（如v1.0.8）并且与latest有相同的guid
+                        if re.search(r':v\d+\.\d+\.\d+', entry.title) and latest_guid in entry.guid:
+                            version_entry = entry
                             break
                 
-                # 如果找到了版本号标签，使用它；否则使用latest标签
-                tag_to_use = version_tag if version_tag else latest_tag
-                
-                if not tag_to_use:
-                    logger.warning("1ms.run API中未找到有效标签")
-                    return jsonify({
-                        'success': False,
-                        'message': '1ms.run API中未找到有效标签',
-                        'source': source
-                    })
+                # 如果找到了版本号条目，使用它；否则使用latest条目
+                entry_to_use = version_entry if version_entry else latest_entry
                 
                 # 提取版本号
-                tag_name = tag_to_use.get('tag_name', '')
-                latest_version = tag_name if re.match(r'v\d+\.\d+\.\d+', tag_name) else tag_name
+                title = entry_to_use.title
+                version_match = re.search(r':(?:v?\d+\.\d+\.\d+|latest)', title)
+                latest_version = version_match.group(0)[1:] if version_match else title
                 
-                # 添加发布日期和链接
-                pub_date = tag_to_use.get('tag_last_pushed', '')
-                link = f"https://hub.docker.com/layers/kokojacket/baidu-autosave/{tag_name}/images/{tag_to_use.get('digest', '').split(':')[1]}"
+                # 添加发布日期
+                pub_date = entry_to_use.pubDate if hasattr(entry_to_use, 'pubDate') else entry_to_use.published
                 
-                # 记录使用的源
-                logger.info(f"从1ms.run API获取到最新版本: {latest_version}")
+                logger.info(f"从Docker Hub ({source})获取到最新版本: {latest_version}")
+                return jsonify({
+                    'success': True,
+                    'version': latest_version,
+                    'published': pub_date,
+                    'link': entry_to_use.link,
+                    'source': source
+                })
+            else:
+                # GitHub 格式
+                title = feed.entries[0].title
                 
+                # 从标题中提取版本号，支持多种格式：
+                # 1. "Release v1.0.8" -> "v1.0.8"
+                # 2. "v1.0.8" -> "v1.0.8"
+                # 3. "1.0.8" -> "1.0.8"
+                version_match = re.search(r'(?:Release\s+)?(v?\d+\.\d+\.\d+)', title)
+                if version_match:
+                    latest_version = version_match.group(1)
+                    # 确保版本号以v开头
+                    if not latest_version.startswith('v'):
+                        latest_version = 'v' + latest_version
+                else:
+                    # 如果无法提取版本号，使用原始标题
+                    latest_version = title
+                
+                pub_date = feed.entries[0].published if hasattr(feed.entries[0], 'published') else None
+                link = feed.entries[0].link if hasattr(feed.entries[0], 'link') else f"https://github.com/{GITHUB_REPO}/releases/latest"
+                
+                logger.info(f"从GitHub获取到最新版本: {title} -> 提取版本号: {latest_version}")
                 return jsonify({
                     'success': True,
                     'version': latest_version,
                     'published': pub_date,
                     'link': link,
-                    'source': '1ms'
+                    'source': 'github'
                 })
-                
-            except ValueError as e:
-                logger.warning(f"解析1ms.run API JSON失败: {str(e)}")
-                return jsonify({
-                    'success': False,
-                    'message': f'解析1ms.run API JSON失败: {str(e)}',
-                    'source': source
-                })
-        elif source == 'dockerhub':
-            # 使用RSS源
-            # 解析 feed
-            feed = feedparser.parse(response.content)
-            if not feed.entries:
-                logger.warning(f"{source}未找到版本信息")
-                return jsonify({
-                    'success': False,
-                    'message': f'{source}未找到版本信息',
-                    'source': source
-                })
-            
-            # 首先查找latest标签的条目
-            latest_entry = None
-            latest_guid = None
-            version_entry = None
-            
-            for entry in feed.entries:
-                if ':latest' in entry.title:
-                    latest_entry = entry
-                    # 提取镜像ID（guid的@后面部分）
-                    guid_match = re.search(r'@([a-f0-9]+)$', entry.guid)
-                    if guid_match:
-                        latest_guid = guid_match.group(1)
-                    break
-            
-            if not latest_entry:
-                logger.warning("Docker Hub中未找到latest标签")
-                # 如果没有找到latest标签，使用第一个条目
-                latest_entry = feed.entries[0]
-            
-            # 如果找到了latest的guid，查找对应的版本号条目
-            if latest_guid:
-                for entry in feed.entries:
-                    # 检查是否是版本号标签（如v1.0.8）并且与latest有相同的guid
-                    if re.search(r':v\d+\.\d+\.\d+', entry.title) and latest_guid in entry.guid:
-                        version_entry = entry
-                        break
-            
-            # 如果找到了版本号条目，使用它；否则使用latest条目
-            entry_to_use = version_entry if version_entry else latest_entry
-            
-            # 提取版本号
-            title = entry_to_use.title
-            version_match = re.search(r':(?:v?\d+\.\d+\.\d+|latest)', title)
-            latest_version = version_match.group(0)[1:] if version_match else title
-            
-            # 添加发布日期
-            pub_date = entry_to_use.pubDate if hasattr(entry_to_use, 'pubDate') else entry_to_use.published
-            
-            # 记录使用的源
-            rss_source = "Docker Hub备用RSS源" if use_backup else "Docker Hub RSS源"
-            logger.info(f"从{rss_source}获取到最新版本: {latest_version}")
-            
-            return jsonify({
-                'success': True,
-                'version': latest_version,
-                'published': pub_date,
-                'link': entry_to_use.link,
-                'source': 'dockerhub'
-            })
-        else:
-            # GitHub 格式
-            # 解析 feed
-            feed = feedparser.parse(response.content)
-            if not feed.entries:
-                logger.warning(f"{source}未找到版本信息")
-                return jsonify({
-                    'success': False,
-                    'message': f'{source}未找到版本信息',
-                    'source': source
-                })
-                
-            latest_version = feed.entries[0].title
-            pub_date = feed.entries[0].published if hasattr(feed.entries[0], 'published') else None
-            link = feed.entries[0].link if hasattr(feed.entries[0], 'link') else f"https://github.com/{GITHUB_REPO}/releases/latest"
-            
-            logger.info(f"从GitHub获取到最新版本: {latest_version}")
-            return jsonify({
-                'success': True,
-                'version': latest_version,
-                'published': pub_date,
-                'link': link,
-                'source': 'github'
-            })
     except Exception as e:
         logger.error(f"检查版本失败: {str(e)}")
         return jsonify({
