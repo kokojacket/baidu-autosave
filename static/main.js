@@ -3227,11 +3227,35 @@ function handlePollingError() {
 function updateTasksFromPolling(tasks) {
     if (!Array.isArray(tasks)) return;
     
+    // 保存当前选中的状态和分类
+    const selectedStatus = document.querySelector('.status-btn.active')?.dataset.status || 'all';
+    const selectedCategory = document.querySelector('.category-btn.active')?.dataset.category || 'all';
+    
     // 更新全局状态
     state.tasks = tasks;
     
     // 更新UI
     renderTasks();
+    
+    // 恢复选中的状态和分类
+    if (selectedStatus !== 'all') {
+        const statusBtn = document.querySelector(`.status-btn[data-status="${selectedStatus}"]`);
+        if (statusBtn) {
+            document.querySelectorAll('.status-btn').forEach(btn => btn.classList.remove('active'));
+            statusBtn.classList.add('active');
+        }
+    }
+    
+    if (selectedCategory !== 'all') {
+        const categoryBtn = document.querySelector(`.category-btn[data-category="${selectedCategory}"]`);
+        if (categoryBtn) {
+            document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+            categoryBtn.classList.add('active');
+        }
+    }
+    
+    // 重新应用筛选
+    filterTasks();
     
     // 检查是否有正在运行的任务
     const runningTasks = tasks.filter(task => task.status === 'running');
