@@ -205,6 +205,52 @@
                         </div>
                     </div>
 
+                    <!-- 网盘容量提醒设置 -->
+                    <div class="form-group">
+                        <h3>网盘容量提醒</h3>
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="quota-alert-enabled" name="quota-alert-enabled">
+                            <label for="quota-alert-enabled">启用容量提醒</label>
+                        </div>
+                        <div class="input-group">
+                            <label for="quota-threshold">容量提醒比例 (%)</label>
+                            <input type="number" id="quota-threshold" name="quota-threshold" 
+                                   min="1" max="99" value="90" placeholder="当使用量超过此比例时发送通知">
+                            <div class="help-text">
+                                当网盘使用容量超过总容量的设定比例时，系统将发送通知提醒
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="quota-check-schedule">检查时间</label>
+                            <input type="text" id="quota-check-schedule" name="quota-check-schedule" 
+                                   placeholder="cron表达式，默认每天00:00" value="0 0 * * *">
+                            <div class="help-text">
+                                使用cron表达式设置检查时间，默认为每天00:00（0 0 * * *）
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 分享设置 -->
+                    <div class="form-group">
+                        <h3>分享设置</h3>
+                        <div class="input-group">
+                            <label for="default-share-password">默认分享密码</label>
+                            <input type="text" id="default-share-password" name="default-share-password" 
+                                   maxlength="4" minlength="4" placeholder="请输入4位分享密码" value="1234">
+                            <div class="help-text">
+                                百度网盘分享密码必须是4个字符
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="default-share-period">默认有效期（天）</label>
+                            <input type="number" id="default-share-period" name="default-share-period" 
+                                   min="0" max="365" value="7" placeholder="分享链接的有效期，单位为天，0表示永久有效">
+                            <div class="help-text">
+                                设置分享链接的默认有效期，单位为天，设置为0表示永久有效
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- 登录凭据设置 -->
                     <div class="form-group">
                         <h3>登录凭据设置</h3>

@@ -198,9 +198,11 @@ class TaskScheduler:
                     logger.info(f"已添加自定义定时任务: {task.get('name', f'任务{task_order}')} -> {task['cron']}")
                 except Exception as e:
                     logger.error(f"添加自定义定时任务失败 ({task.get('name', f'任务{task_order}')}): {str(e)}")
-                    continue
             
-            # 如果有使用默认定时的任务，添加默认定时任务
+            # 添加网盘容量检查任务
+            self._add_quota_check_job()
+            
+            # 添加默认定时任务
             if default_scheduled_tasks:
                 for task in default_scheduled_tasks:
                     task_order = task.get('order')
@@ -757,6 +759,95 @@ class TaskScheduler:
                 logger.error(f"解析cron表达式失败 '{cron_schedule}': {str(e)}")
         except Exception as e:
             logger.error(f"添加任务调度失败 ({task.get('name', task.get('url', '未知任务'))}): {str(e)}")
+
+    def _add_quota_check_job(self):
+        """添加网盘容量检查任务"""
+        try:
+            # 获取容量检查配置
+            quota_alert = self.storage.config.get('quota_alert', {})
+            if not quota_alert.get('enabled', False):
+                logger.info("网盘容量检查功能未启用")
+                return
+            
+            # 获取检查时间表达式，默认每天00:00
+            check_schedule = quota_alert.get('check_schedule', '0 0 * * *')
+            
+            # 添加定时任务
+            self.scheduler.add_job(
+                self._check_disk_quota,
+                CronTrigger.from_crontab(convert_cron_weekday(check_schedule), timezone=pytz.timezone('Asia/Shanghai')),
+                id='quota_check',
+                replace_existing=True
+            )
+            logger.info(f"已添加网盘容量检查任务: {check_schedule}")
+        except Exception as e:
+            logger.error(f"添加网盘容量检查任务失败: {str(e)}")
+
+    def _check_disk_quota(self):
+        """检查网盘容量并发送通知"""
+        try:
+            logger.info("开始检查网盘容量")
+            
+            # 确保存储对象有效
+            if not self.storage or not self.storage.is_valid():
+                logger.error("存储对象无效或未登录")
+                return
+            
+            # 获取用户信息和配额
+            user_info = self.storage.get_user_info()
+            if not user_info or 'quota' not in user_info:
+                logger.error("无法获取用户配额信息")
+                return
+            
+            # 获取配额信息
+            quota = user_info['quota']
+            total = quota.get('total', 0)
+            used = quota.get('used', 0)
+            
+            if total <= 0:
+                logger.error("获取到的总容量为0，无法计算使用比例")
+                return
+            
+            # 计算使用比例
+            used_percent = round(used / total * 100, 2)
+            
+            # 转换为GB并保留2位小数
+            total_gb = round(total / (1024**3), 2)
+            used_gb = round(used / (1024**3), 2)
+            
+            # 获取阈值
+            quota_alert = self.storage.config.get('quota_alert', {})
+            threshold = quota_alert.get('threshold_percent', 90)
+            
+            # 记录日志
+            logger.info(f"网盘容量检查: 已使用 {used_gb}GB/{total_gb}GB ({used_percent}%), 阈值: {threshold}%")
+            
+            # 检查是否超过阈值
+            if used_percent >= threshold:
+                # 获取用户名
+                username = user_info.get('user_name', self.storage.config['baidu'].get('current_user', '未知用户'))
+                
+                # 构建通知内容
+                title = f"百度网盘容量警告 - {username}"
+                content = f"""
+## 百度网盘容量警告
+
+**用户**: {username}  
+**已使用**: {used_gb}GB / {total_gb}GB  
+**使用比例**: {used_percent}%  
+**警告阈值**: {threshold}%  
+
+您的百度网盘空间使用量已超过设定阈值，请及时清理不必要的文件，以免影响正常使用。
+"""
+                
+                # 发送通知
+                notify_send(title, content)
+                logger.warning(f"已发送网盘容量警告通知: {used_percent}% >= {threshold}%")
+            else:
+                logger.info(f"网盘容量正常: {used_percent}% < {threshold}%")
+                
+        except Exception as e:
+            logger.error(f"检查网盘容量失败: {str(e)}")
 
 def convert_cron_weekday(cron_exp):
     """

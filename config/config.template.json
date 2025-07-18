@@ -23,6 +23,15 @@
         "misfire_grace_time": 3600,
         "coalesce": true
     },
+    "quota_alert": {
+        "enabled": true,
+        "threshold_percent": 90,
+        "check_schedule": "0 0 * * *"
+    },
+    "share": {
+        "default_password": "1234",
+        "default_period_days": 7
+    },
     "auth": {
         "users": "admin",
         "password": "admin123",

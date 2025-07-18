@@ -13,13 +13,23 @@ from utils import generate_transfer_notification
 from notify import send as notify_send
 from datetime import datetime
 from flask_cors import CORS
-from geventwebsocket.handler import WebSocketHandler
-from geventwebsocket.websocket import WebSocket
-from gevent.pywsgi import WSGIServer
 import time
-from gevent.queue import Queue
-from geventwebsocket.exceptions import WebSocketError
 import socket
+
+# 尝试导入WebSocket相关模块
+try:
+    from geventwebsocket.handler import WebSocketHandler
+    from geventwebsocket.websocket import WebSocket
+    from gevent.pywsgi import WSGIServer
+    from geventwebsocket.exceptions import WebSocketError
+    from gevent.queue import Queue
+    # 强制禁用WebSocket
+    WEBSOCKET_AVAILABLE = False
+    logger.info("WebSocket支持已禁用，将使用普通HTTP轮询")
+except ImportError:
+    from gevent.pywsgi import WSGIServer
+    WEBSOCKET_AVAILABLE = False
+    logger.info("WebSocket支持未启用，将使用普通HTTP轮询")
 
 # GitHub 仓库信息
 GITHUB_REPO = 'kokojacket/baidu-autosave'
@@ -29,16 +39,37 @@ os.makedirs('log', exist_ok=True)
 
 # 配置日志
 logger.remove()  # 移除默认的控制台输出
-# 添加控制台输出，设置日志级别为 INFO
-logger.add(sys.stdout, level="INFO", 
+
+# 定义统一的日志格式和级别
+log_format = "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}"
+log_level = "DEBUG"  # 使用DEBUG级别，可以看到所有日志
+
+# 添加彩色的控制台输出
+logger.add(sys.stdout, 
+          level=log_level, 
           format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>")
-# 添加文件输出，设置日志级别为 DEBUG
+
+# 添加文件输出 (内容与控制台输出相同，但没有颜色标记)
 logger.add("log/web_app_{time:YYYY-MM-DD}.log", 
-          rotation="00:00", # 每天零点创建新文件
-          retention="7 days", # 保留7天的日志
-          level="DEBUG",
+          rotation="00:00",  # 每天零点创建新文件
+          retention="7 days",  # 保留7天的日志
+          level=log_level,
           encoding="utf-8",
-          format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}")
+          format=log_format)
+
+# 过滤敏感信息
+def filter_sensitive_info(record):
+    """过滤敏感信息，如BDUSS和cookies"""
+    message = record["message"]
+    # 替换BDUSS
+    message = re.sub(r"BDUSS['\"]?\s*:\s*['\"]?([^'\"]+)['\"]?", "BDUSS: [已隐藏]", message)
+    # 替换cookies
+    message = re.sub(r"cookies['\"]?\s*:\s*['\"]?([^'\"]+)['\"]?", "cookies: [已隐藏]", message)
+    record["message"] = message
+    return True
+
+# 应用过滤器到所有日志处理器
+logger.configure(patcher=filter_sensitive_info)
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # 用于session加密
@@ -72,6 +103,9 @@ def login_required(f):
 
 def broadcast_message(message):
     """广播消息到所有WebSocket客户端"""
+    if not WEBSOCKET_AVAILABLE or not clients:
+        return
+        
     disconnected_clients = set()
     for client in clients:
         try:
@@ -160,6 +194,19 @@ def login():
             password == auth_config.get('password')):
             session['username'] = username
             session['login_time'] = time.time()
+            
+            # 登录成功后立即获取用户配额信息
+            try:
+                if storage and hasattr(storage, 'is_valid') and hasattr(storage, 'get_user_info') and storage.is_valid():
+                    user_info = storage.get_user_info()
+                    if user_info and 'quota' in user_info:
+                        quota = user_info['quota']
+                        total_gb = round(quota.get('total', 0) / (1024**3), 2)
+                        used_gb = round(quota.get('used', 0) / (1024**3), 2)
+                        logger.info(f"用户登录成功，网盘总空间: {total_gb}GB, 已使用: {used_gb}GB")
+            except Exception as e:
+                logger.error(f"登录后获取配额信息失败: {str(e)}")
+                
             return redirect(url_for('index'))
         else:
             return render_template('login.html', message='用户名或密码错误')
@@ -628,6 +675,27 @@ def switch_user():
             # 重新初始化应用
             init_app()
             
+            # 切换用户后立即获取用户配额信息
+            try:
+                if storage and hasattr(storage, 'get_user_info'):
+                    user_info = storage.get_user_info()
+                    if user_info and 'quota' in user_info:
+                        quota = user_info['quota']
+                        total_gb = round(quota.get('total', 0) / (1024**3), 2)
+                        used_gb = round(quota.get('used', 0) / (1024**3), 2)
+                        logger.info(f"已切换到用户: {username}，网盘总空间: {total_gb}GB, 已使用: {used_gb}GB")
+                        
+                        # 将配额信息添加到用户数据中
+                        user['quota'] = {
+                            'total': quota.get('total', 0),
+                            'used': quota.get('used', 0),
+                            'total_gb': total_gb,
+                            'used_gb': used_gb,
+                            'percent': round(quota.get('used', 0) / quota.get('total', 1) * 100, 2) if quota.get('total', 0) > 0 else 0
+                        }
+            except Exception as e:
+                logger.error(f"切换用户后获取配额信息失败: {str(e)}")
+            
             # 返回更新后的状态
             return jsonify({
                 'success': True, 
@@ -733,6 +801,43 @@ def get_user_cookies(username):
     
     return jsonify({'success': True, 'cookies': user_info.get('cookies', '')})
 
+@app.route('/api/user/quota', methods=['GET'])
+@login_required
+@handle_api_error
+def get_user_quota():
+    """获取当前用户的网盘配额信息"""
+    if not storage:
+        return jsonify({'success': False, 'message': '存储未初始化'})
+        
+    try:
+        # 获取用户信息，包括配额
+        user_info = storage.get_user_info()
+        if not user_info or 'quota' not in user_info:
+            return jsonify({'success': False, 'message': '无法获取用户配额信息'})
+            
+        # 提取配额信息
+        quota = user_info['quota']
+        total = quota.get('total', 0)
+        used = quota.get('used', 0)
+        
+        # 转换为GB并保留2位小数
+        total_gb = round(total / (1024**3), 2)
+        used_gb = round(used / (1024**3), 2)
+        
+        return jsonify({
+            'success': True, 
+            'quota': {
+                'total': total,
+                'used': used,
+                'total_gb': total_gb,
+                'used_gb': used_gb,
+                'percent': round(used / total * 100, 2) if total > 0 else 0
+            }
+        })
+    except Exception as e:
+        logger.error(f"获取用户配额失败: {str(e)}")
+        return jsonify({'success': False, 'message': f'获取用户配额失败: {str(e)}'})
+
 @app.route('/api/config', methods=['GET'])
 @login_required
 @handle_api_error
@@ -751,6 +856,8 @@ def get_config():
         'cron': storage.config.get('cron', {}),
         'notify': storage.config.get('notify', {}),
         'scheduler': storage.config.get('scheduler', {}),
+        'quota_alert': storage.config.get('quota_alert', {}),
+        'share': storage.config.get('share', {}),
         'baidu': {
             'current_user': current_user  # 返回完整的用户信息
         }
@@ -1071,6 +1178,9 @@ def reorder_task():
 @app.route('/ws')
 def ws():
     """WebSocket连接处理"""
+    if not WEBSOCKET_AVAILABLE:
+        return jsonify({'success': False, 'message': 'WebSocket不可用'}), 400
+        
     if request.environ.get('wsgi.websocket'):
         ws = request.environ['wsgi.websocket']
         clients.add(ws)
@@ -1100,10 +1210,11 @@ def ws():
                 except:
                     pass
                     
-        except WebSocketError as e:
-            logger.warning(f"WebSocket错误: {str(e)}")
         except Exception as e:
-            logger.error(f"WebSocket异常: {str(e)}")
+            if WEBSOCKET_AVAILABLE:
+                logger.error(f"WebSocket异常: {str(e)}")
+            else:
+                logger.error(f"HTTP连接异常: {str(e)}")
         finally:
             try:
                 clients.remove(ws)
@@ -1278,6 +1389,158 @@ def check_version():
             'message': f'检查版本失败: {str(e)}'
         })
 
+# 添加轮询API端点
+@app.route('/api/tasks/status', methods=['GET'])
+@login_required
+@handle_api_error
+def get_tasks_status():
+    """获取所有任务的状态（用于轮询）"""
+    if not storage:
+        return jsonify({'success': False, 'message': '存储未初始化'})
+    tasks = storage.list_tasks()
+    # 按 order 排序，没有 order 的排在最后
+    tasks.sort(key=lambda x: x.get('order', float('inf')))
+    return jsonify({'success': True, 'tasks': tasks})
+
+@app.route('/api/logs', methods=['GET'])
+@login_required
+@handle_api_error
+def get_logs():
+    """获取最近的日志（用于轮询）"""
+    # 获取查询参数
+    limit = request.args.get('limit', 20, type=int)
+    
+    # 从日志文件中读取最新的日志
+    log_entries = []
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        log_file = f"log/web_app_{today}.log"
+        
+        if os.path.exists(log_file):
+            with open(log_file, 'r', encoding='utf-8') as f:
+                # 读取最后limit行
+                lines = f.readlines()
+                last_lines = lines[-limit:] if len(lines) > limit else lines
+                
+                for line in last_lines:
+                    # 解析日志格式
+                    try:
+                        parts = line.split('|')
+                        if len(parts) >= 3:
+                            timestamp = parts[0].strip()
+                            level = parts[1].strip()
+                            message = '|'.join(parts[2:]).strip()
+                            
+                            log_entries.append({
+                                'timestamp': timestamp,
+                                'level': level,
+                                'message': message
+                            })
+                    except:
+                        # 如果解析失败，添加原始行
+                        log_entries.append({
+                            'timestamp': '',
+                            'level': 'INFO',
+                            'message': line.strip()
+                        })
+    except Exception as e:
+        logger.error(f"读取日志文件失败: {str(e)}")
+        return jsonify({'success': False, 'message': f'读取日志文件失败: {str(e)}'})
+    
+    return jsonify({'success': True, 'logs': log_entries})
+
+@app.route('/api/task/log/<int:task_id>', methods=['GET'])
+@login_required
+@handle_api_error
+def get_task_log(task_id):
+    """获取指定任务的执行日志（用于轮询）"""
+    # 这里我们返回一个空列表，因为我们没有为每个任务单独存储日志
+    # 在实际应用中，可以考虑为每个任务添加日志存储
+    return jsonify({'success': True, 'logs': []})
+
+@app.route('/api/task/share', methods=['POST'])
+@login_required
+@handle_api_error
+def share_task():
+    """生成任务的分享链接"""
+    if not storage:
+        return jsonify({'success': False, 'message': '存储未初始化'})
+    
+    data = request.get_json()
+    task_id = data.get('task_id')
+    custom_password = data.get('password')  # 可选的自定义密码
+    custom_period = data.get('period')      # 可选的自定义有效期
+    
+    if task_id is None:
+        return jsonify({'success': False, 'message': '任务ID不能为空'})
+    
+    # 获取任务信息
+    tasks = storage.list_tasks()
+    tasks.sort(key=lambda x: x.get('order', float('inf')))
+    
+    if 0 <= task_id < len(tasks):
+        task = tasks[task_id]
+        save_dir = task.get('save_dir')
+        
+        if not save_dir:
+            return jsonify({'success': False, 'message': '任务保存目录为空'})
+        
+        # 获取分享配置
+        share_config = storage.config.get('share', {})
+        password = custom_password or share_config.get('default_password', '1234')
+        period_days = custom_period or share_config.get('default_period_days', 7)
+        
+        try:
+            # 确保目录存在
+            storage.ensure_dir_exists(save_dir)
+            
+            # 调用BaiduPCS-Py的share命令
+            share_result = storage.share_file(save_dir, password, period_days)
+            
+            if share_result.get('success'):
+                share_info = share_result.get('share_info', {})
+                
+                # 更新任务的分享信息
+                task_order = task.get('order', task_id + 1)
+                storage.update_task_share_info(task_order, share_info)
+                
+                return jsonify({
+                    'success': True, 
+                    'message': '分享链接生成成功',
+                    'share_info': share_info
+                })
+            else:
+                return jsonify({
+                    'success': False, 
+                    'message': share_result.get('error', '分享链接生成失败')
+                })
+                
+        except Exception as e:
+            logger.error(f"生成分享链接失败: {str(e)}")
+            return jsonify({'success': False, 'message': f'生成分享链接失败: {str(e)}'})
+    else:
+        return jsonify({'success': False, 'message': '任务不存在'})
+
+@app.route('/api/config/share', methods=['POST'])
+@login_required
+@handle_api_error
+def update_share_config():
+    """更新分享配置"""
+    if not storage:
+        return jsonify({'success': False, 'message': '存储未初始化'})
+        
+    data = request.get_json()
+    share_config = {
+        'default_password': data.get('default_password', '1234'),
+        'default_period_days': data.get('default_period_days', 7)
+    }
+    
+    # 更新配置
+    storage.config['share'] = share_config
+    storage._save_config()
+    
+    return jsonify({'success': True, 'message': '分享配置已更新'})
+
 if __name__ == '__main__':
     try:
         # 启动时初始化应用
@@ -1291,8 +1554,14 @@ if __name__ == '__main__':
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
         
-        # 使用gevent-websocket替代默认的服务器
-        http_server = WSGIServer(('0.0.0.0', 5000), app, handler_class=WebSocketHandler)
+        # 根据是否支持WebSocket选择合适的服务器
+        if WEBSOCKET_AVAILABLE:
+            logger.info("使用支持WebSocket的服务器")
+            http_server = WSGIServer(('0.0.0.0', 5000), app, handler_class=WebSocketHandler)
+        else:
+            logger.info("使用标准WSGI服务器")
+            http_server = WSGIServer(('0.0.0.0', 5000), app)
+            
         print('Server started at http://0.0.0.0:5000')
         http_server.serve_forever()
     except KeyboardInterrupt:

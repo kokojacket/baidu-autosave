@@ -10,6 +10,24 @@ const CACHE_KEY = {
     HISTORY: 'baidu_autosave_field_history'
 };
 
+// 轮询配置
+const POLLING_CONFIG = {
+    enabled: true,           // 是否启用轮询（默认启用）
+    interval: 5000,          // 轮询间隔（毫秒）
+    taskStatusInterval: 5000, // 任务状态轮询间隔（毫秒）
+    logInterval: 10000,      // 日志轮询间隔（毫秒）
+    retryCount: 3,           // 失败重试次数
+    retryDelay: 3000,        // 重试延迟（毫秒）
+    debug: true              // 是否启用调试日志
+};
+
+// 轮询定时器
+let taskStatusPollingTimer = null;
+let logPollingTimer = null;
+let lastTaskUpdateTime = 0;
+let lastLogUpdateTime = 0;
+let pollingRetryCount = 0;
+
 // 检查是否有异常任务并更新异常按钮的状态
 function updateErrorIndicator() {
     const hasErrorTasks = state.tasks.some(task => task.status === 'error');
@@ -50,12 +68,13 @@ function clearCache() {
 
 // WebSocket配置
 const WS_CONFIG = {
+    enabled: false,          // 是否启用WebSocket（默认禁用）
     maxRetries: 3,           // 最大重试次数
     retryInterval: 5000,     // 初始重试间隔（毫秒）
     reconnectBackoff: 1.5,   // 重试间隔增长系数
     pingInterval: 20000,     // 心跳间隔（毫秒）
     pingTimeout: 8000,       // 心跳超时时间（毫秒）
-    debug: true             // 是否启用调试日志
+    debug: true              // 是否启用调试日志
 };
 
 // 全局状态管理
@@ -198,10 +217,12 @@ function updateTaskStatus(taskId, status, message) {
         const task = state.tasks.find(t => t.order === taskId + 1);
         if (task && task.last_execute_time) {
             const lastExecuteTime = new Date(task.last_execute_time * 1000).toLocaleString();
-            const timeElement = taskElement.querySelector('.last-execute-time') || document.createElement('div');
-            timeElement.className = 'last-execute-time';
-            timeElement.textContent = `上次执行: ${lastExecuteTime}`;
-            taskElement.querySelector('.task-details').appendChild(timeElement);
+            const timeElement = taskElement.querySelector('.last-execute-time');
+            if (timeElement) {
+                // 如果元素已存在，只更新内容
+                timeElement.textContent = `上次执行: ${lastExecuteTime}`;
+            }
+            // 不再创建新元素并添加到末尾
         }
     }
     
@@ -425,6 +446,10 @@ function createTaskElement(task) {
     // 获取显示的消息
     const displayMessage = task.status === 'error' ? (task.error || task.message) : task.message;
     
+    // 生成分享链接展示
+    const shareInfoDisplay = task.share_info ? 
+        `<div class="task-message">分享链接：${task.share_info.url}?pwd=${task.share_info.password}</div>` : '';
+    
     div.innerHTML = `
         <div class="task-item-left">
             <div class="drag-handle" title="拖动排序">
@@ -448,6 +473,7 @@ function createTaskElement(task) {
                 <span class="cron-rule">${task.cron ? `自定义定时：${task.cron}` : `默认定时：${state.config.cron?.default_schedule || '未设置'}`}</span>
                 <div class="last-execute-time">上次执行: ${lastExecuteTime}</div>
                 ${displayMessage ? `<div class="task-message ${task.status === 'error' ? 'error' : ''}">${displayMessage}</div>` : ''}
+                ${shareInfoDisplay}
             </div>
             ${task.status === 'running' ? `
             <div class="progress-bar">
@@ -457,7 +483,7 @@ function createTaskElement(task) {
             </div>
             ` : ''}
         </div>
-        <div class="task-actions" style="min-width: 120px">
+        <div class="task-actions" style="min-width: 160px">
             <button class="btn-icon" onclick="executeTask(${task.order - 1})" 
                     ${task.status === 'running' ? 'disabled' : ''}>
                 <i class="material-icons">play_arrow</i>
@@ -465,6 +491,10 @@ function createTaskElement(task) {
             <button class="btn-icon" onclick="editTask(${task.order - 1})"
                     ${task.status === 'running' ? 'disabled' : ''}>
                 <i class="material-icons">edit</i>
+            </button>
+            <button class="btn-icon" onclick="shareTask(${task.order - 1})"
+                    ${task.status === 'running' ? 'disabled' : ''} title="生成分享链接">
+                <i class="material-icons">share</i>
             </button>
             <button class="btn-icon danger" onclick="deleteTask(${task.order - 1})"
                     ${task.status === 'running' ? 'disabled' : ''}>
@@ -535,6 +565,11 @@ function renderConfig() {
     const notifyEnabled = document.getElementById('notify-enabled');
     const notifyFieldsContainer = document.getElementById('notify-fields-container');
     const globalCron = document.getElementById('global-cron');
+    
+    // 网盘容量提醒配置元素
+    const quotaAlertEnabled = document.getElementById('quota-alert-enabled');
+    const quotaThreshold = document.getElementById('quota-threshold');
+    const quotaCheckSchedule = document.getElementById('quota-check-schedule');
     
     if (!globalCron) {
         console.error('未找到全局定时规则输入框元素');
@@ -620,6 +655,45 @@ function renderConfig() {
     const cronValue = cronRules.join(';');
     console.log('最终定时规则字符串:', cronValue);
     globalCron.value = cronValue;
+    
+    // 处理网盘容量提醒配置
+    if (state.config.quota_alert) {
+        const quotaAlert = state.config.quota_alert;
+        console.log('渲染网盘容量提醒配置:', quotaAlert);
+        
+        // 设置启用状态
+        if (quotaAlertEnabled) {
+            quotaAlertEnabled.checked = quotaAlert.enabled === true;
+        }
+        
+        // 设置阈值
+        if (quotaThreshold) {
+            quotaThreshold.value = quotaAlert.threshold_percent || 90;
+        }
+        
+        // 设置检查时间
+        if (quotaCheckSchedule) {
+            quotaCheckSchedule.value = quotaAlert.check_schedule || '0 0 * * *';
+        }
+    }
+    
+    // 处理分享配置
+    if (state.config.share) {
+        const shareConfig = state.config.share;
+        console.log('渲染分享配置:', shareConfig);
+        
+        // 设置默认分享密码
+        const defaultSharePassword = document.getElementById('default-share-password');
+        if (defaultSharePassword) {
+            defaultSharePassword.value = shareConfig.default_password || '1234';
+        }
+        
+        // 设置默认有效期
+        const defaultSharePeriod = document.getElementById('default-share-period');
+        if (defaultSharePeriod) {
+            defaultSharePeriod.value = shareConfig.default_period_days || 7;
+        }
+    }
 }
 
 // 添加通知字段到UI
@@ -816,70 +890,83 @@ function clearLog() {
 // 修改任务执行函数
 async function executeTask(taskId) {
     try {
-        // 获取任务的order
-        const task = state.tasks.find(t => t.order === taskId + 1);
+        // 查找任务
+        const task = findTaskById(taskId);
         if (!task) {
-            showError('任务不存在');
-            return;
+            throw new Error('任务不存在或已被删除');
         }
-
-        // 禁用执行按钮
+        
+        // 获取任务元素
         const taskElement = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
-        const executeBtn = taskElement?.querySelector('button[onclick^="executeTask"]');
+        if (!taskElement) {
+            throw new Error('任务元素不存在');
+        }
+        
+        // 禁用执行按钮，防止重复点击
+        const executeBtn = taskElement.querySelector('button[onclick^="executeTask"]');
         if (executeBtn) {
             executeBtn.disabled = true;
         }
         
-        // 清空并显示日志窗口
-        clearLog();
+        // 显示进度模态框
         showModal('progress-modal');
         
-        // 添加初始日志
-        const taskName = task.name || `任务${task.order}`;
-        appendLog(`开始执行任务: ${taskName}`, 'info');
-        appendLog(`分享链接: ${task.url}`, 'info');
-        appendLog(`保存目录: ${task.save_dir}`, 'info');
-        if (task.pwd) {
-            appendLog(`提取码: ${task.pwd}`, 'info');
-        }
+        // 清空日志
+        clearLog();
         
-        // 发送执行请求，使用task_id作为标识
-        const response = await callApi('task/execute', 'POST', { task_id: taskId }, false);
+        // 添加开始执行日志
+        appendLog(`开始执行任务: ${task.name || task.url}`, 'info');
+        
+        // 发送执行请求
+        const response = await callApi(`task/execute`, 'POST', { task_id: taskId });
         
         if (response.success) {
-            // 处理转存文件列表
-            if (response.transferred_files && response.transferred_files.length > 0) {
-                appendLog('\n成功转存以下文件:', 'success');
-                // 按目录分组显示文件
-                const filesByDir = {};
-                response.transferred_files.forEach(file => {
-                    const dir = file.split('/').slice(0, -1).join('/') || '/';
-                    if (!filesByDir[dir]) {
-                        filesByDir[dir] = [];
-                    }
-                    filesByDir[dir].push(file.split('/').pop());
-                });
+            // 使用轮询方式获取进度和状态
+            if (POLLING_CONFIG.enabled) {
+                // 加快轮询频率
+                if (taskStatusPollingTimer) {
+                    clearInterval(taskStatusPollingTimer);
+                    taskStatusPollingTimer = setInterval(pollTaskStatus, 1000); // 每秒轮询一次
+                }
                 
-                // 显示分组后的文件
-                Object.entries(filesByDir).forEach(([dir, files]) => {
-                    appendLog(`\n目录: ${dir}`, 'info');
-                    files.sort().forEach(file => {
-                        appendLog(`  - ${file}`, 'info');
-                    });
-                });
-            } else if (response.message.includes('没有新文件')) {
-                appendLog('\n检查文件更新:', 'info');
-                appendLog('没有发现新文件需要转存', 'warning');
+                // 立即轮询一次
+                await pollTaskStatus();
             }
             
-            appendLog(`\n执行结果: ${response.message}`, 'success');
-            showSuccess(response.message);
+            // 添加执行成功日志
+            if (response.transferred_files && response.transferred_files.length > 0) {
+                appendLog(`\n转存成功，共转存 ${response.transferred_files.length} 个文件:`, 'success');
+                response.transferred_files.forEach(file => {
+                    appendLog(`- ${file}`, 'info');
+                });
+            } else {
+                appendLog(`\n${response.message || '任务执行成功'}`, 'success');
+            }
             
             // 刷新任务列表
             await refreshTasks();
+            
+            // 更新分类
+            await refreshCategories();
+            
+            // 更新任务状态 - 不在这里传递消息参数，避免显示重复通知
+            const updatedTask = findTaskById(taskId);
+            if (updatedTask) {
+                // 更新任务元素状态，但不显示通知
+                updateTaskStatus(taskId, updatedTask.status);
+            }
+            
+            // 显示成功通知
+            showSuccess(response.message || '任务执行成功');
         } else {
-            appendLog(`\n执行失败: ${response.message}`, 'error');
-            showError(response.message);
+            // 添加执行失败日志
+            appendLog(`\n执行失败: ${response.message || '未知错误'}`, 'error');
+            
+            // 刷新任务列表
+            await refreshTasks();
+            
+            // 显示错误通知
+            showError(response.message || '任务执行失败');
         }
     } catch (error) {
         console.error('执行任务失败:', error);
@@ -891,6 +978,12 @@ async function executeTask(taskId) {
         const executeBtn = taskElement?.querySelector('button[onclick^="executeTask"]');
         if (executeBtn) {
             executeBtn.disabled = false;
+        }
+        
+        // 恢复正常轮询频率
+        if (POLLING_CONFIG.enabled && taskStatusPollingTimer) {
+            clearInterval(taskStatusPollingTimer);
+            taskStatusPollingTimer = setInterval(pollTaskStatus, POLLING_CONFIG.taskStatusInterval);
         }
     }
 }
@@ -1273,6 +1366,17 @@ async function saveConfig() {
         const notifyEnabled = document.getElementById('notify-enabled').checked;
         const globalCron = document.getElementById('global-cron').value.trim();
         
+        // 获取网盘容量提醒配置
+        const quotaAlertEnabled = document.getElementById('quota-alert-enabled').checked;
+        const quotaThreshold = parseInt(document.getElementById('quota-threshold').value) || 90;
+        const quotaCheckSchedule = document.getElementById('quota-check-schedule').value.trim() || '0 0 * * *';
+        
+        // 获取分享配置
+        const defaultSharePassword = document.getElementById('default-share-password').value.trim();
+        // 使用 != null 检查来允许0值
+        const periodValue = document.getElementById('default-share-period').value;
+        const defaultSharePeriod = periodValue !== '' ? parseInt(periodValue) : 7;
+        
         // 收集所有通知字段
         const directFields = {};
         const notifyFieldElements = document.querySelectorAll('.notify-field');
@@ -1291,6 +1395,11 @@ async function saveConfig() {
             
         console.log('处理后的定时规则:', cronRules);
         console.log('收集到的通知字段:', directFields);
+        console.log('网盘容量提醒配置:', {
+            enabled: quotaAlertEnabled,
+            threshold_percent: quotaThreshold,
+            check_schedule: quotaCheckSchedule
+        });
         
         const config = {
             notify: {
@@ -1300,6 +1409,15 @@ async function saveConfig() {
             cron: {
                 default_schedule: cronRules,
                 auto_install: true
+            },
+            quota_alert: {
+                enabled: quotaAlertEnabled,
+                threshold_percent: quotaThreshold,
+                check_schedule: quotaCheckSchedule
+            },
+            share: {
+                default_password: defaultSharePassword,
+                default_period_days: defaultSharePeriod
             }
         };
         
@@ -1919,8 +2037,13 @@ async function initializeApp() {
         // 3. 初始化事件监听器
         initializeEventListeners();
         
-        // 4. 初始化WebSocket连接
-        socket = initWebSocket();
+        // 4. 初始化通信方式（只使用轮询，禁用WebSocket）
+        // WebSocket已禁用
+        
+        // 初始化轮询
+        if (POLLING_CONFIG.enabled) {
+            initPolling();
+        }
         
         // 5. 检查是否有新版本
         checkForUpdates();
@@ -1954,6 +2077,11 @@ function initializeEventListeners() {
     const addPushplusUserBtn = document.getElementById('add-pushplus-user-btn');
     const addBarkBtn = document.getElementById('add-bark-btn');
     
+    // 容量提醒相关元素
+    const quotaAlertEnabled = document.getElementById('quota-alert-enabled');
+    const quotaThreshold = document.getElementById('quota-threshold');
+    const quotaCheckSchedule = document.getElementById('quota-check-schedule');
+    
     // 任务搜索
     const searchInput = document.querySelector('.search-input');
     if (searchInput) {
@@ -1970,6 +2098,34 @@ function initializeEventListeners() {
                     task.style.display = shouldShow ? 'flex' : 'none';
                 });
             });
+        });
+    }
+    
+    // 容量提醒启用/禁用事件
+    if (quotaAlertEnabled) {
+        quotaAlertEnabled.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            // 更新输入框状态
+            if (quotaThreshold) quotaThreshold.disabled = !enabled;
+            if (quotaCheckSchedule) quotaCheckSchedule.disabled = !enabled;
+        });
+        
+        // 初始化时设置输入框状态
+        const enabled = quotaAlertEnabled.checked;
+        if (quotaThreshold) quotaThreshold.disabled = !enabled;
+        if (quotaCheckSchedule) quotaCheckSchedule.disabled = !enabled;
+    }
+    
+    // 容量阈值输入限制
+    if (quotaThreshold) {
+        quotaThreshold.addEventListener('input', (e) => {
+            let value = parseInt(e.target.value);
+            if (isNaN(value) || value < 1) {
+                value = 1;
+            } else if (value > 99) {
+                value = 99;
+            }
+            e.target.value = value;
         });
     }
     
@@ -2202,11 +2358,41 @@ function updateLoginStatus(user) {
             displayName,
             fullUserInfo: user
         });
+        
+        // 获取用户配额信息
+        fetchUserQuota().then(quotaInfo => {
+            if (quotaInfo) {
+                // 在用户名右侧显示配额信息
+                const quotaElement = document.createElement('span');
+                quotaElement.className = 'quota-info';
+                quotaElement.innerHTML = `${quotaInfo.used_gb}GB / ${quotaInfo.total_gb}GB`;
+                quotaElement.title = `已使用: ${quotaInfo.used_gb}GB, 总容量: ${quotaInfo.total_gb}GB (${quotaInfo.percent}%)`;
+                
+                // 添加到用户名后面
+                currentUserElement.appendChild(quotaElement);
+            }
+        }).catch(error => {
+            console.error('获取配额信息失败:', error);
+        });
     } else {
         currentUserElement.innerHTML = '未登录';
         currentUserElement.classList.remove('logged-in');
         currentUserElement.title = '未登录';
         console.log('用户未登录');
+    }
+}
+
+// 获取用户配额信息
+async function fetchUserQuota() {
+    try {
+        const response = await callApi('user/quota', 'GET', null, false);
+        if (response.success && response.quota) {
+            return response.quota;
+        }
+        return null;
+    } catch (error) {
+        console.error('获取用户配额信息失败:', error);
+        return null;
     }
 }
 
@@ -2866,5 +3052,205 @@ function toggleCategoryDropdown() {
         setTimeout(() => {
             document.addEventListener('click', e => handleOutsideClick(e, 'category-dropdown'));
         }, 10);
+    }
+}
+
+// 初始化轮询
+function initPolling() {
+    // 如果已经存在轮询定时器，先清除
+    if (taskStatusPollingTimer) {
+        clearInterval(taskStatusPollingTimer);
+        taskStatusPollingTimer = null;
+    }
+    
+    if (logPollingTimer) {
+        clearInterval(logPollingTimer);
+        logPollingTimer = null;
+    }
+    
+    // 如果轮询未启用，直接返回
+    if (!POLLING_CONFIG.enabled) {
+        console.log('轮询功能已禁用');
+        return;
+    }
+    
+    console.log('初始化轮询...');
+    
+    // 启动任务状态轮询
+    taskStatusPollingTimer = setInterval(pollTaskStatus, POLLING_CONFIG.taskStatusInterval);
+    
+    // 启动日志轮询
+    logPollingTimer = setInterval(pollLogs, POLLING_CONFIG.logInterval);
+    
+    // 立即执行一次轮询
+    pollTaskStatus();
+    pollLogs();
+}
+
+// 轮询任务状态
+async function pollTaskStatus() {
+    if (!POLLING_CONFIG.enabled) return;
+    
+    try {
+        const response = await fetch('/api/tasks/status');
+        if (!response.ok) {
+            throw new Error(`HTTP错误 ${response.status}`);
+        }
+        
+        const result = await response.json();
+        if (result.success) {
+            // 更新任务状态
+            updateTasksFromPolling(result.tasks);
+            pollingRetryCount = 0;
+        } else {
+            console.error('轮询任务状态失败:', result.message);
+            handlePollingError();
+        }
+    } catch (error) {
+        console.error('轮询任务状态出错:', error);
+        handlePollingError();
+    }
+}
+
+// 轮询日志
+async function pollLogs() {
+    if (!POLLING_CONFIG.enabled) return;
+    
+    try {
+        const response = await fetch('/api/logs?limit=10');
+        if (!response.ok) {
+            throw new Error(`HTTP错误 ${response.status}`);
+        }
+        
+        const result = await response.json();
+        if (result.success) {
+            // 更新日志
+            updateLogsFromPolling(result.logs);
+            pollingRetryCount = 0;
+        } else {
+            console.error('轮询日志失败:', result.message);
+            handlePollingError();
+        }
+    } catch (error) {
+        console.error('轮询日志出错:', error);
+        handlePollingError();
+    }
+}
+
+// 处理轮询错误
+function handlePollingError() {
+    pollingRetryCount++;
+    
+    if (pollingRetryCount > POLLING_CONFIG.retryCount) {
+        // 超过最大重试次数，暂停轮询一段时间
+        if (taskStatusPollingTimer) {
+            clearInterval(taskStatusPollingTimer);
+            taskStatusPollingTimer = null;
+        }
+        
+        if (logPollingTimer) {
+            clearInterval(logPollingTimer);
+            logPollingTimer = null;
+        }
+        
+        console.log(`轮询失败次数过多，暂停 ${POLLING_CONFIG.retryDelay/1000} 秒后重试`);
+        
+        // 一段时间后重新启动轮询
+        setTimeout(initPolling, POLLING_CONFIG.retryDelay);
+    }
+}
+
+// 从轮询更新任务状态
+function updateTasksFromPolling(tasks) {
+    if (!Array.isArray(tasks)) return;
+    
+    // 更新全局状态
+    state.tasks = tasks;
+    
+    // 更新UI
+    renderTasks();
+    
+    // 检查是否有正在运行的任务
+    const runningTasks = tasks.filter(task => task.status === 'running');
+    if (runningTasks.length > 0) {
+        // 如果有正在运行的任务，加快轮询频率
+        if (taskStatusPollingTimer) {
+            clearInterval(taskStatusPollingTimer);
+            taskStatusPollingTimer = setInterval(pollTaskStatus, Math.min(POLLING_CONFIG.taskStatusInterval, 2000));
+        }
+    } else {
+        // 恢复正常轮询频率
+        if (taskStatusPollingTimer) {
+            clearInterval(taskStatusPollingTimer);
+            taskStatusPollingTimer = setInterval(pollTaskStatus, POLLING_CONFIG.taskStatusInterval);
+        }
+    }
+}
+
+// 从轮询更新日志
+function updateLogsFromPolling(logs) {
+    if (!Array.isArray(logs) || logs.length === 0) return;
+    
+    // 获取进度模态框
+    const progressModal = document.getElementById('progress-modal');
+    if (!progressModal || !progressModal.classList.contains('active')) return;
+    
+    // 更新日志
+    const logContainer = document.getElementById('log-container');
+    if (!logContainer) return;
+    
+    // 只添加新日志
+    const lastTimestamp = lastLogUpdateTime;
+    let hasNewLogs = false;
+    
+    logs.forEach(log => {
+        // 解析时间戳
+        try {
+            const logTime = new Date(log.timestamp).getTime();
+            if (logTime > lastTimestamp) {
+                // 这是新日志
+                appendLog(log.message, log.level.toLowerCase(), log.timestamp);
+                lastLogUpdateTime = Math.max(lastLogUpdateTime, logTime);
+                hasNewLogs = true;
+            }
+        } catch (e) {
+            // 时间戳解析失败，直接添加
+            appendLog(log.message, log.level.toLowerCase());
+            hasNewLogs = true;
+        }
+    });
+    
+    // 如果有新日志，滚动到底部
+    if (hasNewLogs && logContainer) {
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+}
+
+async function shareTask(taskId) {
+    if (!confirm('确定要生成此任务的分享链接吗？')) return;
+    
+    try {
+        showLoading('正在生成分享链接...');
+        
+        const result = await callApi('task/share', 'POST', { task_id: taskId });
+        
+        if (result.success) {
+            // 更新任务的分享信息
+            const task = findTaskById(taskId);
+            if (task) {
+                task.share_info = result.share_info;
+                
+                // 重新渲染任务列表
+                renderTasks();
+            }
+            
+            showSuccess('分享链接生成成功');
+        } else {
+            throw new Error(result.message || '生成分享链接失败');
+        }
+    } catch (error) {
+        showError(error.message || '生成分享链接失败');
+    } finally {
+        hideLoading();
     }
 }

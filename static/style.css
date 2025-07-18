@@ -2459,3 +2459,83 @@ textarea:focus {
 .input-with-dropdown {
     position: relative;
 } 
+
+/* 用户信息样式 */
+#current-user {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    color: #fff;
+    font-size: 14px;
+    cursor: default;
+}
+
+#current-user.logged-in {
+    font-weight: 500;
+}
+
+/* 配额信息样式 */
+.quota-info {
+    margin-left: 10px;
+    padding: 2px 6px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    font-size: 12px;
+    color: #fff;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .quota-info {
+        display: none;
+    }
+} 
+
+/* 分享相关样式 */
+.task-share-info {
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.share-link {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 5px;
+}
+
+.share-link a {
+    color: var(--primary-color);
+    text-decoration: none;
+    word-break: break-all;
+}
+
+.share-password {
+    background-color: #e8f0fe;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+.share-time {
+    display: flex;
+    gap: 15px;
+    color: var(--text-secondary);
+    font-size: 0.85em;
+}
+
+@media (max-width: 768px) {
+    .share-link {
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .share-time {
+        flex-direction: column;
+        gap: 4px;
+    }
+} 
