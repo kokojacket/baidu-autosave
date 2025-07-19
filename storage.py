@@ -22,6 +22,10 @@ class BaiduStorage:
         # 添加错误跟踪
         self.last_error = None
         self.task_locks = {}  # 用于存储每个任务的锁
+        # 添加用户信息缓存
+        self._user_info_cache = None
+        self._user_info_cache_time = 0
+        self._cache_ttl = 30  # 缓存有效期（秒）
         
     def _load_config(self):
         try:
@@ -119,6 +123,9 @@ class BaiduStorage:
                     logger.error("cookies 无效")
                     return False
                     
+                # 清除用户信息缓存
+                self._clear_user_info_cache()
+                
                 # 使用重试机制初始化客户端
                 for retry in range(3):
                     try:
@@ -258,6 +265,12 @@ class BaiduStorage:
             logger.error(f"添加用户失败: {str(e)}")
             return False
             
+    def _clear_user_info_cache(self):
+        """清除用户信息缓存"""
+        self._user_info_cache = None
+        self._user_info_cache_time = 0
+        logger.debug("已清除用户信息缓存")
+        
     def switch_user(self, username):
         """切换当前用户"""
         try:
@@ -267,6 +280,8 @@ class BaiduStorage:
             self.config['baidu']['current_user'] = username
             self._save_config()
             self._init_client()
+            # 清除用户信息缓存
+            self._clear_user_info_cache()
             
             logger.success(f"已切换到用户: {username}")
             return True
@@ -315,6 +330,13 @@ class BaiduStorage:
             if not self.client:
                 return None
             
+            # 检查缓存是否有效
+            current_time = time.time()
+            if (self._user_info_cache is not None and 
+                current_time - self._user_info_cache_time < self._cache_ttl):
+                logger.debug("使用缓存的用户信息，跳过API调用")
+                return self._user_info_cache
+            
             # 首先尝试获取配额信息
             try:
                 quota_info = self.client.quota()
@@ -337,19 +359,32 @@ class BaiduStorage:
                     user_id = int(pan_info["user"]["id"])
                     user_name = pan_info["user"]["name"]
                     
-                    return {
+                    # 构建并缓存用户信息
+                    user_info = {
                         'user_name': user_name,
                         'user_id': user_id,
                         'quota': quota
                     }
                     
+                    # 更新缓存
+                    self._user_info_cache = user_info
+                    self._user_info_cache_time = current_time
+                    
+                    return user_info
+                    
                 except Exception as e:
                     logger.warning(f"获取用户详细信息失败: {str(e)}")
-                    return {
+                    
+                    # 即使获取详细信息失败，也缓存基本配额信息
+                    user_info = {
                         'user_name': '未知用户',
                         'user_id': None,
                         'quota': quota
                     }
+                    self._user_info_cache = user_info
+                    self._user_info_cache_time = current_time
+                    
+                    return user_info
                     
             except Exception as e:
                 logger.error(f"获取网盘信息失败: {str(e)}")
@@ -1282,6 +1317,8 @@ class BaiduStorage:
             # 如果更新的是当前用户,重新初始化客户端
             if username == self.config['baidu']['current_user']:
                 self._init_client()
+                # 清除用户信息缓存
+                self._clear_user_info_cache()
             
             logger.success(f"更新用户成功: {username}")
             return True

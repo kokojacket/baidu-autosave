@@ -50,19 +50,6 @@ logger.remove()  # 移除默认的控制台输出
 log_format = "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}"
 log_level = "DEBUG"  # 使用DEBUG级别，可以看到所有日志
 
-# 添加彩色的控制台输出
-logger.add(sys.stdout, 
-          level=log_level, 
-          format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>")
-
-# 添加文件输出 (内容与控制台输出相同，但没有颜色标记)
-logger.add("log/web_app_{time:YYYY-MM-DD}.log", 
-          rotation="00:00",  # 每天零点创建新文件
-          retention="7 days",  # 保留7天的日志
-          level=log_level,
-          encoding="utf-8",
-          format=log_format)
-
 # 过滤敏感信息
 def filter_sensitive_info(record):
     """过滤敏感信息，如BDUSS和cookies"""
@@ -74,8 +61,33 @@ def filter_sensitive_info(record):
     record["message"] = message
     return True
 
+# 过滤轮询请求日志
+def filter_polling_requests(record):
+    """过滤轮询请求的日志，如/api/tasks/status和/api/logs"""
+    message = record["message"]
+    
+    # 检查是否是HTTP请求日志（WSGI服务器的访问日志）
+    if "GET /api/tasks/status HTTP" in message or "GET /api/logs?limit=" in message:
+        return False  # 不显示这些日志
+    
+    return True  # 显示其他所有日志
+
 # 应用过滤器到所有日志处理器
 logger.configure(patcher=filter_sensitive_info)
+
+# 添加彩色的控制台输出（带轮询过滤）
+logger.add(sys.stdout, 
+          level=log_level, 
+          format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+          filter=filter_polling_requests)  # 添加轮询过滤器
+
+# 添加文件输出 (内容与控制台输出相同，但没有颜色标记，且不过滤轮询请求)
+logger.add("log/web_app_{time:YYYY-MM-DD}.log", 
+          rotation="00:00",  # 每天零点创建新文件
+          retention="7 days",  # 保留7天的日志
+          level=log_level,
+          encoding="utf-8",
+          format=log_format)
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # 用于session加密
@@ -201,18 +213,7 @@ def login():
             session['username'] = username
             session['login_time'] = time.time()
             
-            # 登录成功后立即获取用户配额信息
-            try:
-                if storage and hasattr(storage, 'is_valid') and hasattr(storage, 'get_user_info') and storage.is_valid():
-                    user_info = storage.get_user_info()
-                    if user_info and 'quota' in user_info:
-                        quota = user_info['quota']
-                        total_gb = round(quota.get('total', 0) / (1024**3), 2)
-                        used_gb = round(quota.get('used', 0) / (1024**3), 2)
-                        logger.info(f"用户登录成功，网盘总空间: {total_gb}GB, 已使用: {used_gb}GB")
-            except Exception as e:
-                logger.error(f"登录后获取配额信息失败: {str(e)}")
-                
+            # 直接重定向到首页，不再等待获取用户配额信息
             return redirect(url_for('index'))
         else:
             return render_template('login.html', message='用户名或密码错误')
@@ -253,6 +254,9 @@ def index():
                 
                 # 记录日志
                 logger.info(f"登录状态检查 - 管理员: {admin_logged_in}, 百度用户: {baidu_logged_in}, 当前用户: {current_user}")
+                
+                # 异步获取用户配额信息 - 不阻塞页面加载
+                # 用户配额信息将通过API端点/api/user/quota获取
             except Exception as e:
                 logger.error(f"获取数据失败: {str(e)}")
                 init_error = str(e)
@@ -1723,10 +1727,10 @@ if __name__ == '__main__':
         # 根据是否支持WebSocket选择合适的服务器
         if WEBSOCKET_AVAILABLE:
             logger.info("使用支持WebSocket的服务器")
-            http_server = WSGIServer(('0.0.0.0', 5000), app, handler_class=WebSocketHandler)
+            http_server = WSGIServer(('0.0.0.0', 5000), app, handler_class=WebSocketHandler, log=None)  # 禁用访问日志
         else:
             logger.info("使用标准WSGI服务器")
-            http_server = WSGIServer(('0.0.0.0', 5000), app)
+            http_server = WSGIServer(('0.0.0.0', 5000), app, log=None)  # 禁用访问日志
             
         print('Server started at http://0.0.0.0:5000')
         http_server.serve_forever()
