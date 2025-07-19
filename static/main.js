@@ -693,7 +693,9 @@ function renderConfig() {
         // 设置默认有效期
         const defaultSharePeriod = document.getElementById('default-share-period');
         if (defaultSharePeriod) {
-            defaultSharePeriod.value = shareConfig.default_period_days || 7;
+            // 确保正确处理0值（永久有效）
+            defaultSharePeriod.value = shareConfig.default_period_days !== undefined ? 
+                shareConfig.default_period_days : 7;
         }
     }
 }

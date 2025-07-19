@@ -1635,6 +1635,19 @@ class BaiduStorage:
             if password and len(password) != 4:
                 return {'success': False, 'error': '密码必须是4个字符'}
             
+            # 先检查目录是否存在，如果不存在则创建
+            try:
+                logger.info(f"检查目录是否存在: {remote_path}")
+                self.client.list(remote_path)
+                logger.info(f"目录已存在: {remote_path}")
+            except Exception as e:
+                logger.info(f"目录不存在，尝试创建: {remote_path}")
+                if not self._ensure_dir_tree_exists(remote_path):
+                    error_msg = f"无法创建目录: {remote_path}"
+                    logger.error(error_msg)
+                    return {'success': False, 'error': error_msg}
+                logger.success(f"成功创建目录: {remote_path}")
+            
             # 调用API分享文件
             # BaiduPCSApi.share方法要求password参数，如果为None则传空字符串
             # period参数为0表示永久有效

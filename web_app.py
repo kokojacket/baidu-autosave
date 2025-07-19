@@ -1659,10 +1659,8 @@ def share_task():
         period_days = custom_period or share_config.get('default_period_days', 7)
         
         try:
-            # 确保目录存在
-            storage.ensure_dir_exists(save_dir)
-            
             # 调用BaiduPCS-Py的share命令
+            # 注意：share_file函数内部会检查并创建目录
             share_result = storage.share_file(save_dir, password, period_days)
             
             if share_result.get('success'):
