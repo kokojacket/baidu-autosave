@@ -1062,6 +1062,13 @@ async function refreshTasks(retryCount = 3) {
         const selectedStatus = document.querySelector('.status-btn.active')?.dataset.status || 'all';
         const selectedCategory = document.querySelector('.category-btn.active')?.dataset.category || 'all';
         
+        // 保存当前的搜索关键词
+        const searchInput = document.querySelector('.search-input');
+        const searchKeyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        
+        // 保存当前选中的任务ID
+        const currentSelectedTaskIds = new Set(selectedTasks);
+        
         let result = await callApi('tasks');
         
         if (result.success) {
@@ -1093,8 +1100,32 @@ async function refreshTasks(retryCount = 3) {
                 }
             }
             
+            // 恢复搜索框的值
+            if (searchInput && searchKeyword) {
+                searchInput.value = searchKeyword;
+            }
+            
             // 重新应用筛选
             filterTasks();
+            
+            // 恢复任务选中状态，但只选择仍然存在的任务
+            if (currentSelectedTaskIds.size > 0) {
+                // 清空当前选择
+                selectedTasks.clear();
+                
+                // 获取当前存在的任务ID列表
+                const existingTaskIds = new Set(state.tasks.map(task => task.order - 1));
+                
+                // 只恢复仍然存在的任务的选中状态
+                currentSelectedTaskIds.forEach(taskId => {
+                    if (existingTaskIds.has(taskId)) {
+                        selectedTasks.add(taskId);
+                    }
+                });
+                
+                // 更新UI
+                updateBatchOperationUI();
+            }
             
             // 如果已经挂载了拖放排序，重新初始化
             if (window.taskListSortable) {
@@ -1849,8 +1880,30 @@ function filterTasks() {
             categoryMatch = task.dataset.category === selectedCategory;
         }
         
-        task.style.display = statusMatch && categoryMatch ? 'flex' : 'none';
+        const shouldShow = statusMatch && categoryMatch;
+        
+        // 使用CSS类来标记被筛选隐藏的任务
+        if (shouldShow) {
+            task.classList.remove('filtered-hidden');
+            task.style.display = 'flex';  // 默认显示
+        } else {
+            task.classList.add('filtered-hidden');
+            task.style.display = 'none';
+        }
     });
+    
+    // 应用当前的搜索条件
+    const searchInput = document.querySelector('.search-input');
+    if (searchInput && searchInput.value.trim()) {
+        const keyword = searchInput.value.toLowerCase().trim();
+        
+        document.querySelectorAll('.task-item:not(.filtered-hidden)').forEach(task => {
+            const taskName = task.querySelector('.task-name')?.textContent.toLowerCase() || '';
+            const saveDir = task.querySelector('.save-dir')?.textContent.toLowerCase() || '';
+            const shouldShow = taskName.includes(keyword) || saveDir.includes(keyword);
+            task.style.display = shouldShow ? 'flex' : 'none';
+        });
+    }
     
     // 更新异常指示器
     updateErrorIndicator();
@@ -1891,6 +1944,10 @@ async function refreshCategories() {
 // 在任务添加、更新或删除后调用
 async function afterTaskOperation() {
     try {
+        // 保存当前的搜索关键词
+        const searchInput = document.querySelector('.search-input');
+        const searchKeyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        
         // 刷新任务列表
         await refreshTasks();
 
@@ -1901,6 +1958,13 @@ async function afterTaskOperation() {
         updateCategoryList();
         updateSaveDirList();
         updateCronList();
+        
+        // 恢复搜索框的值
+        if (searchInput && searchKeyword) {
+            searchInput.value = searchKeyword;
+            // 重新应用搜索筛选
+            searchInput.dispatchEvent(new Event('input'));
+        }
 
         // 重新绑定事件
         bindTaskEvents();
@@ -2205,13 +2269,29 @@ function initializeEventListeners() {
                 const tasks = document.querySelectorAll('.task-item');
                 
                 tasks.forEach(task => {
-                    const taskName = task.querySelector('.task-name')?.textContent.toLowerCase() || '';
-                    const saveDir = task.querySelector('.save-dir')?.textContent.toLowerCase() || '';
-                    const shouldShow = taskName.includes(keyword) || saveDir.includes(keyword);
-                    task.style.display = shouldShow ? 'flex' : 'none';
+                    // 首先检查任务是否已经被状态和分类筛选隐藏
+                    // 如果已经被隐藏，则不需要再考虑搜索条件
+                    const hiddenByFilter = task.classList.contains('filtered-hidden');
+                    
+                    if (!hiddenByFilter) {
+                        const taskName = task.querySelector('.task-name')?.textContent.toLowerCase() || '';
+                        const saveDir = task.querySelector('.save-dir')?.textContent.toLowerCase() || '';
+                        const shouldShow = taskName.includes(keyword) || saveDir.includes(keyword);
+                        task.style.display = shouldShow ? 'flex' : 'none';
+                    }
                 });
             });
         });
+        
+        // 添加清除搜索按钮事件
+        const clearSearchBtn = document.querySelector('.clear-search-btn');
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                // 触发input事件以更新显示
+                searchInput.dispatchEvent(new Event('input'));
+            });
+        }
     }
     
     // 容量提醒启用/禁用事件
@@ -3281,6 +3361,13 @@ function updateTasksFromPolling(tasks) {
     const selectedStatus = document.querySelector('.status-btn.active')?.dataset.status || 'all';
     const selectedCategory = document.querySelector('.category-btn.active')?.dataset.category || 'all';
     
+    // 保存当前的搜索关键词
+    const searchInput = document.querySelector('.search-input');
+    const searchKeyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    
+    // 保存当前选中的任务ID
+    const currentSelectedTaskIds = new Set(selectedTasks);
+    
     // 更新全局状态
     state.tasks = tasks;
     
@@ -3304,8 +3391,32 @@ function updateTasksFromPolling(tasks) {
         }
     }
     
-    // 重新应用筛选
+    // 恢复搜索框的值
+    if (searchInput && searchKeyword) {
+        searchInput.value = searchKeyword;
+    }
+    
+    // 重新应用筛选（包括状态、分类和搜索）
     filterTasks();
+    
+    // 恢复任务选中状态，但只选择仍然存在的任务
+    if (currentSelectedTaskIds.size > 0) {
+        // 清空当前选择
+        selectedTasks.clear();
+        
+        // 获取当前存在的任务ID列表
+        const existingTaskIds = new Set(state.tasks.map(task => task.order - 1));
+        
+        // 只恢复仍然存在的任务的选中状态
+        currentSelectedTaskIds.forEach(taskId => {
+            if (existingTaskIds.has(taskId)) {
+                selectedTasks.add(taskId);
+            }
+        });
+        
+        // 更新UI
+        updateBatchOperationUI();
+    }
     
     // 检查是否有正在运行的任务
     const runningTasks = tasks.filter(task => task.status === 'running');

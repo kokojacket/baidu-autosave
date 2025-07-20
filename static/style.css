@@ -2569,3 +2569,8 @@ textarea:focus {
         gap: 4px;
     }
 } 
+
+/* 被筛选隐藏的任务 */
+.task-item.filtered-hidden {
+    display: none !important;
+} 
