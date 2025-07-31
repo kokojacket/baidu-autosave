@@ -147,6 +147,15 @@
                             <label for="notify-enabled">启用通知</label>
                         </div>
                         
+                        <div class="input-group">
+                            <label for="notification-delay">通知延迟时间 (秒)</label>
+                            <input type="number" id="notification-delay" name="notification-delay" 
+                                   min="0" max="300" value="30" placeholder="多个任务在此时间内完成将合并通知">
+                            <div class="help-text">
+                                设置通知延迟合并时间，当多个任务在此时间内执行完成时，将合并为一条通知发送
+                            </div>
+                        </div>
+                        
                         <!-- 动态通知字段 -->
                         <div id="notify-fields-container">
                             <!-- 这里会动态添加通知字段 -->

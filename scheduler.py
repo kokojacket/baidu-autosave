@@ -11,7 +11,7 @@ from notify import send as notify_send
 from notify import push_config as notify_push_config
 from utils import generate_transfer_notification
 import time
-from threading import Lock
+from threading import Lock, Timer
 import pytz
 import datetime
 import re
@@ -31,6 +31,17 @@ class TaskScheduler:
             self.default_schedule = [self.default_schedule]
         elif not isinstance(self.default_schedule, list):
             self.default_schedule = []
+        
+        # 添加通知缓冲区和相关变量
+        self._notification_buffer = {
+            'success': [],
+            'failed': [],
+            'skipped': [],
+            'transferred_files': {}
+        }
+        self._notification_lock = Lock()
+        self._notification_timer = None
+        self._notification_delay = 30  # 延迟30秒发送通知
         
         self._init_scheduler()
         self._init_notify()
@@ -324,15 +335,9 @@ class TaskScheduler:
                     task['error'] = str(e)
                     results['failed'].append(task)
             
-            # 发送通知
+            # 将结果添加到通知缓冲区，而不是立即发送通知
             if results['success'] or results['failed']:
-                try:
-                    notification_content = generate_transfer_notification(results)
-                    logger.info(f"准备发送通知:\n{notification_content}")
-                    notify_send("百度网盘自动追更", notification_content)
-                    logger.info("通知发送成功")
-                except Exception as e:
-                    logger.error(f"发送通知失败: {str(e)}")
+                self._add_to_notification_buffer(results)
             
             logger.info(f"=== 任务组执行完成 === 时间: {time.strftime('%Y-%m-%d %H:%M:%S')} ===")
             logger.info(f"成功: {len(results['success'])} 个, 跳过: {len(results['skipped'])} 个, 失败: {len(results['failed'])} 个")
@@ -343,6 +348,15 @@ class TaskScheduler:
     def stop(self):
         """停止调度器"""
         try:
+            # 取消通知定时器
+            if self._notification_timer:
+                self._notification_timer.cancel()
+                self._notification_timer = None
+            
+            # 发送剩余的通知
+            if self._notification_buffer['success'] or self._notification_buffer['failed']:
+                self._send_buffered_notification()
+            
             if self.scheduler and self.is_running:
                 self.scheduler.shutdown()
                 self.is_running = False
@@ -445,6 +459,10 @@ class TaskScheduler:
             if notify_config and notify_config.get('enabled'):
                 # 更新推送配置
                 from notify import push_config, send as notify_send
+                
+                # 获取通知延迟时间配置
+                self._notification_delay = notify_config.get('notification_delay', 30)
+                logger.info(f"通知延迟时间设置为 {self._notification_delay} 秒")
                 
                 # 将通知配置应用到push_config
                 # 1. 处理直接字段 (新格式)
@@ -607,15 +625,9 @@ class TaskScheduler:
                     current_task['error'] = result.get('error')
                     results['failed'].append(current_task)
                 
-                # 发送通知
+                # 将结果添加到通知缓冲区，而不是立即发送通知
                 if results['success'] or results['failed']:
-                    notification_content = generate_transfer_notification(results)
-                    if notification_content.strip():  # 只在有内容时发送通知
-                        logger.info(f"准备发送通知:\n{notification_content}")
-                        notify_send("百度网盘自动追更", notification_content)
-                        logger.info("通知发送成功")
-                    else:
-                        logger.warning("生成的通知内容为空，跳过发送")
+                    self._add_to_notification_buffer(results)
                 
                 return result.get('success', False)
                 
@@ -627,21 +639,78 @@ class TaskScheduler:
             logger.error(f"执行任务失败: {str(e)}")
             try:
                 self.storage.update_task_status_by_order(task_order, 'failed', str(e))
-                # 添加失败通知
+                # 添加失败通知到缓冲区
                 results = {
                     'success': [],
                     'failed': [task],
                     'transferred_files': {}
                 }
-                notification_content = generate_transfer_notification(results)
-                if notification_content.strip():
-                    notify_send("百度网盘自动追更", notification_content)
+                self._add_to_notification_buffer(results)
             except:
                 pass
             return False
         finally:
             # 释放锁
             self._execution_lock.release()
+
+    def _add_to_notification_buffer(self, results):
+        """将任务结果添加到通知缓冲区
+        Args:
+            results: 任务执行结果
+        """
+        with self._notification_lock:
+            # 合并成功任务
+            self._notification_buffer['success'].extend(results['success'])
+            
+            # 合并失败任务
+            self._notification_buffer['failed'].extend(results['failed'])
+            
+            # 合并跳过任务
+            self._notification_buffer['skipped'].extend(results.get('skipped', []))
+            
+            # 合并转存文件
+            for url, files in results['transferred_files'].items():
+                if url not in self._notification_buffer['transferred_files']:
+                    self._notification_buffer['transferred_files'][url] = []
+                self._notification_buffer['transferred_files'][url].extend(files)
+            
+            # 取消现有的定时器
+            if self._notification_timer:
+                self._notification_timer.cancel()
+            
+            # 创建新的定时器，延迟发送通知
+            self._notification_timer = Timer(self._notification_delay, self._send_buffered_notification)
+            self._notification_timer.daemon = True  # 设置为守护线程，避免阻止程序退出
+            self._notification_timer.start()
+            
+            logger.info(f"已将任务结果添加到通知缓冲区，将在 {self._notification_delay} 秒后发送通知")
+
+    def _send_buffered_notification(self):
+        """发送缓冲区中的通知"""
+        with self._notification_lock:
+            if not (self._notification_buffer['success'] or self._notification_buffer['failed']):
+                logger.info("通知缓冲区为空，无需发送通知")
+                return
+            
+            try:
+                notification_content = generate_transfer_notification(self._notification_buffer)
+                if notification_content.strip():  # 只在有内容时发送通知
+                    logger.info(f"准备发送汇总通知:\n{notification_content}")
+                    notify_send("百度网盘自动追更", notification_content)
+                    logger.info(f"通知发送成功，共 {len(self._notification_buffer['success'])} 个成功任务，{len(self._notification_buffer['failed'])} 个失败任务")
+                else:
+                    logger.warning("生成的通知内容为空，跳过发送")
+            except Exception as e:
+                logger.error(f"发送汇总通知失败: {str(e)}")
+            finally:
+                # 清空缓冲区
+                self._notification_buffer = {
+                    'success': [],
+                    'failed': [],
+                    'skipped': [],
+                    'transferred_files': {}
+                }
+                self._notification_timer = None
 
     def update_task_schedule(self, task_url, cron_exp=None):
         """更新任务调度"""
@@ -840,7 +909,8 @@ class TaskScheduler:
 您的百度网盘空间使用量已超过设定阈值，请及时清理不必要的文件，以免影响正常使用。
 """
                 
-                # 发送通知
+                # 直接发送容量警告通知，不使用缓冲区
+                # 因为容量警告是独立的重要通知，不应与普通任务通知合并
                 notify_send(title, content)
                 logger.warning(f"已发送网盘容量警告通知: {used_percent}% >= {threshold}%")
             else:

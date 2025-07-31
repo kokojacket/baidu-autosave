@@ -565,6 +565,7 @@ function renderConfig() {
     console.log('开始渲染配置，当前状态:', state);
     
     const notifyEnabled = document.getElementById('notify-enabled');
+    const notificationDelay = document.getElementById('notification-delay');
     const notifyFieldsContainer = document.getElementById('notify-fields-container');
     const globalCron = document.getElementById('global-cron');
     
@@ -582,6 +583,11 @@ function renderConfig() {
     if (state.config.notify) {
         console.log('渲染通知配置:', state.config.notify);
         notifyEnabled.checked = state.config.notify.enabled;
+        
+        // 设置通知延迟时间
+        if (notificationDelay) {
+            notificationDelay.value = state.config.notify.notification_delay || 30;
+        }
         
         // 清空现有字段
         notifyFieldsContainer.innerHTML = '';
@@ -1423,6 +1429,7 @@ async function saveConfig() {
         saveBtn.innerHTML = '<i class="material-icons">hourglass_empty</i> 保存中...';
         
         const notifyEnabled = document.getElementById('notify-enabled').checked;
+        const notificationDelay = parseInt(document.getElementById('notification-delay').value) || 30;
         const globalCron = document.getElementById('global-cron').value.trim();
         
         // 获取网盘容量提醒配置
@@ -1454,6 +1461,7 @@ async function saveConfig() {
             
         console.log('处理后的定时规则:', cronRules);
         console.log('收集到的通知字段:', directFields);
+        console.log('通知延迟时间:', notificationDelay);
         console.log('网盘容量提醒配置:', {
             enabled: quotaAlertEnabled,
             threshold_percent: quotaThreshold,
@@ -1463,6 +1471,7 @@ async function saveConfig() {
         const config = {
             notify: {
                 enabled: notifyEnabled,
+                notification_delay: notificationDelay,
                 direct_fields: directFields
             },
             cron: {

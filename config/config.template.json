@@ -14,6 +14,7 @@
     },
     "notify": {
         "enabled": false,
+        "notification_delay": 30,
         "direct_fields": {
             "PUSH_PLUS_TOKEN": ""
         }
