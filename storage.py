@@ -1232,22 +1232,44 @@ class BaiduStorage:
         """
         files = []
         try:
-            sub_paths = self.client.list_shared_paths(
-                path.path,
-                uk,
-                share_id,
-                bdstoken,
-                page=1,
-                size=100
-            )
+            # 分页获取所有文件
+            page = 1
+            page_size = 100
+            all_sub_files = []
             
-            if isinstance(sub_paths, list):
-                sub_files = sub_paths
-            elif isinstance(sub_paths, dict):
-                sub_files = sub_paths.get('list', [])
-            else:
-                logger.error(f"子目录内容格式错误: {type(sub_paths)}")
-                return files
+            while True:
+                sub_paths = self.client.list_shared_paths(
+                    path.path,
+                    uk,
+                    share_id,
+                    bdstoken,
+                    page=page,
+                    size=page_size
+                )
+                
+                if isinstance(sub_paths, list):
+                    sub_files = sub_paths
+                elif isinstance(sub_paths, dict):
+                    sub_files = sub_paths.get('list', [])
+                else:
+                    logger.error(f"子目录内容格式错误: {type(sub_paths)}")
+                    break
+                
+                if not sub_files:
+                    # 没有更多文件了
+                    break
+                
+                all_sub_files.extend(sub_files)
+                
+                # 如果当前页文件数少于页大小，说明已经是最后一页
+                if len(sub_files) < page_size:
+                    break
+                
+                page += 1
+            
+            logger.info(f"目录 {path.path} 共获取到 {len(all_sub_files)} 个文件/子目录")
+            
+            sub_files = all_sub_files
                 
             for sub_file in sub_files:
                 if hasattr(sub_file, '_asdict'):
