@@ -1028,11 +1028,16 @@ async function editTask(taskId) {
         form.querySelector('[name="save_dir"]').value = task.save_dir || '';
         form.querySelector('[name="cron"]').value = task.cron || '';
         form.querySelector('[name="category"]').value = task.category || '';
+        form.querySelector('[name="regex_pattern"]').value = task.regex_pattern || '';
+        form.querySelector('[name="regex_replace"]').value = task.regex_replace || '';
+        form.querySelector('[name="regex_description"]').value = task.regex_description || '';
         
         // 保存字段历史记录
         if (task.save_dir) saveFieldHistory('save_dir', task.save_dir);
         if (task.cron) saveFieldHistory('cron', task.cron);
         if (task.category) saveFieldHistory('category', task.category);
+        if (task.regex_pattern) saveFieldHistory('regex_pattern', task.regex_pattern);
+        if (task.regex_replace) saveFieldHistory('regex_replace', task.regex_replace);
         
         // 显示模态框
         showModal('task-modal');
@@ -1041,6 +1046,8 @@ async function editTask(taskId) {
         showError(error.message || '编辑任务失败');
     }
 }
+
+
 
 async function deleteTask(taskId) {
     if (!confirm('确定要删除这个任务吗？')) return;
@@ -1197,7 +1204,10 @@ async function updateTask(data) {
             pwd: pwd || data.pwd || originalTask.pwd || '',  // 优先使用新密码
             name: data.name.trim() || originalTask.name || '',
             category: data.category.trim() || originalTask.category || '',
-            cron: data.cron.trim() || originalTask.cron || ''
+            cron: data.cron.trim() || originalTask.cron || '',
+            regex_pattern: data.regex_pattern || originalTask.regex_pattern || '',
+            regex_replace: data.regex_replace || originalTask.regex_replace || '',
+            regex_description: data.regex_description || originalTask.regex_description || ''
         };
         
         console.log('准备更新任务:', {
@@ -1582,6 +1592,8 @@ async function handleTaskSubmit(event) {
         saveFieldHistory('save_dir', data.save_dir);
         if (data.cron) saveFieldHistory('cron', data.cron);
         if (data.category) saveFieldHistory('category', data.category);
+        if (data.regex_pattern) saveFieldHistory('regex_pattern', data.regex_pattern);
+        if (data.regex_replace) saveFieldHistory('regex_replace', data.regex_replace);
         
         // 如果有task_id，说明是编辑任务
         if (data.task_id) {
@@ -1594,7 +1606,10 @@ async function handleTaskSubmit(event) {
                 save_dir: data.save_dir,
                 name: data.name || '',
                 cron: data.cron || '',
-                category: data.category || ''
+                category: data.category || '',
+                regex_pattern: data.regex_pattern || '',
+                regex_replace: data.regex_replace || '',
+                regex_description: data.regex_description || ''
             });
         }
         

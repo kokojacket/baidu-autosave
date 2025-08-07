@@ -299,7 +299,8 @@ class TaskScheduler:
                         task.get('pwd'),
                         None,
                         task.get('save_dir'),
-                        progress_callback
+                        progress_callback,
+                        task  # 传入完整的任务配置
                     )
 
                     if result.get('success'):
@@ -592,7 +593,8 @@ class TaskScheduler:
                 current_task.get('pwd', ''),  # 使用空字符串作为默认值
                 None,
                 current_task['save_dir'],
-                progress_callback
+                progress_callback,
+                current_task  # 传入完整的任务配置
             )
             
             # 更新任务状态和结果

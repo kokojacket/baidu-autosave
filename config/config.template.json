@@ -33,6 +33,12 @@
         "default_password": "1234",
         "default_period_days": 7
     },
+    "regex": {
+        "enabled": false,
+        "pattern": ".*\\.mp4$",
+        "replace": "",
+        "description": "只转存mp4文件"
+    },
     "auth": {
         "users": "admin",
         "password": "admin123",

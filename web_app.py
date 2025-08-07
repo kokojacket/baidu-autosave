@@ -332,6 +332,9 @@ def add_task():
     name = data.get('name', '').strip()
     cron = data.get('cron', '').strip()
     category = data.get('category', '').strip()
+    regex_pattern = data.get('regex_pattern', '').strip()
+    regex_replace = data.get('regex_replace', '').strip()
+    regex_description = data.get('regex_description', '').strip()
     
     if not url or not save_dir:
         return jsonify({'success': False, 'message': '分享链接和保存目录不能为空'})
@@ -347,7 +350,7 @@ def add_task():
         
     try:
         # 添加任务 - storage.py 内部会处理调度器更新
-        if storage.add_task(url, save_dir, pwd, name, cron, category):
+        if storage.add_task(url, save_dir, pwd, name, cron, category, regex_pattern, regex_replace, regex_description):
             # 广播任务添加消息
             broadcast_message({
                 'type': 'task_added',
@@ -416,6 +419,9 @@ def update_task():
         'name': data.get('name', '').strip(),
         'cron': data.get('cron', '').strip(),
         'category': data.get('category', '').strip(),
+        'regex_pattern': data.get('regex_pattern', '').strip(),
+        'regex_replace': data.get('regex_replace', '').strip(),
+        'regex_description': data.get('regex_description', '').strip(),
         'order': task_order,  # 保持原有的order
         'status': task.get('status', 'normal'),  # 保持原有的状态
         'message': task.get('message', ''),  # 保持原有的消息
@@ -563,7 +569,8 @@ def execute_task():
             task.get('pwd'),
             None,
             task.get('save_dir'),
-            progress_callback
+            progress_callback,
+            task  # 传入完整的任务配置
         )
         
         if result.get('success'):
@@ -1019,7 +1026,9 @@ def execute_all_tasks():
                 task['url'],
                 task.get('pwd'),
                 None,
-                task.get('save_dir')
+                task.get('save_dir'),
+                None,  # progress_callback
+                task   # task_config
             )
             
             if result.get('success'):

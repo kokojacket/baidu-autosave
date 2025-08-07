@@ -381,6 +381,61 @@
                     <div class="form-help">可以给任务添加分类标签，方便管理和筛选</div>
                 </div>
                 
+                <div class="form-group">
+                    <label>正则处理规则</label>
+                    <div class="regex-single-rule">
+                        <input type="text" name="regex_pattern" placeholder="匹配模式，如：^(\d+)\.mp4$" title="正则表达式，用于匹配文件名">
+                        <input type="text" name="regex_replace" placeholder="替换内容，如：第\1集.mp4（留空仅过滤）" title="替换内容，留空表示仅过滤">
+                        <input type="text" name="regex_description" placeholder="规则说明（可选）" title="规则说明，方便记忆">
+                    </div>
+                    <div class="form-help">
+                        使用一个正则规则进行文件过滤和重命名。<br>
+                        <strong>示例：</strong><br>
+                        • 仅过滤：<code>.*\.mp4$</code> (替换内容留空) - 只转存mp4文件<br>
+                        • 过滤+重命名：<code>^(\d+)\.mp4$</code> → <code>第\1集.mp4</code> - 数字开头的mp4重命名<br>
+                        • 复杂重命名：<code>^【.*】(.+)\.(\d+)\.(mp4|mkv)$</code> → <code>\1.S01E\2.\3</code>
+                    </div>
+                </div>
+                
+                <!-- 正则规则样式 -->
+                <style>
+                .regex-single-rule {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr 1fr;
+                    gap: 8px;
+                    align-items: center;
+                    margin-bottom: 10px;
+                }
+                
+                .regex-single-rule input {
+                    font-family: 'Courier New', monospace;
+                    font-size: 13px;
+                    padding: 8px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                }
+                
+                .regex-single-rule input[name="regex_pattern"] {
+                    border-left: 3px solid #4CAF50;
+                }
+                
+                .regex-single-rule input[name="regex_replace"] {
+                    border-left: 3px solid #2196F3;
+                }
+                
+                .regex-single-rule input[name="regex_description"] {
+                    border-left: 3px solid #FF9800;
+                    font-family: inherit;
+                }
+                
+                @media (max-width: 768px) {
+                    .regex-single-rule {
+                        grid-template-columns: 1fr;
+                        gap: 5px;
+                    }
+                }
+                </style>
+                
                 <div class="form-actions">
                     <button type="button" class="btn secondary" onclick="hideModal('task-modal')">取消</button>
                     <button type="submit" class="btn primary">保存</button>

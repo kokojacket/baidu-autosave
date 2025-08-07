@@ -20,3 +20,4 @@ config/config copy.json
 __pycache__/storage.cpython-310.pyc
 __pycache__/scheduler.cpython-310.pyc
 __pycache__/notify.cpython-310.pyc
+quark-auto-save（参考）.py

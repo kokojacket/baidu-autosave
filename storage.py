@@ -10,6 +10,7 @@ import posixpath
 from threading import Lock
 import traceback
 import subprocess
+import json
 
 class BaiduStorage:
     def __init__(self):
@@ -504,7 +505,7 @@ class BaiduStorage:
             logger.error(f"调整任务顺序失败: {str(e)}")
             return False
 
-    def add_task(self, url, save_dir, pwd=None, name=None, cron=None, category=None):
+    def add_task(self, url, save_dir, pwd=None, name=None, cron=None, category=None, regex_pattern=None, regex_replace=None, regex_description=None):
         """添加任务"""
         try:
             if not url or not save_dir:
@@ -536,6 +537,10 @@ class BaiduStorage:
                 new_task['cron'] = cron
             if category:
                 new_task['category'] = category.strip()
+            if regex_pattern:
+                new_task['regex_pattern'] = regex_pattern.strip()
+                new_task['regex_replace'] = regex_replace.strip() if regex_replace else ''
+                new_task['regex_description'] = regex_description.strip() if regex_description else ''
             
             # 添加任务
             tasks = self.config['baidu'].get('tasks', [])
@@ -741,7 +746,55 @@ class BaiduStorage:
             logger.error(f"处理文件夹结构时出错: {str(e)}")
             return save_dir, False
 
-    def transfer_share(self, share_url, pwd=None, new_files=None, save_dir=None, progress_callback=None):
+    def _apply_regex_rules(self, file_path, task_config):
+        """应用正则处理规则 (单个pattern+replace)
+        Args:
+            file_path: 原始文件路径
+            task_config: 任务配置（包含正则规则）
+        Returns:
+            tuple: (should_transfer, final_path)
+                should_transfer: 是否应该转存（False表示被过滤掉）
+                final_path: 处理后的文件路径
+        """
+        try:
+            # 获取正则规则
+            pattern = task_config.get('regex_pattern', '')
+            replace = task_config.get('regex_replace', '')
+            
+            if not pattern:
+                # 没有规则，直接返回原文件
+                return True, file_path
+            
+            try:
+                # 1. 尝试匹配
+                match = re.search(pattern, file_path)
+                if not match:
+                    # 匹配失败 = 文件被过滤掉
+                    logger.debug(f"文件被正则规则过滤: {file_path} (规则: {pattern})")
+                    return False, file_path
+                
+                # 2. 匹配成功，检查是否需要重命名
+                if replace and replace.strip():
+                    # 有替换内容，执行重命名
+                    new_path = re.sub(pattern, replace, file_path)
+                    if new_path != file_path:
+                        logger.debug(f"正则重命名: {file_path} -> {new_path}")
+                        return True, new_path
+                
+                # 3. 匹配成功但无重命名，返回原路径
+                return True, file_path
+                
+            except re.error as e:
+                logger.warning(f"正则表达式错误: {pattern}, 错误: {str(e)}")
+                # 正则错误时不过滤，返回原文件
+                return True, file_path
+            
+        except Exception as e:
+            logger.error(f"应用正则规则时出错: {str(e)}")
+            # 出错时返回原始路径，不影响正常流程
+            return True, file_path
+
+    def transfer_share(self, share_url, pwd=None, new_files=None, save_dir=None, progress_callback=None, task_config=None):
         """转存分享文件
         Args:
             share_url: 分享链接
@@ -749,6 +802,7 @@ class BaiduStorage:
             new_files: 指定要转存的文件列表
             save_dir: 保存目录
             progress_callback: 进度回调函数
+            task_config: 任务配置（包含正则规则等）
         Returns:
             dict: {
                 'success': bool,  # 是否成功
@@ -851,24 +905,44 @@ class BaiduStorage:
                     if is_single_folder and '/' in clean_path:
                         clean_path = '/'.join(clean_path.split('/')[1:])
                     
-                    # 检查文件是否已存在
-                    normalized_path = self._normalize_path(clean_path, file_only=True)
+                    # 🔄 新逻辑：先应用正则规则
+                    should_transfer = True
+                    final_path = clean_path
+                    
+                    if task_config:
+                        should_transfer, final_path = self._apply_regex_rules(clean_path, task_config)
+                        if not should_transfer:
+                            logger.debug(f"文件被正则过滤掉: {clean_path}")
+                            if progress_callback:
+                                progress_callback('info', f'文件被正则过滤掉: {clean_path}')
+                            continue
+                    
+                    # 🔄 用处理后的路径检查去重
+                    normalized_path = self._normalize_path(final_path, file_only=True)
                     if normalized_path in local_files:
-                        logger.debug(f"文件已存在，跳过: {clean_path}")
+                        logger.debug(f"文件已存在，跳过: {final_path}")
                         if progress_callback:
-                            progress_callback('info', f'文件已存在，跳过: {clean_path}')
+                            progress_callback('info', f'文件已存在，跳过: {final_path}')
                         continue
                     
+                    # 检查是否在指定的文件列表中（使用原始路径检查）
                     if new_files is None or clean_path in new_files:
-                        # 使用 posixpath.join 确保使用正斜杠
-                        if target_dir is not None and clean_path is not None:
-                            target_path = posixpath.join(target_dir, clean_path)
+                        # 🔄 后续处理都用final_path
+                        if target_dir is not None and final_path is not None:
+                            target_path = posixpath.join(target_dir, final_path)
                             # 确保目录路径使用正斜杠
                             dir_path = posixpath.dirname(target_path).replace('\\', '/')
-                            transfer_list.append((file_info['fs_id'], dir_path, clean_path))
-                            logger.info(f"需要转存文件: {clean_path}")
-                            if progress_callback:
-                                progress_callback('info', f'需要转存文件: {clean_path}')
+                            transfer_list.append((file_info['fs_id'], dir_path, final_path))
+                            
+                            # 日志显示重命名信息
+                            if final_path != clean_path:
+                                logger.info(f"需要转存文件: {clean_path} -> {final_path}")
+                                if progress_callback:
+                                    progress_callback('info', f'需要转存文件: {clean_path} -> {final_path}')
+                            else:
+                                logger.info(f"需要转存文件: {final_path}")
+                                if progress_callback:
+                                    progress_callback('info', f'需要转存文件: {final_path}')
                 
                 if not transfer_list:
                     if progress_callback:
