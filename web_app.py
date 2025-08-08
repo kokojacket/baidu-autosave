@@ -334,7 +334,6 @@ def add_task():
     category = data.get('category', '').strip()
     regex_pattern = data.get('regex_pattern', '').strip()
     regex_replace = data.get('regex_replace', '').strip()
-    regex_description = data.get('regex_description', '').strip()
     
     if not url or not save_dir:
         return jsonify({'success': False, 'message': '分享链接和保存目录不能为空'})
@@ -350,7 +349,7 @@ def add_task():
         
     try:
         # 添加任务 - storage.py 内部会处理调度器更新
-        if storage.add_task(url, save_dir, pwd, name, cron, category, regex_pattern, regex_replace, regex_description):
+        if storage.add_task(url, save_dir, pwd, name, cron, category, regex_pattern, regex_replace):
             # 广播任务添加消息
             broadcast_message({
                 'type': 'task_added',
@@ -421,7 +420,6 @@ def update_task():
         'category': data.get('category', '').strip(),
         'regex_pattern': data.get('regex_pattern', '').strip(),
         'regex_replace': data.get('regex_replace', '').strip(),
-        'regex_description': data.get('regex_description', '').strip(),
         'order': task_order,  # 保持原有的order
         'status': task.get('status', 'normal'),  # 保持原有的状态
         'message': task.get('message', ''),  # 保持原有的消息
@@ -457,6 +455,46 @@ def update_task():
     except Exception as e:
         logger.error(f"更新任务失败: {str(e)}")
         return jsonify({'success': False, 'message': f'更新任务失败: {str(e)}'})
+
+@app.route('/api/share/info', methods=['POST'])
+@login_required
+@handle_api_error
+def get_share_info():
+    """获取分享链接信息"""
+    data = request.get_json()
+    url = data.get('url', '').strip()
+    pwd = data.get('pwd', '').strip()
+    
+    if not url:
+        return jsonify({'success': False, 'message': '分享链接不能为空'})
+    
+    try:
+        # 移除URL中的hash部分
+        url = url.split('#')[0]
+        
+        # 处理URL中的密码部分
+        if '?pwd=' in url:
+            url, extracted_pwd = url.split('?pwd=')
+            pwd = extracted_pwd.strip()
+        
+        # 获取分享文件信息
+        result = storage.get_share_folder_name(url, pwd)
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'folder_name': result['folder_name'],
+                'message': '获取文件夹名称成功'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': result.get('error', '获取分享信息失败')
+            })
+            
+    except Exception as e:
+        logger.error(f"获取分享信息失败: {str(e)}")
+        return jsonify({'success': False, 'message': f'获取分享信息失败: {str(e)}'})
 
 @app.route('/api/task/delete', methods=['POST'])
 @login_required
@@ -875,6 +913,7 @@ def get_config():
         'scheduler': storage.config.get('scheduler', {}),
         'quota_alert': storage.config.get('quota_alert', {}),
         'share': storage.config.get('share', {}),
+        'file_operations': storage.config.get('file_operations', {}),
         'baidu': {
             'current_user': current_user  # 返回完整的用户信息
         }

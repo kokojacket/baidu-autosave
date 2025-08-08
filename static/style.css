@@ -1334,6 +1334,11 @@ input[list]::placeholder {
     line-height: 1.4;
 }
 
+/* 表单警告/错误帮助文本（红色） */
+.form-help.error {
+    color: var(--error-color);
+}
+
 /* 面板头部样式 */
 .panel-header {
     display: flex;

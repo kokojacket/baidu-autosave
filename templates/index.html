@@ -260,6 +260,38 @@
                         </div>
                     </div>
 
+                    <!-- 文件操作设置 -->
+                    <div class="form-group">
+                        <h3>文件操作设置</h3>
+                        <div class="input-group">
+                            <label for="rename-delay">重命名延迟(秒)</label>
+                            <input type="number" id="rename-delay" name="rename-delay" 
+                                   min="0" max="5" step="0.1" value="0.5"
+                                   placeholder="0.5">
+                            <small class="help-text">
+                                设置文件重命名操作的延迟时间，避免触发API频率限制。推荐值：0.5秒
+                            </small>
+                        </div>
+                        <div class="input-group">
+                            <label for="batch-size">批次大小</label>
+                            <input type="number" id="batch-size" name="batch-size" 
+                                   min="10" max="200" step="10" value="50"
+                                   placeholder="50">
+                            <small class="help-text">
+                                每批次处理的文件数量，较小的批次可以减少出错几率
+                            </small>
+                        </div>
+                        <div class="input-group">
+                            <label for="concurrent-limit">并发限制</label>
+                            <input type="number" id="concurrent-limit" name="concurrent-limit" 
+                                   min="1" max="5" step="1" value="1"
+                                   placeholder="1">
+                            <small class="help-text">
+                                同时处理的任务数量，建议设为1避免冲突
+                            </small>
+                        </div>
+                    </div>
+
                     <!-- 登录凭据设置 -->
                     <div class="form-group">
                         <h3>登录凭据设置</h3>
@@ -381,60 +413,17 @@
                     <div class="form-help">可以给任务添加分类标签，方便管理和筛选</div>
                 </div>
                 
-                <div class="form-group">
-                    <label>正则处理规则</label>
-                    <div class="regex-single-rule">
-                        <input type="text" name="regex_pattern" placeholder="匹配模式，如：^(\d+)\.mp4$" title="正则表达式，用于匹配文件名">
-                        <input type="text" name="regex_replace" placeholder="替换内容，如：第\1集.mp4（留空仅过滤）" title="替换内容，留空表示仅过滤">
-                        <input type="text" name="regex_description" placeholder="规则说明（可选）" title="规则说明，方便记忆">
-                    </div>
-                    <div class="form-help">
-                        使用一个正则规则进行文件过滤和重命名。<br>
-                        <strong>示例：</strong><br>
-                        • 仅过滤：<code>.*\.mp4$</code> (替换内容留空) - 只转存mp4文件<br>
-                        • 过滤+重命名：<code>^(\d+)\.mp4$</code> → <code>第\1集.mp4</code> - 数字开头的mp4重命名<br>
-                        • 复杂重命名：<code>^【.*】(.+)\.(\d+)\.(mp4|mkv)$</code> → <code>\1.S01E\2.\3</code>
-                    </div>
+                                <div class="form-group">
+                    <label>过滤表达式</label>
+                    <input type="text" name="regex_pattern" placeholder="如：^(\d+)\.mp4$" title="用于匹配需要转存的文件，留空表示不过滤">
                 </div>
                 
-                <!-- 正则规则样式 -->
-                <style>
-                .regex-single-rule {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr 1fr;
-                    gap: 8px;
-                    align-items: center;
-                    margin-bottom: 10px;
-                }
-                
-                .regex-single-rule input {
-                    font-family: 'Courier New', monospace;
-                    font-size: 13px;
-                    padding: 8px;
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
-                }
-                
-                .regex-single-rule input[name="regex_pattern"] {
-                    border-left: 3px solid #4CAF50;
-                }
-                
-                .regex-single-rule input[name="regex_replace"] {
-                    border-left: 3px solid #2196F3;
-                }
-                
-                .regex-single-rule input[name="regex_description"] {
-                    border-left: 3px solid #FF9800;
-                    font-family: inherit;
-                }
-                
-                @media (max-width: 768px) {
-                    .regex-single-rule {
-                        grid-template-columns: 1fr;
-                        gap: 5px;
-                    }
-                }
-                </style>
+                <div class="form-group">
+                    <label>重命名表达式</label>
+                    <input type="text" name="regex_replace" placeholder="如：第\1集.mp4" title="用于重命名文件，留空表示不重命名">
+                    <div class="form-help error">提示：百度网盘 API 对重命名操作有严格的频率限制，频繁重命名可能失败或触发风控。不建议启用重命名，优先通过分享源文件名满足需求。</div>
+                </div>
+
                 
                 <div class="form-actions">
                     <button type="button" class="btn secondary" onclick="hideModal('task-modal')">取消</button>

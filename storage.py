@@ -505,7 +505,7 @@ class BaiduStorage:
             logger.error(f"调整任务顺序失败: {str(e)}")
             return False
 
-    def add_task(self, url, save_dir, pwd=None, name=None, cron=None, category=None, regex_pattern=None, regex_replace=None, regex_description=None):
+    def add_task(self, url, save_dir, pwd=None, name=None, cron=None, category=None, regex_pattern=None, regex_replace=None):
         """添加任务"""
         try:
             if not url or not save_dir:
@@ -540,7 +540,6 @@ class BaiduStorage:
             if regex_pattern:
                 new_task['regex_pattern'] = regex_pattern.strip()
                 new_task['regex_replace'] = regex_replace.strip() if regex_replace else ''
-                new_task['regex_description'] = regex_description.strip() if regex_description else ''
             
             # 添加任务
             tasks = self.config['baidu'].get('tasks', [])
@@ -897,7 +896,8 @@ class BaiduStorage:
                 
                 # 步骤3.1：对比文件，确定需要转存的文件
                 logger.info("开始对比共享文件和本地文件...")
-                transfer_list = []  # 存储(fs_id, target_path, clean_path)元组
+                transfer_list = []  # 存储(fs_id, dir_path, clean_path, final_path, need_rename)元组
+                rename_only_list = []  # 存储仅需重命名的文件(None, dir_path, clean_path, final_path, True)
                 
                 # 使用之前收集的共享文件信息进行对比
                 for file_info in shared_files_info:
@@ -917,25 +917,50 @@ class BaiduStorage:
                                 progress_callback('info', f'文件被正则过滤掉: {clean_path}')
                             continue
                     
-                    # 🔄 用处理后的路径检查去重
-                    normalized_path = self._normalize_path(final_path, file_only=True)
-                    if normalized_path in local_files:
-                        logger.debug(f"文件已存在，跳过: {final_path}")
-                        if progress_callback:
-                            progress_callback('info', f'文件已存在，跳过: {final_path}')
-                        continue
+                    # 🔄 改进的去重检查逻辑
+                    clean_normalized = self._normalize_path(clean_path, file_only=True)
+                    final_normalized = self._normalize_path(final_path, file_only=True)
+                    
+                    # 检查原文件是否存在
+                    original_exists = clean_normalized in local_files
+                    # 检查重命名后文件是否存在  
+                    final_exists = final_normalized in local_files
+                    
+                    if final_path != clean_path:  # 需要重命名
+                        if original_exists and not final_exists:
+                            # 原文件存在但重命名后的不存在 = 仅需重命名，不需转存
+                            logger.info(f"文件已存在但未重命名，将执行重命名: {clean_path} -> {final_path}")
+                            if progress_callback:
+                                progress_callback('info', f'文件需重命名: {clean_path} -> {final_path}')
+                            # 添加到重命名列表（不转存）
+                            rename_only_list.append((None, target_dir, clean_path, final_path, True))
+                            continue
+                        elif final_exists:
+                            # 重命名后的文件已存在
+                            logger.debug(f"重命名后文件已存在，跳过: {final_path}")
+                            if progress_callback:
+                                progress_callback('info', f'文件已存在，跳过: {final_path}')
+                            continue
+                        # else: 原文件和重命名后文件都不存在，需要转存+重命名
+                    else:  # 不需要重命名
+                        if final_exists:
+                            logger.debug(f"文件已存在，跳过: {final_path}")
+                            if progress_callback:
+                                progress_callback('info', f'文件已存在，跳过: {final_path}')
+                            continue
                     
                     # 检查是否在指定的文件列表中（使用原始路径检查）
                     if new_files is None or clean_path in new_files:
-                        # 🔄 后续处理都用final_path
-                        if target_dir is not None and final_path is not None:
-                            target_path = posixpath.join(target_dir, final_path)
-                            # 确保目录路径使用正斜杠
+                        # 🔄 转存时用原始目录路径，重命名在转存后处理
+                        if target_dir is not None and clean_path is not None:
+                            # 转存到原始路径的目录
+                            target_path = posixpath.join(target_dir, clean_path)
                             dir_path = posixpath.dirname(target_path).replace('\\', '/')
-                            transfer_list.append((file_info['fs_id'], dir_path, final_path))
+                            need_rename = (final_path != clean_path)
+                            transfer_list.append((file_info['fs_id'], dir_path, clean_path, final_path, need_rename))
                             
                             # 日志显示重命名信息
-                            if final_path != clean_path:
+                            if need_rename:
                                 logger.info(f"需要转存文件: {clean_path} -> {final_path}")
                                 if progress_callback:
                                     progress_callback('info', f'需要转存文件: {clean_path} -> {final_path}')
@@ -944,10 +969,73 @@ class BaiduStorage:
                                 if progress_callback:
                                     progress_callback('info', f'需要转存文件: {final_path}')
                 
-                if not transfer_list:
+                # 处理仅需重命名的文件（无需转存）
+                rename_only_success = []
+                failed_rename_only = []  # 收集失败的重命名任务
+                if rename_only_list:
+                    logger.info(f"=== 处理仅需重命名的文件（{len(rename_only_list)}个）===")
                     if progress_callback:
-                        progress_callback('info', '没有找到需要转存的文件')
+                        progress_callback('info', f'处理仅需重命名的文件: {len(rename_only_list)}个')
+                    
+                    for _, dir_path, clean_path, final_path, _ in rename_only_list:
+                        retry_count = 0
+                        max_retries = 1
+                        delay_seconds = self.config.get('file_operations', {}).get('rename_delay_seconds', 0.5)
+                        
+                        while retry_count <= max_retries:
+                            try:
+                                original_full_path = posixpath.join(dir_path, os.path.basename(clean_path))
+                                final_full_path = posixpath.join(dir_path, os.path.basename(final_path))
+                                
+                                if retry_count == 0:
+                                    logger.info(f"重命名已存在的文件: {original_full_path} -> {final_full_path}")
+                                    if progress_callback:
+                                        progress_callback('info', f'重命名: {os.path.basename(clean_path)} -> {os.path.basename(final_path)}')
+                                else:
+                                    logger.info(f"重试重命名文件: {original_full_path} -> {final_full_path} (第{retry_count}次重试)")
+                                    if progress_callback:
+                                        progress_callback('info', f'重试重命名: {os.path.basename(clean_path)} -> {os.path.basename(final_path)}')
+                                
+                                self.client.rename(original_full_path, final_full_path)
+                                logger.success(f"重命名成功: {clean_path} -> {final_path}")
+                                rename_only_success.append(final_path)
+                                
+                                # 添加延迟避免API频率限制
+                                if delay_seconds > 0:
+                                    logger.debug(f"延迟 {delay_seconds} 秒以避免API频率限制")
+                                    time.sleep(delay_seconds)
+                                
+                                break  # 成功后跳出重试循环
+                                
+                            except Exception as e:
+                                retry_count += 1
+                                if retry_count <= max_retries:
+                                    # 重试前延长延迟时间
+                                    retry_delay = delay_seconds * 2
+                                    logger.warning(f"重命名失败，将在 {retry_delay} 秒后重试: {str(e)}")
+                                    if progress_callback:
+                                        progress_callback('warning', f'重命名失败，准备重试: {str(e)}')
+                                    time.sleep(retry_delay)
+                                else:
+                                    # 第一轮重试都失败，加入批量重试列表
+                                    logger.warning(f"重命名失败，将在最后批量重试: {clean_path} -> {final_path}, 错误: {str(e)}")
+                                    failed_rename_only.append((dir_path, clean_path, final_path, str(e)))
+                                    if progress_callback:
+                                        progress_callback('warning', f'重命名失败，将稍后重试: {str(e)}')
+                
+                # 检查是否有需要转存的文件
+                if not transfer_list and not rename_only_success:
+                    if progress_callback:
+                        progress_callback('info', '没有找到需要处理的文件')
                     return {'success': True, 'skipped': True, 'message': '没有新文件需要转存'}
+                
+                if not transfer_list and rename_only_success:
+                    # 只有重命名操作，没有转存
+                    return {
+                        'success': True,
+                        'message': f'仅重命名操作完成，共处理 {len(rename_only_success)} 个文件',
+                        'transferred_files': rename_only_success
+                    }
                 
                 if progress_callback:
                     progress_callback('info', f'找到 {len(transfer_list)} 个新文件需要转存')
@@ -955,7 +1043,7 @@ class BaiduStorage:
                 # 步骤3.2：创建所有必要的目录
                 logger.info("确保所有目标目录存在")
                 created_dirs = set()
-                for _, dir_path, _ in transfer_list:
+                for _, dir_path, _, _, _ in transfer_list:
                     if dir_path not in created_dirs:
                         logger.info(f"检查目录: {dir_path}")
                         if not self._ensure_dir_exists(dir_path):
@@ -974,7 +1062,7 @@ class BaiduStorage:
                 # 按目录分组进行转存
                 success_count = 0
                 grouped_transfers = {}
-                for fs_id, dir_path, _ in transfer_list:
+                for fs_id, dir_path, _, _, _ in transfer_list:
                     grouped_transfers.setdefault(dir_path, []).append(fs_id)
                 
                 total_files = len(transfer_list)
@@ -1048,8 +1136,136 @@ class BaiduStorage:
                     
                     time.sleep(1)  # 避免频率限制
                 
-                # 记录转存的文件列表
-                transferred_files = [clean_path for _, _, clean_path in transfer_list]
+                # 步骤5：执行重命名操作（如果需要）
+                logger.info("=== 【步骤5/5】检查是否需要重命名文件 ===")
+                renamed_files = []
+                rename_errors = []
+                failed_transfer_rename = []  # 收集转存后重命名失败的文件
+                
+                for fs_id, dir_path, clean_path, final_path, need_rename in transfer_list:
+                    if need_rename:
+                        retry_count = 0
+                        max_retries = 1
+                        delay_seconds = self.config.get('file_operations', {}).get('rename_delay_seconds', 0.5)
+                        
+                        while retry_count <= max_retries:
+                            try:
+                                # 构建转存后的完整路径（原始文件名）
+                                original_full_path = posixpath.join(dir_path, os.path.basename(clean_path))
+                                # 构建重命名后的完整路径
+                                final_full_path = posixpath.join(dir_path, os.path.basename(final_path))
+                                
+                                if retry_count == 0:
+                                    logger.info(f"重命名文件: {original_full_path} -> {final_full_path}")
+                                    if progress_callback:
+                                        progress_callback('info', f'重命名文件: {os.path.basename(clean_path)} -> {os.path.basename(final_path)}')
+                                else:
+                                    logger.info(f"重试重命名文件: {original_full_path} -> {final_full_path} (第{retry_count}次重试)")
+                                    if progress_callback:
+                                        progress_callback('info', f'重试重命名文件: {os.path.basename(clean_path)} -> {os.path.basename(final_path)}')
+                                
+                                # 使用baidupcs-py的rename方法（需要完整路径）
+                                self.client.rename(original_full_path, final_full_path)
+                                
+                                logger.success(f"重命名成功: {clean_path} -> {final_path}")
+                                renamed_files.append(final_path)
+                                
+                                # 添加延迟避免API频率限制
+                                if delay_seconds > 0:
+                                    logger.debug(f"延迟 {delay_seconds} 秒以避免API频率限制")
+                                    time.sleep(delay_seconds)
+                                
+                                break  # 成功后跳出重试循环
+                                
+                            except Exception as e:
+                                retry_count += 1
+                                if retry_count <= max_retries:
+                                    # 重试前延长延迟时间
+                                    retry_delay = delay_seconds * 2
+                                    logger.warning(f"重命名失败，将在 {retry_delay} 秒后重试: {str(e)}")
+                                    if progress_callback:
+                                        progress_callback('warning', f'重命名失败，准备重试: {str(e)}')
+                                    time.sleep(retry_delay)
+                                else:
+                                    # 第一轮重试都失败，加入批量重试列表
+                                    logger.warning(f"重命名失败，将在最后批量重试: {clean_path} -> {final_path}, 错误: {str(e)}")
+                                    failed_transfer_rename.append((dir_path, clean_path, final_path, str(e)))
+                                    if progress_callback:
+                                        progress_callback('warning', f'重命名失败，将稍后重试: {str(e)}')
+                                    # 重命名失败时暂时使用原文件名
+                                    renamed_files.append(clean_path)
+                    else:
+                        renamed_files.append(final_path)
+                
+                # 记录转存的文件列表（使用最终文件名）+ 仅重命名的文件
+                transferred_files = renamed_files + rename_only_success
+                
+                # 批量重试失败的重命名操作
+                all_failed_files = failed_rename_only + failed_transfer_rename
+                if all_failed_files:
+                    logger.info(f"=== 【批量重试】开始批量重试 {len(all_failed_files)} 个重命名失败的文件 ===")
+                    if progress_callback:
+                        progress_callback('info', f'开始批量重试 {len(all_failed_files)} 个重命名失败的文件')
+                    
+                    batch_retry_success = []
+                    batch_retry_failed = []
+                    delay_seconds = self.config.get('file_operations', {}).get('rename_delay_seconds', 0.5)
+                    
+                    for dir_path, clean_path, final_path, original_error in all_failed_files:
+                        try:
+                            original_full_path = posixpath.join(dir_path, os.path.basename(clean_path))
+                            final_full_path = posixpath.join(dir_path, os.path.basename(final_path))
+                            
+                            logger.info(f"批量重试重命名: {original_full_path} -> {final_full_path}")
+                            if progress_callback:
+                                progress_callback('info', f'批量重试: {os.path.basename(clean_path)} -> {os.path.basename(final_path)}')
+                            
+                            self.client.rename(original_full_path, final_full_path)
+                            
+                            logger.success(f"批量重试成功: {clean_path} -> {final_path}")
+                            batch_retry_success.append((clean_path, final_path))
+                            
+                            # 更新相应的文件列表
+                            if clean_path in renamed_files:
+                                # 如果原来是原文件名，现在改为最终文件名
+                                idx = renamed_files.index(clean_path)
+                                renamed_files[idx] = final_path
+                            else:
+                                # 如果是rename_only的失败，添加到成功列表
+                                if (dir_path, clean_path, final_path, original_error) in failed_rename_only:
+                                    rename_only_success.append(final_path)
+                            
+                            # 添加延迟避免API频率限制
+                            if delay_seconds > 0:
+                                logger.debug(f"批量重试延迟 {delay_seconds} 秒")
+                                time.sleep(delay_seconds)
+                                
+                        except Exception as e:
+                            logger.error(f"批量重试最终失败: {clean_path} -> {final_path}, 错误: {str(e)}")
+                            batch_retry_failed.append((clean_path, final_path, str(e)))
+                            rename_errors.append(f"批量重试最终失败: {clean_path} -> {final_path}, 错误: {str(e)}")
+                            if progress_callback:
+                                progress_callback('error', f'批量重试失败: {str(e)}')
+                    
+                    # 批量重试结果汇总
+                    if batch_retry_success:
+                        logger.success(f"批量重试成功 {len(batch_retry_success)} 个文件")
+                        if progress_callback:
+                            progress_callback('success', f'批量重试成功 {len(batch_retry_success)} 个文件')
+                    
+                    if batch_retry_failed:
+                        logger.error(f"批量重试仍失败 {len(batch_retry_failed)} 个文件")
+                        if progress_callback:
+                            progress_callback('error', f'批量重试仍失败 {len(batch_retry_failed)} 个文件')
+                    
+                    # 更新transferred_files
+                    transferred_files = renamed_files + rename_only_success
+                
+                # 记录重命名结果
+                if rename_errors:
+                    logger.warning(f"部分文件重命名失败，共 {len(rename_errors)} 个错误")
+                elif any(need_rename for _, _, _, _, need_rename in transfer_list):
+                    logger.success("所有需要重命名的文件都已成功重命名")
                 
                 # 转存结果汇总
                 logger.info(f"=== 转存操作完成，结果汇总 ===")
@@ -1093,6 +1309,45 @@ class BaiduStorage:
         except Exception as e:
             logger.error(f"转存分享文件失败: {str(e)}")
             return {'success': False, 'error': f'转存分享文件失败: {str(e)}'}
+
+    def get_share_folder_name(self, share_url, pwd=None):
+        """获取分享链接的主文件夹名称"""
+        try:
+            logger.info(f"正在获取分享链接信息: {share_url}")
+            
+            # 访问分享链接
+            if pwd:
+                logger.info(f"使用密码访问分享链接")
+            self.client.access_shared(share_url, pwd)
+            
+            # 获取分享文件列表
+            shared_paths = self.client.shared_paths(shared_url=share_url)
+            if not shared_paths:
+                return {'success': False, 'error': '获取分享文件列表失败'}
+            
+            # 获取主文件夹名称
+            if len(shared_paths) == 1 and shared_paths[0].is_dir:
+                # 如果只有一个文件夹，使用该文件夹名称
+                folder_name = os.path.basename(shared_paths[0].path)
+                logger.success(f"获取到文件夹名称: {folder_name}")
+                return {'success': True, 'folder_name': folder_name}
+            else:
+                # 如果有多个文件或不是文件夹，使用分享链接的默认名称或第一个项目的名称
+                if shared_paths:
+                    first_item = shared_paths[0]
+                    if first_item.is_dir:
+                        folder_name = os.path.basename(first_item.path)
+                    else:
+                        # 如果第一个是文件，尝试获取文件名（去掉扩展名）
+                        folder_name = os.path.splitext(os.path.basename(first_item.path))[0]
+                    logger.success(f"获取到名称: {folder_name}")
+                    return {'success': True, 'folder_name': folder_name}
+                else:
+                    return {'success': False, 'error': '分享内容为空'}
+                    
+        except Exception as e:
+            logger.error(f"获取分享信息失败: {str(e)}")
+            return {'success': False, 'error': str(e)}
 
     def _wait_for_rate_limit(self):
         """等待请求限制"""

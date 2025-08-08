@@ -704,6 +704,31 @@ function renderConfig() {
                 shareConfig.default_period_days : 7;
         }
     }
+    
+    // 处理文件操作配置
+    if (state.config.file_operations) {
+        const fileOpsConfig = state.config.file_operations;
+        console.log('渲染文件操作配置:', fileOpsConfig);
+        
+        // 设置重命名延迟
+        const renameDelay = document.getElementById('rename-delay');
+        if (renameDelay) {
+            renameDelay.value = fileOpsConfig.rename_delay_seconds !== undefined ? 
+                fileOpsConfig.rename_delay_seconds : 0.5;
+        }
+        
+        // 设置批次大小
+        const batchSize = document.getElementById('batch-size');
+        if (batchSize) {
+            batchSize.value = fileOpsConfig.batch_size || 50;
+        }
+        
+        // 设置并发限制
+        const concurrentLimit = document.getElementById('concurrent-limit');
+        if (concurrentLimit) {
+            concurrentLimit.value = fileOpsConfig.concurrent_limit || 1;
+        }
+    }
 }
 
 // 添加通知字段到UI
@@ -1030,7 +1055,6 @@ async function editTask(taskId) {
         form.querySelector('[name="category"]').value = task.category || '';
         form.querySelector('[name="regex_pattern"]').value = task.regex_pattern || '';
         form.querySelector('[name="regex_replace"]').value = task.regex_replace || '';
-        form.querySelector('[name="regex_description"]').value = task.regex_description || '';
         
         // 保存字段历史记录
         if (task.save_dir) saveFieldHistory('save_dir', task.save_dir);
@@ -1206,8 +1230,7 @@ async function updateTask(data) {
             category: data.category.trim() || originalTask.category || '',
             cron: data.cron.trim() || originalTask.cron || '',
             regex_pattern: data.regex_pattern || originalTask.regex_pattern || '',
-            regex_replace: data.regex_replace || originalTask.regex_replace || '',
-            regex_description: data.regex_description || originalTask.regex_description || ''
+            regex_replace: data.regex_replace || originalTask.regex_replace || ''
         };
         
         console.log('准备更新任务:', {
@@ -1453,6 +1476,11 @@ async function saveConfig() {
         const periodValue = document.getElementById('default-share-period').value;
         const defaultSharePeriod = periodValue !== '' ? parseInt(periodValue) : 7;
         
+        // 获取文件操作配置
+        const renameDelaySeconds = parseFloat(document.getElementById('rename-delay').value) || 0.5;
+        const batchSize = parseInt(document.getElementById('batch-size').value) || 50;
+        const concurrentLimit = parseInt(document.getElementById('concurrent-limit').value) || 1;
+        
         // 收集所有通知字段
         const directFields = {};
         const notifyFieldElements = document.querySelectorAll('.notify-field');
@@ -1496,6 +1524,11 @@ async function saveConfig() {
             share: {
                 default_password: defaultSharePassword,
                 default_period_days: defaultSharePeriod
+            },
+            file_operations: {
+                rename_delay_seconds: renameDelaySeconds,
+                batch_size: batchSize,
+                concurrent_limit: concurrentLimit
             }
         };
         
@@ -1608,8 +1641,7 @@ async function handleTaskSubmit(event) {
                 cron: data.cron || '',
                 category: data.category || '',
                 regex_pattern: data.regex_pattern || '',
-                regex_replace: data.regex_replace || '',
-                regex_description: data.regex_description || ''
+                regex_replace: data.regex_replace || ''
             });
         }
         
@@ -2257,6 +2289,12 @@ async function initializeApp() {
         
         // 8. 更新异常指示器
         updateErrorIndicator();
+        
+        // 9. 初始化分享链接自动填充功能
+        initShareUrlAutoFill();
+        
+        // 10. 初始化任务名称同步功能
+        initTaskNameSync();
         
     } catch (error) {
         console.error('应用初始化失败:', error);
@@ -3525,4 +3563,166 @@ async function shareTask(taskId) {
     } finally {
         hideLoading();
     }
+}
+
+// 自动获取分享链接文件夹名称
+function initShareUrlAutoFill() {
+    const urlInput = document.querySelector('input[name="url"]');
+    const nameInput = document.querySelector('input[name="name"]');
+    
+    if (!urlInput || !nameInput) return;
+    
+    let autoFillTimeout;
+    let hasManuallyEdited = nameInput.value.trim() !== ''; // 如果已有名称，认为是手动编辑过的
+    
+    // 监听任务名称的手动编辑
+    nameInput.addEventListener('input', () => {
+        hasManuallyEdited = true;
+    });
+    
+    // 监听分享链接失去焦点事件（用户输入完成后离开文本框）
+    urlInput.addEventListener('blur', (e) => {
+        const url = e.target.value.trim();
+        
+        console.log('分享链接失去焦点:', url); // 调试日志
+        
+        // 清除之前的定时器
+        if (autoFillTimeout) {
+            clearTimeout(autoFillTimeout);
+        }
+        
+        // 如果用户已手动编辑过名称，则不再自动填充
+        if (hasManuallyEdited) {
+            console.log('用户已手动编辑过任务名称，跳过自动填充');
+            return;
+        }
+        
+        // 如果URL为空，清空任务名称
+        if (!url) {
+            nameInput.value = '';
+            syncTaskNameToSaveDir();
+            return;
+        }
+        
+        // 检查是否是有效的百度网盘链接
+        if (!url.match(/^https?:\/\/pan\.baidu\.com\/s\/[a-zA-Z0-9_-]+/)) {
+            console.log('无效的百度网盘链接格式:', url);
+            return;
+        }
+        
+        console.log('开始获取分享文件夹名称:', url);
+        // 立即执行，不需要延迟
+        getShareFolderName(url);
+    });
+    
+    // 也监听input事件来处理清空URL的情况
+    urlInput.addEventListener('input', (e) => {
+        const url = e.target.value.trim();
+        
+        // 如果URL被清空，清空任务名称
+        if (!url && !hasManuallyEdited) {
+            nameInput.value = '';
+            syncTaskNameToSaveDir();
+        }
+    });
+}
+
+// 获取分享链接的文件夹名称
+async function getShareFolderName(url) {
+    try {
+        console.log('正在请求分享链接信息...', url);
+        
+        // 提取密码
+        let pwd = '';
+        if (url.includes('?pwd=')) {
+            const parts = url.split('?pwd=');
+            pwd = parts[1];
+            console.log('提取到密码:', pwd);
+        }
+        
+        const response = await fetch('/api/share/info', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url, pwd })
+        });
+        
+        console.log('API响应状态:', response.status);
+        
+        const result = await response.json();
+        console.log('API响应结果:', result);
+        
+        if (result.success && result.folder_name) {
+            const nameInput = document.querySelector('input[name="name"]');
+            if (nameInput && !nameInput.value.trim()) {
+                console.log('自动填充任务名称:', result.folder_name);
+                nameInput.value = result.folder_name;
+                // 触发任务名称同步到保存目录的功能
+                syncTaskNameToSaveDir();
+                console.log('任务名称已同步到保存目录');
+            } else {
+                console.log('任务名称已存在，跳过自动填充');
+            }
+        } else {
+            console.warn('获取文件夹名称失败:', result.message || '未知错误');
+        }
+    } catch (error) {
+        console.error('获取分享文件夹名称失败:', error);
+        // 静默失败，不影响用户使用
+    }
+}
+
+// 任务名称同步到保存目录路径
+function syncTaskNameToSaveDir() {
+    const nameInput = document.querySelector('input[name="name"]');
+    const saveDirInput = document.querySelector('input[name="save_dir"]');
+    
+    if (!nameInput || !saveDirInput) {
+        console.log('任务名称同步失败：找不到输入框元素');
+        return;
+    }
+    
+    const taskName = nameInput.value.trim();
+    if (!taskName) {
+        console.log('任务名称为空，跳过同步');
+        return;
+    }
+    
+    const currentSaveDir = saveDirInput.value.trim();
+    console.log(`同步任务名称到保存目录: "${taskName}" -> 当前保存目录: "${currentSaveDir}"`);
+    
+    // 如果保存目录为空或只是根目录，直接设置为任务名
+    if (!currentSaveDir || currentSaveDir === '/') {
+        const newSaveDir = `/${taskName}`;
+        saveDirInput.value = newSaveDir;
+        console.log(`保存目录已更新: "${newSaveDir}"`);
+        return;
+    }
+    
+    // 如果保存目录已有内容，替换最后一级目录为任务名
+    const parts = currentSaveDir.split('/').filter(p => p); // 去掉空字符串
+    if (parts.length > 0) {
+        const oldLastDir = parts[parts.length - 1];
+        parts[parts.length - 1] = taskName; // 替换最后一级
+        const newSaveDir = `/${parts.join('/')}`;
+        saveDirInput.value = newSaveDir;
+        console.log(`保存目录最后一级已更新: "${oldLastDir}" -> "${taskName}" (完整路径: "${newSaveDir}")`);
+    } else {
+        const newSaveDir = `/${taskName}`;
+        saveDirInput.value = newSaveDir;
+        console.log(`保存目录已更新: "${newSaveDir}"`);
+    }
+}
+
+// 初始化任务名称同步功能
+function initTaskNameSync() {
+    const nameInput = document.querySelector('input[name="name"]');
+    
+    if (!nameInput) return;
+    
+    // 监听任务名称变化，同步到保存目录
+    nameInput.addEventListener('input', () => {
+        syncTaskNameToSaveDir();
+    });
 }

@@ -199,7 +199,7 @@ baidu-autosave/
 目前支持PushPlus推送服务：
 1. 访问 [pushplus.plus](http://www.pushplus.plus) 获取Token
 2. 在系统设置中填入Token
-3. 可选填写群组编码用于群发
+3. 可选填写群组编码（`PUSH_PLUS_USER`）用于群发
 
 系统支持通知延迟合并功能：
 1. 当多个任务在短时间内执行完成时，系统会将通知合并为一条发送
@@ -217,7 +217,7 @@ baidu-autosave/
 
 ## 配置文件说明
 
-`config.json` 包含以下主要配置：
+`config.json` 包含以下主要配置（示例）：
 
 ```json
 {
@@ -231,18 +231,19 @@ baidu-autosave/
         "delay_seconds": 5    // 重试间隔
     },
     "cron": {
-        "default_schedule": [], // 默认定时规则
+        "default_schedule": [   // 默认定时规则，支持多个 cron 表达式
+            "0 10 * * *"
+        ],
         "auto_install": true    // 自动启动定时
     },
     "notify": {
         "enabled": true,      // 启用通知
-        "notification_delay": 30, // 通知延迟合并时间（秒），设置为0禁用合并功能
-        "channels": {         // 通知渠道配置
-            "pushplus": {
-                "token": "",
-                "topic": ""
-            }
+        "notification_delay": 30, // 通知延迟合并时间（秒），设置为0禁用合并
+        "direct_fields": {     // 直接映射到通知库的字段（推荐）
+            "PUSH_PLUS_TOKEN": "",
+            "PUSH_PLUS_USER": ""   // 可选：群组编码/Topic
         }
+        // 兼容旧格式：也支持 { "channels": { "pushplus": { "token": "", "topic": "" } } }
     },
     "quota_alert": {
         "enabled": true,      // 是否启用容量提醒
@@ -252,7 +253,8 @@ baidu-autosave/
     "scheduler": {
         "max_workers": 1,     // 最大工作线程数
         "misfire_grace_time": 3600,  // 错过执行的容错时间
-        "coalesce": true      // 合并执行错过的任务
+        "coalesce": true,     // 合并执行错过的任务
+        "max_instances": 1    // 同一任务的最大并发实例数
     }
 }
 ```
