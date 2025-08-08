@@ -2549,6 +2549,10 @@ function initializeEventListeners() {
                 form.elements['task_id'].value = '';
             }
             
+            // 重置保存目录编辑标志，重新启用单向同步
+            window.hasManuallySaveDirEdited = false;
+            console.log('新建任务：重置保存目录编辑标志，启用单向同步');
+            
             // 显示模态框
             showModal('task-modal');
         });
@@ -3591,11 +3595,8 @@ function initShareUrlAutoFill() {
             clearTimeout(autoFillTimeout);
         }
         
-        // 如果用户已手动编辑过名称，则不再自动填充
-        if (hasManuallyEdited) {
-            console.log('用户已手动编辑过任务名称，跳过自动填充');
-            return;
-        }
+        // 每次分享链接更新时都重置手动编辑标志，允许自动填充
+        hasManuallyEdited = false;
         
         // 如果URL为空，清空任务名称
         if (!url) {
@@ -3683,6 +3684,12 @@ function syncTaskNameToSaveDir() {
         return;
     }
     
+    // 如果用户已手动编辑过保存目录，则不再进行单向同步
+    if (window.hasManuallySaveDirEdited) {
+        console.log('用户已手动编辑过保存目录，跳过单向同步');
+        return;
+    }
+    
     const taskName = nameInput.value.trim();
     if (!taskName) {
         console.log('任务名称为空，跳过同步');
@@ -3718,8 +3725,18 @@ function syncTaskNameToSaveDir() {
 // 初始化任务名称同步功能
 function initTaskNameSync() {
     const nameInput = document.querySelector('input[name="name"]');
+    const saveDirInput = document.querySelector('input[name="save_dir"]');
     
-    if (!nameInput) return;
+    if (!nameInput || !saveDirInput) return;
+    
+    // 初始化保存目录手动编辑标志
+    window.hasManuallySaveDirEdited = saveDirInput.value.trim() !== ''; // 如果已有保存目录，认为是手动编辑过的
+    
+    // 监听保存目录的手动编辑
+    saveDirInput.addEventListener('input', () => {
+        window.hasManuallySaveDirEdited = true;
+        console.log('用户手动编辑了保存目录，禁用单向同步');
+    });
     
     // 监听任务名称变化，同步到保存目录
     nameInput.addEventListener('input', () => {
