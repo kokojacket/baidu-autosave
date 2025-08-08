@@ -2036,10 +2036,6 @@ textarea:focus {
     background: #999;
 }
 
-.task-message.error {
-    color: #ff4d4f;
-}
-
 /* 添加安全区域适配 */
 @supports (padding: max(0px)) {
     .bottom-nav {
@@ -2311,6 +2307,49 @@ textarea:focus {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* 任务消息样式 */
+.task-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #666;
+    line-height: 1.4;
+}
+
+.task-message.error {
+    color: #ff4d4f;
+}
+
+/* 复制按钮样式 */
+.copy-btn {
+    background: none;
+    border: none;
+    padding: 2px;
+    cursor: pointer;
+    color: #666;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+}
+
+.copy-btn:hover {
+    background-color: #f0f0f0;
+    color: var(--primary-color);
+}
+
+.copy-btn:active {
+    transform: scale(0.95);
+}
+
+.copy-btn i {
+    font-size: 16px;
 }
 
 /* 移动端任务列表样式调整 */

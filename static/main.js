@@ -450,7 +450,12 @@ function createTaskElement(task) {
     
     // 生成分享链接展示
     const shareInfoDisplay = task.share_info ? 
-        `<div class="task-message">分享链接：${task.share_info.url}?pwd=${task.share_info.password}</div>` : '';
+        `<div class="task-message">
+            分享链接：${task.share_info.url}?pwd=${task.share_info.password}
+            <button class="copy-btn" onclick="copyToClipboard('${task.share_info.url}?pwd=${task.share_info.password}', this)" title="复制链接">
+                <i class="material-icons">content_copy</i>
+            </button>
+        </div>` : '';
     
     div.innerHTML = `
         <div class="task-item-left">
@@ -1588,6 +1593,66 @@ function showSuccess(message) {
 
 function showError(message) {
     showNotification(message, 'error');
+}
+
+// 复制到剪贴板
+function copyToClipboard(text, buttonElement) {
+    if (navigator.clipboard && window.isSecureContext) {
+        // 使用现代的 Clipboard API
+        navigator.clipboard.writeText(text).then(() => {
+            showCopySuccess(buttonElement);
+        }).catch(err => {
+            console.error('复制失败:', err);
+            fallbackCopy(text, buttonElement);
+        });
+    } else {
+        // 降级到传统方法
+        fallbackCopy(text, buttonElement);
+    }
+}
+
+// 降级复制方法
+function fallbackCopy(text, buttonElement) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopySuccess(buttonElement);
+        } else {
+            showError('复制失败，请手动复制');
+        }
+    } catch (err) {
+        console.error('复制失败:', err);
+        showError('复制失败，请手动复制');
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+// 显示复制成功的反馈
+function showCopySuccess(buttonElement) {
+    const originalIcon = buttonElement.querySelector('i').textContent;
+    const iconElement = buttonElement.querySelector('i');
+    
+    // 临时改变图标和样式
+    iconElement.textContent = 'check';
+    buttonElement.style.color = '#4caf50';
+    
+    // 2秒后恢复原样
+    setTimeout(() => {
+        iconElement.textContent = originalIcon;
+        buttonElement.style.color = '';
+    }, 2000);
+    
+    showSuccess('链接已复制到剪贴板');
 }
 
 // 事件监听器
