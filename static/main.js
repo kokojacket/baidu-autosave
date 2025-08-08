@@ -1,5 +1,5 @@
 // 应用版本号和配置
-const APP_VERSION = 'v1.0.9';
+const APP_VERSION = 'v1.1.0';
 const GITHUB_REPO = 'kokojacket/baidu-autosave';
 // 版本检测源列表，按优先级排序
 const VERSION_CHECK_SOURCES = ['github', 'dockerhub', 'dockerhub_alt', 'msrun', '1ms'];
