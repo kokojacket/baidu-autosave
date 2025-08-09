@@ -172,6 +172,9 @@
                             <button type="button" id="add-bark-btn" class="secondary small-btn">
                                 添加BARK_PUSH
                             </button>
+                            <button type="button" id="add-webhook-btn" class="secondary small-btn">
+                                添加WEBHOOK配置
+                            </button>
                         </div>
                         
                         <!-- 添加新通知字段 -->
@@ -188,6 +191,8 @@
                                 PUSH_PLUS_TOKEN - PushPlus的令牌<br/>
                                 PUSH_PLUS_USER - PushPlus的群组编码<br/>
                                 BARK_PUSH - Bark推送的令牌<br/>
+                                WEBHOOK相关 - 自定义Webhook通知配置<br/>
+                                * WEBHOOK_BODY支持简化输入: title: "$title"content: "$content"source: "项目名" (保存时自动转换为多行格式)<br/>
                                 更多字段请参考通知模块文档
                             </div>
                         </div>

@@ -1,5 +1,5 @@
 // 应用版本号和配置
-const APP_VERSION = 'v1.1.0';
+const APP_VERSION = 'v1.1.1';
 const GITHUB_REPO = 'kokojacket/baidu-autosave';
 // 版本检测源列表，按优先级排序
 const VERSION_CHECK_SOURCES = ['github', 'dockerhub', 'dockerhub_alt', 'msrun', '1ms'];
@@ -736,6 +736,8 @@ function renderConfig() {
     }
 }
 
+// WEBHOOK_BODY字段格式化现在由后端自动处理
+
 // 添加通知字段到UI
 function addNotifyFieldToUI(key, value) {
     const container = document.getElementById('notify-fields-container');
@@ -755,6 +757,8 @@ function addNotifyFieldToUI(key, value) {
     valueInput.className = 'field-value';
     valueInput.value = value || '';
     valueInput.placeholder = '字段值';
+    
+    // WEBHOOK_BODY字段的格式化在后端保存时自动处理
     
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
@@ -2380,6 +2384,7 @@ function initializeEventListeners() {
     const addPushplusTokenBtn = document.getElementById('add-pushplus-token-btn');
     const addPushplusUserBtn = document.getElementById('add-pushplus-user-btn');
     const addBarkBtn = document.getElementById('add-bark-btn');
+    const addWebhookBtn = document.getElementById('add-webhook-btn');
     
     // 容量提醒相关元素
     const quotaAlertEnabled = document.getElementById('quota-alert-enabled');
@@ -2485,12 +2490,14 @@ function initializeEventListeners() {
             const valueInput = document.getElementById('new-notify-value');
             
             const key = keyInput.value.trim();
-            const value = valueInput.value.trim();
+            let value = valueInput.value.trim();
             
             if (!key) {
                 showError('字段名称不能为空');
                 return;
             }
+            
+            // WEBHOOK_BODY字段由后端自动格式化，前端不需要处理
             
             // 检查字段是否已存在
             const existingField = document.querySelector(`.notify-field[data-key="${key}"]`);
@@ -2552,6 +2559,39 @@ function initializeEventListeners() {
                 showSuccess('已添加BARK_PUSH字段');
             } else {
                 showError('BARK_PUSH字段已存在');
+            }
+        });
+    }
+    
+    // 快速添加WEBHOOK配置按钮
+    if (addWebhookBtn) {
+        addWebhookBtn.addEventListener('click', () => {
+            const webhookFields = [
+                { key: 'WEBHOOK_URL', value: 'https://your-webhook-url.com/api/notifications', placeholder: '请输入Webhook URL' },
+                { key: 'WEBHOOK_METHOD', value: 'POST' },
+                { key: 'WEBHOOK_CONTENT_TYPE', value: 'application/json' },
+                { key: 'WEBHOOK_HEADERS', value: 'Content-Type: application/json' },
+                { key: 'WEBHOOK_BODY', value: 'title: "$title"content: "$content"source: "我的项目"' }
+            ];
+            
+            let addedCount = 0;
+            let existingFields = [];
+            
+            webhookFields.forEach(field => {
+                const existingField = document.querySelector(`.notify-field[data-key="${field.key}"]`);
+                if (!existingField) {
+                    // WEBHOOK_BODY字段在保存时由后端自动格式化
+                    addNotifyFieldToUI(field.key, field.value);
+                    addedCount++;
+                } else {
+                    existingFields.push(field.key);
+                }
+            });
+            
+            if (addedCount > 0) {
+                showSuccess(`已添加 ${addedCount} 个WEBHOOK字段${existingFields.length > 0 ? `，${existingFields.join(', ')} 已存在` : ''}`);
+            } else {
+                showError('所有WEBHOOK字段都已存在');
             }
         });
     }

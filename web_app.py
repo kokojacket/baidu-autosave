@@ -920,6 +920,25 @@ def get_config():
     }
     return jsonify({'success': True, 'config': config})
 
+def format_webhook_body(webhook_body):
+    """格式化WEBHOOK_BODY字段，将简化格式转换为标准多行格式"""
+    if not webhook_body or isinstance(webhook_body, dict):
+        return webhook_body
+    
+    # 检测是否是简化格式（如：title: "$title"content: "$content"source: "我的项目"）
+    import re
+    simple_format = re.match(r'title:\s*"([^"]*)"content:\s*"([^"]*)"source:\s*"([^"]*)"', webhook_body)
+    
+    if simple_format:
+        # 转换为标准多行格式
+        title = simple_format.group(1)
+        content = simple_format.group(2)
+        source = simple_format.group(3)
+        return f'title: "{title}"\ncontent: "{content}"\nsource: "{source}"'
+    
+    # 如果不是简化格式，直接返回原始值
+    return webhook_body
+
 @app.route('/api/config/update', methods=['POST'])
 @login_required
 @handle_api_error
@@ -929,6 +948,13 @@ def update_config():
         return jsonify({'success': False, 'message': '存储未初始化'})
         
     data = request.get_json()
+    
+    # 自动格式化WEBHOOK_BODY字段
+    if 'notify' in data and 'direct_fields' in data['notify']:
+        direct_fields = data['notify']['direct_fields']
+        if 'WEBHOOK_BODY' in direct_fields:
+            direct_fields['WEBHOOK_BODY'] = format_webhook_body(direct_fields['WEBHOOK_BODY'])
+    
     storage.config.update(data)
     storage._save_config()
     
@@ -1159,6 +1185,10 @@ def add_notify_field():
     
     if not field_name:
         return jsonify({'success': False, 'message': '字段名称不能为空'})
+    
+    # 自动格式化WEBHOOK_BODY字段
+    if field_name == 'WEBHOOK_BODY':
+        field_value = format_webhook_body(field_value)
         
     notify_config = storage.config.get('notify', {})
     if 'custom_fields' not in notify_config:

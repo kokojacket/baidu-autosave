@@ -226,8 +226,15 @@ baidu-autosave/
 **配置方法：**
 1. 在系统设置的"通知设置"部分启用通知功能
 2. 添加对应通知服务的字段配置（如`PUSH_PLUS_TOKEN`）
-3. 点击"测试通知"验证配置是否正确
-4. 支持同时配置多种通知方式
+3. 对于WEBHOOK配置，支持快速添加和简化输入格式
+4. 点击"测试通知"验证配置是否正确
+5. 支持同时配置多种通知方式
+
+**WEBHOOK配置说明：**
+- 系统提供"添加WEBHOOK配置"按钮，可一键添加所有必需的WEBHOOK字段
+- WEBHOOK_BODY字段支持简化输入格式：`title: "$title"content: "$content"source: "项目名"`
+- 保存时系统会自动转换为标准多行格式，无需手动处理换行符和转义
+- 支持自定义HTTP方法、请求头和请求体格式
 
 **通知延迟合并功能：**
 1. 当多个任务在短时间内执行完成时，系统会将通知合并为一条发送
@@ -279,7 +286,10 @@ baidu-autosave/
             "SMTP_EMAIL": "",             // SMTP 发件邮箱
             "SMTP_PASSWORD": "",          // SMTP 登录密码
             "WEBHOOK_URL": "",            // 自定义 Webhook 地址
-            "WEBHOOK_METHOD": "POST"      // 自定义 Webhook 请求方法
+            "WEBHOOK_METHOD": "POST",     // 自定义 Webhook 请求方法
+            "WEBHOOK_CONTENT_TYPE": "application/json", // 请求内容类型
+            "WEBHOOK_HEADERS": "Content-Type: application/json", // 请求头
+            "WEBHOOK_BODY": "title: \"$title\"\ncontent: \"$content\"\nsource: \"项目名\"" // 请求体格式
         },
         "custom_fields": {     // 自定义字段，可通过界面动态添加
         }
@@ -317,12 +327,19 @@ baidu-autosave/
    - 检查网络连接和防火墙设置
    - 查看日志了解具体错误信息
 
-4. **通知未合并**
+4. **WEBHOOK配置问题**
+   - 使用"添加WEBHOOK配置"按钮可自动添加所有必需字段
+   - WEBHOOK_BODY支持简化格式输入，系统会自动转换
+   - 确认目标服务器能正常接收JSON格式的POST请求
+   - 检查WEBHOOK_URL地址是否可访问
+   - 验证WEBHOOK_HEADERS配置是否符合目标服务器要求
+
+5. **通知未合并**
    - 确认通知延迟时间设置合理（默认30秒）
    - 检查任务执行时间间隔是否超过了设定的延迟时间
    - 容量警告等重要通知不会被合并，会立即发送
 
-5. **正则表达式使用问题**
+6. **正则表达式使用问题**
    - 确认正则表达式语法正确，可使用在线正则测试工具验证
    - 过滤表达式用于筛选文件，重命名表达式用于文件重命名
    - 重命名功能可能因频率限制失败，建议谨慎使用
@@ -339,6 +356,14 @@ baidu-autosave/
 - **utils.py**: 提供通用工具函数
 
 ## 更新日志
+
+### v1.1.1
+- 新增WEBHOOK配置自动格式化功能，简化用户配置过程
+- 添加"添加WEBHOOK配置"快速按钮，一键添加所有必需的WEBHOOK字段
+- WEBHOOK_BODY字段支持简化输入格式，系统会自动转换为标准多行格式
+- 优化前端WEBHOOK配置体验，移除复杂的格式化逻辑
+- 后端自动处理WEBHOOK_BODY字段的格式转换，确保兼容性
+- 改进通知配置的用户体验，降低配置难度
 
 ### v1.1.0
 - 新增正则表达式功能，支持文件过滤和重命名处理
