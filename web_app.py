@@ -595,6 +595,21 @@ def execute_task():
     broadcast_task_progress(task_id, 0, 'running')
     
     try:
+        # 重新获取最新的任务数据，确保使用最新的密码等信息
+        latest_tasks = storage.list_tasks()
+        latest_tasks.sort(key=lambda x: x.get('order', float('inf')))
+        latest_task = None
+        for t in latest_tasks:
+            if t.get('order') == task_order:
+                latest_task = t
+                break
+        
+        if not latest_task:
+            return jsonify({'success': False, 'message': f'任务已不存在(order={task_order})'})
+        
+        # 使用最新任务数据
+        task = latest_task
+        
         def progress_callback(status, message):
             broadcast_task_log(message, status)
             if status == 'info' and message.startswith('添加文件:'):
@@ -655,10 +670,12 @@ def execute_task():
 
     except Exception as e:
         error_msg = str(e)
+        # 使用存储模块的错误解析功能
+        parsed_error = storage._parse_share_error(error_msg) if storage else error_msg
+        
         is_share_forbidden = "error_code: 115" in error_msg
         
         if is_share_forbidden:
-            error_msg = "该分享链接已失效（文件禁止分享）"
             try:
                 storage.remove_task_by_order(task_order)
                 storage._update_task_orders()
@@ -666,10 +683,10 @@ def execute_task():
             except Exception as del_err:
                 broadcast_task_log(f"删除失效任务失败: {str(del_err)}", 'error')
         
-        storage.update_task_status_by_order(task_order, 'error', error_msg)
-        broadcast_task_log(f'执行出错: {error_msg}', 'error')
+        storage.update_task_status_by_order(task_order, 'error', parsed_error)
+        broadcast_task_log(f'执行出错: {parsed_error}', 'error')
         broadcast_task_progress(task_id, 100, 'error')
-        return jsonify({'success': False, 'message': error_msg})
+        return jsonify({'success': False, 'message': parsed_error})
 
 @app.route('/api/users', methods=['GET'])
 @login_required

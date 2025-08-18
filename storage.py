@@ -718,6 +718,60 @@ class BaiduStorage:
                 return code, msg
                 
         return None, error_str
+    
+    def _parse_share_error(self, error_str):
+        """解析分享链接相关的错误信息，返回用户友好的错误消息
+        Args:
+            error_str: 原始错误信息字符串
+        Returns:
+            str: 用户友好的错误信息
+        """
+        try:
+            # 检查错误码115（分享文件禁止分享）
+            if 'error_code: 115' in error_str:
+                return '分享链接已失效（文件禁止分享）'
+            
+            # 检查错误码145或errno: 145（分享链接失效）
+            if 'error_code: 145' in error_str or "'errno': 145" in error_str:
+                return '分享链接已失效'
+            
+            # 检查错误码200025（提取码错误）
+            if 'error_code: 200025' in error_str or "'errno': 200025" in error_str:
+                return '提取码输入错误，请检查提取码'
+            
+            # 检查其他常见分享错误
+            if 'share' in error_str.lower() and 'not found' in error_str.lower():
+                return '分享链接不存在或已失效'
+                
+            if 'password' in error_str.lower() and 'wrong' in error_str.lower():
+                return '提取码错误'
+                
+            # 如果包含复杂的JSON错误信息，尝试简化
+            if '{' in error_str and 'errno' in error_str:
+                # 尝试提取错误码
+                import re
+                errno_match = re.search(r"'errno':\s*(\d+)", error_str)
+                if errno_match:
+                    errno = int(errno_match.group(1))
+                    if errno == 145:
+                        return '分享链接已失效'
+                    elif errno == 200025:
+                        return '提取码输入错误，请检查提取码'
+                    elif errno == 115:
+                        return '分享链接已失效（文件禁止分享）'
+                    else:
+                        return f'分享链接访问失败（错误码：{errno}）'
+            
+            # 如果没有匹配到特定错误，返回简化后的原始错误
+            # 移除复杂的JSON信息
+            if len(error_str) > 200 and '{' in error_str:
+                return '分享链接访问失败，请检查链接和提取码'
+            
+            return error_str
+            
+        except Exception as e:
+            logger.debug(f"解析分享错误信息失败: {str(e)}")
+            return '分享链接访问失败，请检查链接和提取码'
 
     def _handle_folder_structure(self, shared_paths, save_dir):
         """处理文件夹结构
@@ -1301,14 +1355,17 @@ class BaiduStorage:
                 
             except Exception as e:
                 error_msg = str(e)
+                # 使用新的错误解析函数
+                parsed_error = self._parse_share_error(error_msg)
                 if "error_code: 115" in error_msg:
-                    return {'success': False, 'error': error_msg}
+                    return {'success': False, 'error': parsed_error}
                 else:
-                    return {'success': False, 'error': f'转存失败: {error_msg}'}
+                    return {'success': False, 'error': parsed_error}
             
         except Exception as e:
             logger.error(f"转存分享文件失败: {str(e)}")
-            return {'success': False, 'error': f'转存分享文件失败: {str(e)}'}
+            parsed_error = self._parse_share_error(str(e))
+            return {'success': False, 'error': parsed_error}
 
     def get_share_folder_name(self, share_url, pwd=None):
         """获取分享链接的主文件夹名称"""
@@ -1964,6 +2021,19 @@ class BaiduStorage:
                 else:
                     # 如果新cron为空或无效,删除cron字段
                     tasks[task_index].pop('cron', None)
+            
+            # 处理正则表达式字段
+            if 'regex_pattern' in task_data:
+                regex_pattern = task_data['regex_pattern']
+                if regex_pattern and regex_pattern.strip():
+                    tasks[task_index]['regex_pattern'] = regex_pattern.strip()
+                    # 处理替换表达式，可以为空
+                    regex_replace = task_data.get('regex_replace', '')
+                    tasks[task_index]['regex_replace'] = regex_replace.strip() if regex_replace else ''
+                else:
+                    # 如果过滤表达式为空，删除相关字段
+                    tasks[task_index].pop('regex_pattern', None)
+                    tasks[task_index].pop('regex_replace', None)
             
             # 保存配置并更新调度器
             self._save_config()
