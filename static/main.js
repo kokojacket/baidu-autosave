@@ -1,5 +1,5 @@
 // 应用版本号和配置
-const APP_VERSION = 'v1.1.2';
+const APP_VERSION = 'v1.1.3';
 const GITHUB_REPO = 'kokojacket/baidu-autosave';
 // 版本检测源列表，按优先级排序
 const VERSION_CHECK_SOURCES = ['github', 'dockerhub', 'dockerhub_alt', 'msrun', '1ms'];
@@ -9,7 +9,8 @@ const CACHE_KEY = {
     TASKS: 'baidu_autosave_tasks',
     USERS: 'baidu_autosave_users',
     CONFIG: 'baidu_autosave_config',
-    HISTORY: 'baidu_autosave_field_history'
+    HISTORY: 'baidu_autosave_field_history',
+    REVERSE_ORDER: 'baidu_autosave_reverse_order'
 };
 
 // 轮询配置
@@ -66,6 +67,25 @@ function clearCache() {
     Object.values(CACHE_KEY).forEach(key => {
         localStorage.removeItem(key);
     });
+}
+
+// 倒序设置管理
+function getReverseOrderSetting() {
+    try {
+        const setting = localStorage.getItem(CACHE_KEY.REVERSE_ORDER);
+        return setting === 'true';
+    } catch (error) {
+        console.error('获取倒序设置失败:', error);
+        return false;
+    }
+}
+
+function setReverseOrderSetting(isReversed) {
+    try {
+        localStorage.setItem(CACHE_KEY.REVERSE_ORDER, isReversed.toString());
+    } catch (error) {
+        console.error('保存倒序设置失败:', error);
+    }
 }
 
 // WebSocket配置
@@ -343,7 +363,7 @@ async function callApi(endpoint, method = 'GET', data = null, showLoadingIndicat
     if (showLoadingIndicator) {
         showLoading();
     }
-    
+
     try {
         const options = {
             method,
@@ -351,21 +371,58 @@ async function callApi(endpoint, method = 'GET', data = null, showLoadingIndicat
                 'Content-Type': 'application/json'
             }
         };
-        
+
         if (data) {
             options.body = JSON.stringify(data);
         }
-        
+
         const response = await fetch(`/api/${endpoint}`, options);
         const result = await response.json();
-        
+
         if (!result.success) {
             throw new Error(result.message);
         }
-        
+
         return result;
     } catch (error) {
         showError(error.message);
+        throw error;
+    } finally {
+        if (showLoadingIndicator) {
+            hideLoading();
+        }
+    }
+}
+
+// 静默API调用函数（不显示错误通知，用于版本检查等后台操作）
+async function callApiSilent(endpoint, method = 'GET', data = null, showLoadingIndicator = false) {
+    if (showLoadingIndicator) {
+        showLoading();
+    }
+
+    try {
+        const options = {
+            method,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        };
+
+        if (data) {
+            options.body = JSON.stringify(data);
+        }
+
+        const response = await fetch(`/api/${endpoint}`, options);
+        const result = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.message);
+        }
+
+        return result;
+    } catch (error) {
+        // 静默处理错误，只记录到控制台，不显示用户通知
+        console.warn(`API调用失败 (${endpoint}):`, error.message);
         throw error;
     } finally {
         if (showLoadingIndicator) {
@@ -408,23 +465,32 @@ function renderUI() {
 function renderTasks() {
     const taskList = document.querySelector('.task-list');
     if (!taskList) return;
-    
+
     taskList.innerHTML = '';
-    
+
     if (Array.isArray(state.tasks)) {
-        state.tasks.forEach((task, index) => {
+        // 获取倒序设置
+        const isReversed = getReverseOrderSetting();
+
+        // 创建任务副本并根据设置排序
+        let tasksToRender = [...state.tasks];
+        if (isReversed) {
+            tasksToRender.reverse();
+        }
+
+        tasksToRender.forEach((task, index) => {
             task.id = task.id || index;
             const taskElement = createTaskElement(task);
             taskList.appendChild(taskElement);
         });
     }
-    
+
     // 更新分类列表
     updateCategoryList();
-    
+
     // 更新批量操作按钮状态
     updateBatchOperationUI();
-    
+
     // 更新异常指示器
     updateErrorIndicator();
 }
@@ -448,13 +514,19 @@ function createTaskElement(task) {
     // 获取显示的消息
     const displayMessage = task.status === 'error' ? (task.error || task.message) : task.message;
     
-    // 生成分享链接展示
-    const shareInfoDisplay = task.share_info ? 
-        `<div class="task-message">
-            分享链接：${task.share_info.url}?pwd=${task.share_info.password}
-            <button class="copy-btn" onclick="copyToClipboard('${task.share_info.url}?pwd=${task.share_info.password}', this)" title="复制链接">
-                <i class="material-icons">content_copy</i>
-            </button>
+    // 生成分享链接展示 - 响应式设计
+    const shareInfoDisplay = task.share_info ?
+        `<div class="task-message share-link">
+            <span class="share-text">分享链接：</span>
+            <a href="${task.share_info.url}?pwd=${task.share_info.password}" target="_blank" class="share-url">${task.share_info.url}?pwd=${task.share_info.password}</a>
+            <div class="share-actions">
+                <button class="share-btn" onclick="copyToClipboard('${task.share_info.url}?pwd=${task.share_info.password}', this)" title="复制链接">
+                    <i class="material-icons">content_copy</i>
+                </button>
+                <button class="share-btn" onclick="window.open('${task.share_info.url}?pwd=${task.share_info.password}', '_blank')" title="打开链接">
+                    <i class="material-icons">open_in_new</i>
+                </button>
+            </div>
         </div>` : '';
     
     div.innerHTML = `
@@ -490,7 +562,7 @@ function createTaskElement(task) {
             </div>
             ` : ''}
         </div>
-        <div class="task-actions" style="min-width: 160px">
+        <div class="task-actions">
             <button class="btn-icon" onclick="executeTask(${task.order - 1})" 
                     ${task.status === 'running' ? 'disabled' : ''}>
                 <i class="material-icons">play_arrow</i>
@@ -2205,12 +2277,13 @@ async function checkForUpdates() {
         // 依次尝试不同的更新源
         let response = null;
         let success = false;
-        
+
         for (const source of VERSION_CHECK_SOURCES) {
             try {
                 console.log(`尝试从 ${source} 获取更新信息...`);
-                response = await callApi(`version/check?source=${source}`, 'GET', null, false);
-                
+                // 静默调用API，不显示错误通知
+                response = await callApiSilent(`version/check?source=${source}`, 'GET', null);
+
                 if (response.success) {
                     success = true;
                     console.log(`成功从 ${source} 获取更新信息`);
@@ -2222,9 +2295,9 @@ async function checkForUpdates() {
                 console.warn(`从 ${source} 获取更新出错: ${error.message || error}`);
             }
         }
-        
+
         if (!success || !response) {
-            console.warn('所有更新源都检查失败');
+            console.warn('所有更新源都检查失败，静默处理');
             return;
         }
         
@@ -2675,7 +2748,21 @@ function initializeEventListeners() {
             showModal('user-modal');
         });
     }
-    
+
+    // 倒序开关事件监听器
+    const reverseOrderToggle = document.getElementById('reverse-order-toggle');
+    if (reverseOrderToggle) {
+        // 初始化开关状态
+        reverseOrderToggle.checked = getReverseOrderSetting();
+
+        // 添加事件监听器
+        reverseOrderToggle.addEventListener('change', (e) => {
+            const isReversed = e.target.checked;
+            setReverseOrderSetting(isReversed);
+            renderTasks(); // 重新渲染任务列表
+        });
+    }
+
     // 状态筛选按钮
     document.querySelectorAll('.status-btn').forEach(btn => {
         btn.addEventListener('click', () => {

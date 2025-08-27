@@ -72,28 +72,41 @@
                 <div class="panel-header">
                     <div class="operations-bar">
                         <div class="operations-top">
-                            <!-- 搜索框 -->
-                            <div class="search-box">
-                                <i class="material-icons">search</i>
-                                <input type="text" class="search-input" placeholder="搜索任务...">
+                            <!-- 搜索框和排序控制容器 -->
+                            <div class="search-sort-container">
+                                <!-- 搜索框 -->
+                                <div class="search-box">
+                                    <i class="material-icons">search</i>
+                                    <input type="text" class="search-input" placeholder="搜索任务...">
+                                </div>
+                                <!-- 排序控制 -->
+                                <div class="sort-control">
+                                    <label class="sort-toggle">
+                                        <input type="checkbox" id="reverse-order-toggle" class="sort-checkbox">
+                                        <span class="sort-label">
+                                            <i class="material-icons">sort</i>
+                                            倒序
+                                        </span>
+                                    </label>
+                                </div>
                             </div>
                             <!-- 操作按钮组 -->
                             <div class="action-group">
-                                <button class="btn secondary" onclick="selectAllTasks()">
+                                <button class="btn secondary" onclick="selectAllTasks()" title="全选">
                                     <i class="material-icons">select_all</i>
-                                    全选
+                                    <span>全选</span>
                                 </button>
-                                <button class="btn primary" id="add-task-btn">
+                                <button class="btn primary" id="add-task-btn" title="添加任务">
                                     <i class="material-icons">add</i>
-                                    添加任务
+                                    <span>添加任务</span>
                                 </button>
-                                <button class="btn primary" onclick="executeBatchOperation('execute')" disabled>
+                                <button class="btn primary" onclick="executeBatchOperation('execute')" disabled title="批量执行">
                                     <i class="material-icons">play_arrow</i>
-                                    批量执行
+                                    <span>批量执行</span>
                                 </button>
-                                <button class="btn danger" onclick="executeBatchOperation('delete')" disabled>
+                                <button class="btn danger" onclick="executeBatchOperation('delete')" disabled title="批量删除">
                                     <i class="material-icons">delete</i>
-                                    批量删除
+                                    <span>批量删除</span>
                                 </button>
                             </div>
                         </div>
