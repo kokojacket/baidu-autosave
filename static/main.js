@@ -479,7 +479,8 @@ function renderTasks() {
         }
 
         tasksToRender.forEach((task, index) => {
-            task.id = task.id || index;
+            // 确保任务ID正确设置，使用原始的order作为ID基础
+            task.id = task.order - 1;
             const taskElement = createTaskElement(task);
             taskList.appendChild(taskElement);
         });
@@ -1121,7 +1122,7 @@ async function editTask(taskId) {
         }
         
         // 填充表单数据
-        form.querySelector('[name="task_id"]').value = task.id;
+        form.querySelector('[name="task_id"]').value = taskId;
         form.querySelector('[name="name"]').value = task.name || '';
         
         // 组合URL和密码
