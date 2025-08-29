@@ -11,6 +11,55 @@ from threading import Lock
 import traceback
 import subprocess
 import json
+import random
+from functools import wraps
+
+def api_retry(max_retries=1, delay_range=(2, 3), exclude_errors=None):
+    """
+    API重试装饰器
+    Args:
+        max_retries: 最大重试次数（默认1次，即总共执行2次）
+        delay_range: 重试延迟范围（秒），默认2-3秒
+        exclude_errors: 不需要重试的错误码列表
+    """
+    if exclude_errors is None:
+        exclude_errors = [-6, 115, 145, 200025, -9]  # 身份验证失败、分享链接失效、提取码错误、文件不存在
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            last_exception = None
+
+            for attempt in range(max_retries + 1):  # +1 因为包含原始请求
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+                    error_str = str(e)
+
+                    # 检查是否是不需要重试的错误
+                    should_skip_retry = False
+                    for error_code in exclude_errors:
+                        if f"error_code: {error_code}" in error_str or f"errno: {error_code}" in error_str:
+                            should_skip_retry = True
+                            break
+
+                    # 如果是最后一次尝试或者是不需要重试的错误，直接抛出异常
+                    if attempt == max_retries or should_skip_retry:
+                        if should_skip_retry:
+                            logger.debug(f"API调用失败，错误不需要重试: {error_str}")
+                        raise e
+
+                    # 记录重试信息
+                    delay = random.uniform(delay_range[0], delay_range[1])
+                    logger.warning(f"API调用失败，{delay:.1f}秒后进行第{attempt + 1}次重试: {error_str}")
+                    time.sleep(delay)
+
+            # 如果所有重试都失败了，抛出最后一个异常
+            raise last_exception
+
+        return wrapper
+    return decorator
 
 class BaiduStorage:
     def __init__(self):
@@ -881,11 +930,11 @@ class BaiduStorage:
                     logger.info(f"使用密码 {pwd} 访问分享链接")
                 if progress_callback:
                         progress_callback('info', f'使用密码访问分享链接')
-                self.client.access_shared(share_url, pwd)
-                
+                self._access_shared_with_retry(share_url, pwd)
+
                 # 步骤1.1：获取分享文件列表并记录
                 logger.info("获取分享文件列表...")
-                shared_paths = self.client.shared_paths(shared_url=share_url)
+                shared_paths = self._shared_paths_with_retry(shared_url=share_url)
                 if not shared_paths:
                     logger.error("获取分享文件列表失败")
                     if progress_callback:
@@ -1134,7 +1183,7 @@ class BaiduStorage:
                         logger.info(f"开始执行转存操作: 正在将 {len(fs_ids)} 个文件转存到 {dir_path}")
                         # 确保客户端和参数都有效
                         if self.client and uk is not None and share_id is not None and bdstoken is not None:
-                            self.client.transfer_shared_paths(
+                            self._transfer_shared_paths_with_retry(
                                 remotedir=dir_path,
                                 fs_ids=fs_ids,
                                 uk=int(uk),
@@ -1161,7 +1210,7 @@ class BaiduStorage:
                                 logger.info(f"重试转存操作: 正在将 {len(fs_ids)} 个文件转存到 {dir_path}")
                                 # 确保客户端和参数都有效
                                 if self.client and uk is not None and share_id is not None and bdstoken is not None:
-                                    self.client.transfer_shared_paths(
+                                    self._transfer_shared_paths_with_retry(
                                         remotedir=dir_path,
                                         fs_ids=fs_ids,
                                         uk=int(uk),
@@ -1375,10 +1424,10 @@ class BaiduStorage:
             # 访问分享链接
             if pwd:
                 logger.info(f"使用密码访问分享链接")
-            self.client.access_shared(share_url, pwd)
-            
+            self._access_shared_with_retry(share_url, pwd)
+
             # 获取分享文件列表
-            shared_paths = self.client.shared_paths(shared_url=share_url)
+            shared_paths = self._shared_paths_with_retry(shared_url=share_url)
             if not shared_paths:
                 return {'success': False, 'error': '获取分享文件列表失败'}
             
@@ -1414,6 +1463,33 @@ class BaiduStorage:
             time.sleep(wait_time)
         self.last_request_time = time.time()
 
+    @api_retry(max_retries=1, delay_range=(2, 3))
+    def _transfer_shared_paths_with_retry(self, remotedir, fs_ids, uk, share_id, bdstoken, shared_url):
+        """带重试功能的转存方法"""
+        return self.client.transfer_shared_paths(
+            remotedir=remotedir,
+            fs_ids=fs_ids,
+            uk=uk,
+            share_id=share_id,
+            bdstoken=bdstoken,
+            shared_url=shared_url
+        )
+
+    @api_retry(max_retries=1, delay_range=(2, 3))
+    def _access_shared_with_retry(self, share_url, pwd=None):
+        """带重试功能的访问分享链接方法"""
+        return self.client.access_shared(share_url, pwd)
+
+    @api_retry(max_retries=1, delay_range=(2, 3))
+    def _shared_paths_with_retry(self, shared_url):
+        """带重试功能的获取分享文件列表方法"""
+        return self.client.shared_paths(shared_url=shared_url)
+
+    @api_retry(max_retries=1, delay_range=(2, 3))
+    def _list_shared_paths_with_retry(self, path, uk, share_id, bdstoken, page=1, size=100):
+        """带重试功能的获取分享目录内容方法"""
+        return self.client.list_shared_paths(path, uk, share_id, bdstoken, page=page, size=size)
+
     def list_shared_files(self, share_url, pwd=None):
         """获取分享链接中的文件列表"""
         try:
@@ -1422,12 +1498,12 @@ class BaiduStorage:
                 logger.info(f"使用密码 {pwd} 访问分享链接")
                 
             logger.debug("开始访问分享链接...")
-            self.client.access_shared(share_url, pwd)
+            self._access_shared_with_retry(share_url, pwd)
             logger.debug("分享链接访问成功")
-            
+
             logger.debug("开始获取文件列表...")
             # 获取根目录文件列表
-            files = self.client.shared_paths(shared_url=share_url)
+            files = self._shared_paths_with_retry(shared_url=share_url)
             
             # 用于存储所有文件
             all_files = []
@@ -1439,7 +1515,7 @@ class BaiduStorage:
                         logger.debug(f"进入文件夹: {file.path}")
                         try:
                             # 递归获取子目录内容
-                            sub_files = self.client.list_shared_paths(
+                            sub_files = self._list_shared_paths_with_retry(
                                 file.path,
                                 file.uk,
                                 file.share_id,
@@ -1624,7 +1700,7 @@ class BaiduStorage:
             all_sub_files = []
             
             while True:
-                sub_paths = self.client.list_shared_paths(
+                sub_paths = self._list_shared_paths_with_retry(
                     path.path,
                     uk,
                     share_id,
