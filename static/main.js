@@ -88,16 +88,6 @@ function setReverseOrderSetting(isReversed) {
     }
 }
 
-// WebSocket配置
-const WS_CONFIG = {
-    enabled: false,          // 是否启用WebSocket（默认禁用）
-    maxRetries: 3,           // 最大重试次数
-    retryInterval: 5000,     // 初始重试间隔（毫秒）
-    reconnectBackoff: 1.5,   // 重试间隔增长系数
-    pingInterval: 20000,     // 心跳间隔（毫秒）
-    pingTimeout: 8000,       // 心跳超时时间（毫秒）
-    debug: true              // 是否启用调试日志
-};
 
 // 全局状态管理
 const state = {
@@ -109,16 +99,6 @@ const state = {
     isLoggedIn: false // 添加登录状态标记
 };
 
-// WebSocket连接管理
-let socket = null;
-let wsRetryTimeout = null;
-let wsPingInterval = null;
-let wsPingTimeout = null;
-let retryCount = 0;
-let isConnecting = false;
-let lastPongTime = 0;
-let lastServerTime = 0;
-let heartbeatInterval = null;
 
 // 初始化WebSocket连接
 function initWebSocket() {

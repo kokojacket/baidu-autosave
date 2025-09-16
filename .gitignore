@@ -1,25 +1,52 @@
-/config/config.json
-git-config
+# Python
 __pycache__/
 *.pyc
-.DS_Store
+*.pyo
+*.pyd
+.Python
+.python-version
+
+# 配置文件
+/config/config.json
+config/config*.json
+git-config
+
+# 日志文件
 log/
 *.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE/编辑器
+.cursor/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 测试文件
+test_*.py
+
+# 参考文件
+*参考*.py
+*（参考）*.py
+
+# 文档
 Repository overview.md
-__pycache__/scheduler.cpython-310.pyc
-__pycache__/storage.cpython-310.pyc
-test_saturday_job.py
-test_dow_mapping.py
-test_cron_convert.py
-__pycache__/scheduler.cpython-310.pyc
-test_pushplus.py
-config/config copy.json
-.python-version
-.cursor/mcp.json
-.cursor/rules/baidu.mdc
-__pycache__/storage.cpython-310.pyc
-__pycache__/scheduler.cpython-310.pyc
-__pycache__/notify.cpython-310.pyc
-quark-auto-save（参考）.py
-__pycache__/storage.cpython-310.pyc
-__pycache__/*
+
+# Node.js (前端相关)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 构建输出
+dist/
+build/
+
+# 临时文件
+*.tmp
+*.temp
+.cache/
