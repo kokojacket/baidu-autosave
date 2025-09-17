@@ -1,5 +1,22 @@
-# 阶段1: 安装构建依赖
-FROM python:3.10-slim AS builder
+# 阶段1: 构建前端
+FROM node:18-alpine AS frontend-builder
+
+WORKDIR /app/frontend
+
+# 复制前端依赖文件
+COPY frontend/package*.json ./
+
+# 安装前端依赖
+RUN npm ci --only=production
+
+# 复制前端源码
+COPY frontend/ .
+
+# 构建前端
+RUN npm run build
+
+# 阶段2: 安装后端依赖
+FROM python:3.10-slim AS backend-builder
 
 # 安装必要构建工具
 RUN apt-get update && \
@@ -17,7 +34,7 @@ COPY requirements.txt .
 RUN python -m venv /opt/venv && \
     /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
-# 阶段2: 创建最终镜像
+# 阶段3: 创建最终镜像
 FROM python:3.10-slim
 
 # 设置时区和环境变量
@@ -26,14 +43,20 @@ ENV PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH"
 
 # 从构建阶段复制虚拟环境
-COPY --from=builder /opt/venv /opt/venv
+COPY --from=backend-builder /opt/venv /opt/venv
 
 WORKDIR /app
 
-# 复制应用文件
+# 复制后端应用文件
 COPY *.py ./
-COPY static/ static/
+
+# 从前端构建阶段复制构建产物到static目录（替换旧前端）
+COPY --from=frontend-builder /app/frontend/dist/ static/
+
+# 复制模板文件（保留登录页面，以防需要fallback）
 COPY templates/ templates/
+
+# 复制配置模板
 COPY config/config.template.json ./template/config.template.json
 
 # 创建目录并设置权限
@@ -48,9 +71,6 @@ if [ ! -f /app/config/config.json ]; then\n\
 fi\n\
 exec python web_app.py' > start.sh && \
     chmod +x start.sh
-
-# 清理apt缓存
-RUN rm -rf /var/lib/apt/lists/*
 
 EXPOSE 5000
 

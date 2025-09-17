@@ -15,7 +15,7 @@
     <title>百度网盘自动转存工具</title>
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <script src="/static/sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <!-- 引入本地资源 -->
     <link rel="stylesheet" href="/static/style.css">
     <script src="/static/main.js" defer></script>
@@ -72,41 +72,28 @@
                 <div class="panel-header">
                     <div class="operations-bar">
                         <div class="operations-top">
-                            <!-- 搜索框和排序控制容器 -->
-                            <div class="search-sort-container">
-                                <!-- 搜索框 -->
-                                <div class="search-box">
-                                    <i class="material-icons">search</i>
-                                    <input type="text" class="search-input" placeholder="搜索任务...">
-                                </div>
-                                <!-- 排序控制 -->
-                                <div class="sort-control">
-                                    <label class="sort-toggle">
-                                        <input type="checkbox" id="reverse-order-toggle" class="sort-checkbox">
-                                        <span class="sort-label">
-                                            <i class="material-icons">sort</i>
-                                            倒序
-                                        </span>
-                                    </label>
-                                </div>
+                            <!-- 搜索框 -->
+                            <div class="search-box">
+                                <i class="material-icons">search</i>
+                                <input type="text" class="search-input" placeholder="搜索任务...">
                             </div>
                             <!-- 操作按钮组 -->
                             <div class="action-group">
-                                <button class="btn secondary" onclick="selectAllTasks()" title="全选">
+                                <button class="btn secondary" onclick="selectAllTasks()">
                                     <i class="material-icons">select_all</i>
-                                    <span>全选</span>
+                                    全选
                                 </button>
-                                <button class="btn primary" id="add-task-btn" title="添加任务">
+                                <button class="btn primary" id="add-task-btn">
                                     <i class="material-icons">add</i>
-                                    <span>添加任务</span>
+                                    添加任务
                                 </button>
-                                <button class="btn primary" onclick="executeBatchOperation('execute')" disabled title="批量执行">
+                                <button class="btn primary" onclick="executeBatchOperation('execute')" disabled>
                                     <i class="material-icons">play_arrow</i>
-                                    <span>批量执行</span>
+                                    批量执行
                                 </button>
-                                <button class="btn danger" onclick="executeBatchOperation('delete')" disabled title="批量删除">
+                                <button class="btn danger" onclick="executeBatchOperation('delete')" disabled>
                                     <i class="material-icons">delete</i>
-                                    <span>批量删除</span>
+                                    批量删除
                                 </button>
                             </div>
                         </div>
@@ -160,15 +147,6 @@
                             <label for="notify-enabled">启用通知</label>
                         </div>
                         
-                        <div class="input-group">
-                            <label for="notification-delay">通知延迟时间 (秒)</label>
-                            <input type="number" id="notification-delay" name="notification-delay" 
-                                   min="0" max="300" value="30" placeholder="多个任务在此时间内完成将合并通知">
-                            <div class="help-text">
-                                设置通知延迟合并时间，当多个任务在此时间内执行完成时，将合并为一条通知发送
-                            </div>
-                        </div>
-                        
                         <!-- 动态通知字段 -->
                         <div id="notify-fields-container">
                             <!-- 这里会动态添加通知字段 -->
@@ -184,9 +162,6 @@
                             </button>
                             <button type="button" id="add-bark-btn" class="secondary small-btn">
                                 添加BARK_PUSH
-                            </button>
-                            <button type="button" id="add-webhook-btn" class="secondary small-btn">
-                                添加WEBHOOK配置
                             </button>
                         </div>
                         
@@ -204,8 +179,6 @@
                                 PUSH_PLUS_TOKEN - PushPlus的令牌<br/>
                                 PUSH_PLUS_USER - PushPlus的群组编码<br/>
                                 BARK_PUSH - Bark推送的令牌<br/>
-                                WEBHOOK相关 - 自定义Webhook通知配置<br/>
-                                * WEBHOOK_BODY支持简化输入: title: "$title"content: "$content"source: "项目名" (保存时自动转换为多行格式)<br/>
                                 更多字段请参考通知模块文档
                             </div>
                         </div>
@@ -275,38 +248,6 @@
                             <div class="help-text">
                                 设置分享链接的默认有效期，单位为天，设置为0表示永久有效
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- 文件操作设置 -->
-                    <div class="form-group">
-                        <h3>文件操作设置</h3>
-                        <div class="input-group">
-                            <label for="rename-delay">重命名延迟(秒)</label>
-                            <input type="number" id="rename-delay" name="rename-delay" 
-                                   min="0" max="5" step="0.1" value="0.5"
-                                   placeholder="0.5">
-                            <small class="help-text">
-                                设置文件重命名操作的延迟时间，避免触发API频率限制。推荐值：0.5秒
-                            </small>
-                        </div>
-                        <div class="input-group">
-                            <label for="batch-size">批次大小</label>
-                            <input type="number" id="batch-size" name="batch-size" 
-                                   min="10" max="200" step="10" value="50"
-                                   placeholder="50">
-                            <small class="help-text">
-                                每批次处理的文件数量，较小的批次可以减少出错几率
-                            </small>
-                        </div>
-                        <div class="input-group">
-                            <label for="concurrent-limit">并发限制</label>
-                            <input type="number" id="concurrent-limit" name="concurrent-limit" 
-                                   min="1" max="5" step="1" value="1"
-                                   placeholder="1">
-                            <small class="help-text">
-                                同时处理的任务数量，建议设为1避免冲突
-                            </small>
                         </div>
                     </div>
 
@@ -430,18 +371,6 @@
                     </div>
                     <div class="form-help">可以给任务添加分类标签，方便管理和筛选</div>
                 </div>
-                
-                                <div class="form-group">
-                    <label>过滤表达式</label>
-                    <input type="text" name="regex_pattern" placeholder="如：^(\d+)\.mp4$" title="用于匹配需要转存的文件，留空表示不过滤">
-                </div>
-                
-                <div class="form-group">
-                    <label>重命名表达式</label>
-                    <input type="text" name="regex_replace" placeholder="如：第\1集.mp4" title="用于重命名文件，留空表示不重命名">
-                    <div class="form-help error">提示：百度网盘 API 对重命名操作有严格的频率限制，频繁重命名可能失败或触发风控。不建议启用重命名，优先通过分享源文件名满足需求。</div>
-                </div>
-
                 
                 <div class="form-actions">
                     <button type="button" class="btn secondary" onclick="hideModal('task-modal')">取消</button>

@@ -15,6 +15,7 @@ from datetime import datetime
 from flask_cors import CORS
 import time
 import socket
+import threading
 
 from gevent.pywsgi import WSGIServer
 
@@ -167,7 +168,8 @@ def login():
         password = request.form.get('password')
         
         if not storage:
-            return render_template('login.html', message='系统未初始化')
+            # 对于POST请求，返回JSON响应（新前端使用API）
+            return jsonify({'success': False, 'message': '系统未初始化'}), 400
             
         # 验证用户名和密码
         auth_config = storage.config.get('auth', {})
@@ -176,73 +178,26 @@ def login():
             session['username'] = username
             session['login_time'] = time.time()
             
-            # 直接重定向到首页，不再等待获取用户配额信息
-            return redirect(url_for('index'))
+            # 返回JSON响应给新前端
+            return jsonify({'success': True, 'message': '登录成功'})
         else:
-            return render_template('login.html', message='用户名或密码错误')
+            return jsonify({'success': False, 'message': '用户名或密码错误'}), 401
             
-    return render_template('login.html')
+    # GET请求返回SPA的index.html，让Vue Router处理登录页面
+    return send_from_directory('static', 'index.html')
 
 @app.route('/logout')
 def logout():
     """登出处理"""
     session.clear()
-    return redirect(url_for('login'))
+    # 返回JSON响应给新前端，而不是重定向
+    return jsonify({'success': True, 'message': '登出成功'})
 
 @app.route('/')
 @login_required
 def index():
-    """首页"""
-    try:
-        users = []
-        tasks = []
-        current_user = None
-        config = {}
-        login_status = False
-        init_error = None
-        
-        if storage:
-            try:
-                users = storage.list_users()
-                tasks = storage.list_tasks()
-                current_user = storage.config['baidu'].get('current_user')
-                config = {
-                    'cron': storage.config.get('cron', {}),
-                    'notify': storage.config.get('notify', {})
-                }
-                # 同时检查管理员登录状态和百度用户登录状态
-                admin_logged_in = 'username' in session
-                baidu_logged_in = storage.is_valid()
-                login_status = admin_logged_in and baidu_logged_in
-                
-                # 记录日志
-                logger.info(f"登录状态检查 - 管理员: {admin_logged_in}, 百度用户: {baidu_logged_in}, 当前用户: {current_user}")
-                
-                # 异步获取用户配额信息 - 不阻塞页面加载
-                # 用户配额信息将通过API端点/api/user/quota获取
-            except Exception as e:
-                logger.error(f"获取数据失败: {str(e)}")
-                init_error = str(e)
-        
-        return render_template('index.html', 
-                            users=users, 
-                            tasks=tasks, 
-                            config=config,
-                            current_user=current_user,
-                            storage=storage,
-                            login_status=login_status,
-                            init_error=init_error)
-    except Exception as e:
-        error_msg = f"加载页面失败: {str(e)}"
-        logger.error(error_msg)
-        return render_template('index.html',
-                            users=[],
-                            tasks=[],
-                            config={},
-                            current_user=None,
-                            storage=None,
-                            login_status=False,
-                            init_error=error_msg)
+    """首页 - 返回新前端SPA"""
+    return send_from_directory('static', 'index.html')
 
 @app.route('/api/tasks', methods=['GET'])
 @login_required
@@ -493,7 +448,7 @@ def move_task():
         # 更新所有任务的order
         for i, task in enumerate(tasks):
             task['order'] = i + 1
-            storage.update_task(task)
+            storage.update_task(i, task)
         
         return jsonify({'success': True, 'message': '任务位置已更新'})
         
@@ -526,104 +481,205 @@ def execute_task():
     # 按order排序
     tasks.sort(key=lambda x: x.get('order', float('inf')))
     
-    # 查找对应的任务
-    task = None
-    task_order = task_id + 1  # 前端task_id从0开始，order从1开始
+    # 根据task_id获取对应的任务（task_id是数组索引）
+    if task_id >= len(tasks):
+        return jsonify({'success': False, 'message': f'任务索引超出范围(task_id={task_id})'})
     
-    for t in tasks:
-        if t.get('order') == task_order:
-            task = t
-            break
+    task = tasks[task_id]
+    task_order = task.get('order')
     
-    if not task:
-        return jsonify({'success': False, 'message': f'未找到任务(order={task_order})'})
+    if not task_order:
+        return jsonify({'success': False, 'message': f'任务order不存在(task_id={task_id})'})
     
     task_name = task.get('name') or f'任务{task_order}'
     
     # 更新为运行状态
     storage.update_task_status_by_order(task_order, 'running', '正在执行任务')
     
-    try:
-        # 重新获取最新的任务数据，确保使用最新的密码等信息
-        latest_tasks = storage.list_tasks()
-        latest_tasks.sort(key=lambda x: x.get('order', float('inf')))
-        latest_task = None
-        for t in latest_tasks:
-            if t.get('order') == task_order:
-                latest_task = t
-                break
-        
-        if not latest_task:
-            return jsonify({'success': False, 'message': f'任务已不存在(order={task_order})'})
-        
-        # 使用最新任务数据
-        task = latest_task
-        
-        def progress_callback(status, message):
-            # 进度回调函数，可以在这里记录日志或其他处理
-            pass
-
-        result = storage.transfer_share(
-            task['url'],
-            task.get('pwd'),
-            None,
-            task.get('save_dir'),
-            progress_callback,
-            task  # 传入完整的任务配置
-        )
-        
-        if result.get('success'):
-            transferred_files = result.get('transferred_files', [])
-            if transferred_files:
-                task_results = {
-                    'success': [task],
-                    'failed': [],
-                    'transferred_files': {task['url']: transferred_files}
+    # 初始化任务日志存储
+    if not hasattr(app, 'task_logs'):
+        app.task_logs = {}
+    
+    # 清理旧的任务日志，避免显示历史日志
+    app.task_logs[task_order] = []
+    
+    # 添加初始日志，确保前端立即能看到日志更新
+    initial_log = {
+        'timestamp': datetime.now().strftime('%H:%M:%S'),
+        'level': 'INFO',
+        'message': f'开始执行任务: {task_name}',
+        'task_order': task_order
+    }
+    app.task_logs[task_order].append(initial_log)
+    
+    # 立即返回响应，然后异步执行任务
+    def execute_task_async():
+        """异步执行任务"""
+        try:
+            # 添加任务启动日志
+            startup_log = {
+                'timestamp': datetime.now().strftime('%H:%M:%S'),
+                'level': 'INFO',
+                'message': '任务线程已启动，正在准备执行...',
+                'task_order': task_order
+            }
+            if hasattr(app, 'task_logs') and task_order in app.task_logs:
+                app.task_logs[task_order].append(startup_log)
+            
+            # 重新获取最新的任务数据，确保使用最新的密码等信息
+            latest_tasks = storage.list_tasks()
+            latest_tasks.sort(key=lambda x: x.get('order', float('inf')))
+            latest_task = None
+            for t in latest_tasks:
+                if t.get('order') == task_order:
+                    latest_task = t
+                    break
+            
+            if not latest_task:
+                logger.error(f'任务已不存在(order={task_order})')
+                storage.update_task_status_by_order(task_order, 'error', '任务已不存在')
+                # 添加错误日志
+                error_log = {
+                    'timestamp': datetime.now().strftime('%H:%M:%S'),
+                    'level': 'ERROR',
+                    'message': '任务已不存在，执行失败',
+                    'task_order': task_order
                 }
+                if hasattr(app, 'task_logs') and task_order in app.task_logs:
+                    app.task_logs[task_order].append(error_log)
+                return
+            
+            # 使用最新任务数据
+            task = latest_task
+            
+            # 添加任务开始执行日志
+            start_log = {
+                'timestamp': datetime.now().strftime('%H:%M:%S'),
+                'level': 'INFO',
+                'message': f'开始处理任务: {task.get("name", "未命名任务")}',
+                'task_order': task_order
+            }
+            if hasattr(app, 'task_logs') and task_order in app.task_logs:
+                app.task_logs[task_order].append(start_log)
+            
+            def progress_callback(status, message):
+                """实时记录任务执行进度"""
+                timestamp = datetime.now().strftime('%H:%M:%S')
+                log_entry = {
+                    'timestamp': timestamp,
+                    'level': status.upper() if status in ['error', 'info', 'warning'] else 'INFO',
+                    'message': message,
+                    'task_order': task_order
+                }
+                # 直接添加到全局日志存储
+                if hasattr(app, 'task_logs') and task_order in app.task_logs:
+                    app.task_logs[task_order].append(log_entry)
                 
-                try:
-                    # 发送转存成功通知
-                    notify_send('百度自动追更', generate_transfer_notification(task_results))
-                except Exception as e:
-                    logger.error(f"发送转存成功通知失败: {str(e)}")
+                # 同时更新任务状态消息
+                if status != 'error':
+                    storage.update_task_status_by_order(task_order, 'running', message)
                 
-                storage.update_task_status_by_order(
-                    task_order, 
-                    'normal',
-                    '转存成功',
-                    transferred_files=transferred_files
-                )
-                
-                
-                return jsonify({
-                    'success': True, 
-                    'message': '任务执行成功',
-                    'transferred_files': transferred_files
-                })
-            else:
-                storage.update_task_status_by_order(task_order, 'normal', '没有新文件需要转存')
-                return jsonify({'success': True, 'message': '没有新文件需要转存'})
-        else:
-            error_msg = result.get('error', '转存失败')
-            storage.update_task_status_by_order(task_order, 'error', error_msg)
-            return jsonify({'success': False, 'message': error_msg})
+                # 记录到系统日志
+                if status == 'error':
+                    logger.error(f"[任务{task_order}] {message}")
+                else:
+                    logger.info(f"[任务{task_order}] {message}")
 
-    except Exception as e:
-        error_msg = str(e)
-        # 使用存储模块的错误解析功能
-        parsed_error = storage._parse_share_error(error_msg) if storage else error_msg
-        
-        is_share_forbidden = "error_code: 115" in error_msg
-        
-        if is_share_forbidden:
-            try:
-                storage.remove_task_by_order(task_order)
-                storage._update_task_orders()
-            except Exception as del_err:
-                pass  # 删除失效任务失败，继续执行
-        
-        storage.update_task_status_by_order(task_order, 'error', parsed_error)
-        return jsonify({'success': False, 'message': parsed_error})
+            result = storage.transfer_share(
+                task['url'],
+                task.get('pwd'),
+                None,
+                task.get('save_dir'),
+                progress_callback,
+                task  # 传入完整的任务配置
+            )
+            
+            if result.get('success'):
+                transferred_files = result.get('transferred_files', [])
+                if transferred_files:
+                    task_results = {
+                        'success': [task],
+                        'failed': [],
+                        'transferred_files': {task['url']: transferred_files}
+                    }
+                    
+                    try:
+                        # 发送转存成功通知
+                        notify_send('百度自动追更', generate_transfer_notification(task_results))
+                    except Exception as e:
+                        logger.error(f"发送转存成功通知失败: {str(e)}")
+                    
+                    storage.update_task_status_by_order(
+                        task_order, 
+                        'normal',
+                        '转存成功',
+                        transferred_files=transferred_files
+                    )
+                    
+                    # 添加完成日志
+                    if hasattr(app, 'task_logs') and task_order in app.task_logs:
+                        app.task_logs[task_order].append({
+                            'timestamp': datetime.now().strftime('%H:%M:%S'),
+                            'level': 'INFO',
+                            'message': '任务执行完成',
+                            'task_order': task_order
+                        })
+                else:
+                    storage.update_task_status_by_order(task_order, 'normal', '没有新文件需要转存')
+                    
+                    # 添加完成日志
+                    if hasattr(app, 'task_logs') and task_order in app.task_logs:
+                        app.task_logs[task_order].append({
+                            'timestamp': datetime.now().strftime('%H:%M:%S'),
+                            'level': 'INFO',
+                            'message': '没有新文件需要转存',
+                            'task_order': task_order
+                        })
+            else:
+                error_msg = result.get('error', '转存失败')
+                storage.update_task_status_by_order(task_order, 'error', error_msg)
+                
+                # 添加错误日志
+                if hasattr(app, 'task_logs') and task_order in app.task_logs:
+                    app.task_logs[task_order].append({
+                        'timestamp': datetime.now().strftime('%H:%M:%S'),
+                        'level': 'ERROR',
+                        'message': f'任务执行失败: {error_msg}',
+                        'task_order': task_order
+                    })
+
+        except Exception as e:
+            error_msg = str(e)
+            # 使用存储模块的错误解析功能
+            parsed_error = storage._parse_share_error(error_msg) if storage else error_msg
+            
+            is_share_forbidden = "error_code: 115" in error_msg
+            
+            if is_share_forbidden:
+                try:
+                    storage.remove_task_by_order(task_order)
+                    storage._update_task_orders()
+                except Exception as del_err:
+                    pass  # 删除失效任务失败，继续执行
+            
+            storage.update_task_status_by_order(task_order, 'error', parsed_error)
+            
+            # 添加异常日志
+            if hasattr(app, 'task_logs') and task_order in app.task_logs:
+                app.task_logs[task_order].append({
+                    'timestamp': datetime.now().strftime('%H:%M:%S'),
+                    'level': 'ERROR',
+                    'message': f'任务执行异常: {parsed_error}',
+                    'task_order': task_order
+                })
+
+    # 启动异步任务并立即返回
+    thread = threading.Thread(target=execute_task_async)
+    thread.daemon = True  # 设置为守护线程
+    thread.start()
+    
+    # 立即返回响应，表示任务已开始执行
+    return jsonify({'success': True, 'message': '任务已开始执行'})
 
 @app.route('/api/users', methods=['GET'])
 @login_required
@@ -1223,6 +1279,27 @@ def reorder_task():
 def send_static(path):
     return send_from_directory('static', path)
 
+# 前端资源路由 - 直接从static目录提供
+@app.route('/assets/<path:path>')
+def send_assets(path):
+    return send_from_directory('static/assets', path)
+
+@app.route('/favicon/<path:path>')
+def send_favicon(path):
+    return send_from_directory('static/favicon', path)
+
+# SPA路由支持 - 捕获所有前端路由
+@app.route('/<path:path>')
+@login_required
+def spa_routes(path):
+    """SPA前端路由支持 - 将所有未匹配的路由返回index.html"""
+    # 排除API路由、登录登出路由、静态资源等
+    if path.startswith(('api/', 'login', 'logout', 'static/', 'assets/', 'favicon/')):
+        return jsonify({'success': False, 'message': '接口不存在'}), 404
+    
+    # 返回SPA的index.html，让Vue Router处理路由
+    return send_from_directory('static', 'index.html')
+
 # 错误处理
 @app.errorhandler(404)
 def not_found(error):
@@ -1659,14 +1736,93 @@ def get_logs():
     
     return jsonify({'success': True, 'logs': log_entries})
 
+def cleanup_old_task_logs():
+    """清理超过1小时的任务日志，释放内存"""
+    if not hasattr(app, 'task_logs'):
+        return
+    
+    current_time = datetime.now()
+    tasks_to_remove = []
+    
+    # 获取所有任务状态
+    try:
+        if storage:
+            tasks = storage.list_tasks()
+            for task_order in list(app.task_logs.keys()):
+                # 查找对应的任务
+                task_found = False
+                for task in tasks:
+                    if task.get('order') == task_order:
+                        task_found = True
+                        # 如果任务不是运行状态，且日志有内容，检查最后一条日志的时间
+                        if task.get('status') != 'running' and app.task_logs[task_order]:
+                            last_log = app.task_logs[task_order][-1]
+                            if 'timestamp' in last_log:
+                                try:
+                                    # 解析时间戳（HH:MM:SS格式）
+                                    last_time_str = last_log['timestamp']
+                                    last_time = datetime.strptime(f"{current_time.strftime('%Y-%m-%d')} {last_time_str}", '%Y-%m-%d %H:%M:%S')
+                                    
+                                    # 如果是昨天的日志，需要调整日期
+                                    if last_time > current_time:
+                                        last_time = last_time.replace(day=last_time.day - 1)
+                                    
+                                    # 如果超过1小时，标记为删除
+                                    if (current_time - last_time).total_seconds() > 3600:
+                                        tasks_to_remove.append(task_order)
+                                except:
+                                    # 时间解析失败，保留日志
+                                    pass
+                        break
+                
+                # 如果任务不存在，也清理其日志
+                if not task_found:
+                    tasks_to_remove.append(task_order)
+        
+        # 删除标记的日志
+        for task_order in tasks_to_remove:
+            if task_order in app.task_logs:
+                del app.task_logs[task_order]
+                logger.debug(f"已清理任务{task_order}的历史日志")
+                
+    except Exception as e:
+        logger.error(f"清理任务日志失败: {str(e)}")
+
 @app.route('/api/task/log/<int:task_id>', methods=['GET'])
 @login_required
 @handle_api_error
 def get_task_log(task_id):
     """获取指定任务的执行日志（用于轮询）"""
-    # 这里我们返回一个空列表，因为我们没有为每个任务单独存储日志
-    # 在实际应用中，可以考虑为每个任务添加日志存储
-    return jsonify({'success': True, 'logs': []})
+    try:
+        # 根据task_id找到真实的任务order
+        if not storage:
+            return jsonify({'success': False, 'message': '存储未初始化'})
+        
+        tasks = storage.list_tasks()
+        if not tasks or task_id >= len(tasks):
+            return jsonify({'success': True, 'logs': []})
+        
+        # 获取真实的task order
+        task_order = tasks[task_id].get('order')
+        
+        # 定期清理旧日志（每100次请求清理一次）
+        if not hasattr(app, '_log_cleanup_counter'):
+            app._log_cleanup_counter = 0
+        app._log_cleanup_counter += 1
+        if app._log_cleanup_counter >= 100:
+            cleanup_old_task_logs()
+            app._log_cleanup_counter = 0
+        
+        # 从全局变量中获取任务日志
+        if hasattr(app, 'task_logs') and task_order in app.task_logs:
+            logs = app.task_logs[task_order]
+            return jsonify({'success': True, 'logs': logs})
+        else:
+            # 如果没有找到任务日志，返回空列表
+            return jsonify({'success': True, 'logs': []})
+    except Exception as e:
+        logger.error(f"获取任务日志失败: {str(e)}")
+        return jsonify({'success': False, 'message': f'获取任务日志失败: {str(e)}'})
 
 @app.route('/api/task/share', methods=['POST'])
 @login_required

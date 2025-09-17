@@ -28,9 +28,6 @@ export function usePolling() {
     pollingService.on('task_update', callback)
   }
 
-  const onLogsUpdate = (callback: (logs: LogEntry[]) => void) => {
-    pollingService.on('logs_update', callback)
-  }
 
   const onError = (callback: (error: any) => void) => {
     pollingService.on('error', callback)
@@ -41,9 +38,6 @@ export function usePolling() {
     pollingService.off('task_update', callback)
   }
 
-  const offLogsUpdate = (callback: (logs: LogEntry[]) => void) => {
-    pollingService.off('logs_update', callback)
-  }
 
   const offError = (callback: (error: any) => void) => {
     pollingService.off('error', callback)
@@ -57,7 +51,6 @@ export function usePolling() {
   // 更新轮询配置
   const updatePollingConfig = (config: {
     taskStatusInterval?: number
-    logsInterval?: number
     fastPollingInterval?: number
     retryDelay?: number
   }) => {
@@ -107,12 +100,10 @@ export function usePolling() {
     
     // 事件监听
     onTaskUpdate,
-    onLogsUpdate,
     onError,
     
     // 移除监听器
     offTaskUpdate,
-    offLogsUpdate,
     offError,
     
     // 工具方法

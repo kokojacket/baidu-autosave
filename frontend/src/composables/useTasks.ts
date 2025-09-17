@@ -15,15 +15,15 @@ export function useTasks() {
     setFastPolling(true)
     try {
       await taskStore.executeTask(taskId)
+      // 任务已开始执行，不需要等待完成
       ElMessage.success('任务已开始执行')
     } catch (error) {
       ElMessage.error(`执行任务失败: ${error}`)
-    } finally {
-      // 延迟恢复正常轮询频率
-      setTimeout(() => {
-        setFastPolling(false)
-      }, 30000) // 30秒后恢复
     }
+    // 延迟恢复正常轮询频率（任务执行中）
+    setTimeout(() => {
+      setFastPolling(false)
+    }, 60000) // 60秒后恢复
   }
 
   const executeBatchTasksWithFastPolling = async (taskIds: number[]) => {

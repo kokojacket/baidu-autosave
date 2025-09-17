@@ -80,6 +80,7 @@ export interface UserQuota {
   total: number
   used_formatted: string
   total_formatted: string
+  percent: number
 }
 
 export interface CreateUserRequest {

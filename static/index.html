@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="百度网盘自动转存工具 - 高效管理你的百度网盘资源">
+  <meta name="keywords" content="百度网盘,自动转存,网盘管理,资源下载">
+  <meta name="author" content="百度网盘自动转存工具">
+  
+  <!-- 预连接优化 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="dns-prefetch" href="//pan.baidu.com">
+  
+  <!-- 网站图标 -->
+  <link rel="icon" type="image/svg+xml" href="./favicon/favicon.svg">
+  <link rel="icon" type="image/png" href="./favicon/favicon-96x96.png">
+  <link rel="apple-touch-icon" href="./favicon/apple-touch-icon.png">
+  <link rel="manifest" href="./favicon/site.webmanifest">
+  
+  <title>百度网盘自动转存工具</title>
+  
+  <style>
+    /* 加载页面的基础样式 */
+    #app-loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e1e1e1;
+      border-top: 4px solid #409eff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    
+    .loading-text {
+      color: #666;
+      font-size: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* 隐藏加载动画的类 */
+    .loading-hidden {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+  </style>
+  <script type="module" crossorigin src="./assets/index-BNn2tC2b.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/vendor-OArhA24O.js">
+  <link rel="modulepreload" crossorigin href="./assets/element-Ci-NFJgn.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-DaDkpJ7J.css">
+</head>
+<body>
+  <!-- 应用加载动画 -->
+  <div id="app-loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">正在加载...</div>
+  </div>
+  
+  <!-- Vue 应用挂载点 -->
+  <div id="app"></div>
+  
+  <script>
+    // 页面加载完成后隐藏加载动画
+    window.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        const loadingEl = document.getElementById('app-loading');
+        if (loadingEl) {
+          loadingEl.classList.add('loading-hidden');
+          setTimeout(function() {
+            loadingEl.style.display = 'none';
+          }, 300);
+        }
+      }, 1000); // 最少显示1秒加载动画
+    });
+    
+    // 全局错误捕获
+    window.addEventListener('error', function(e) {
+      console.error('全局错误:', e.error);
+    });
+    
+    window.addEventListener('unhandledrejection', function(e) {
+      console.error('未处理的Promise错误:', e.reason);
+    });
+  </script>
+  
+</body>
+</html>

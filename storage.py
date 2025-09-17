@@ -2028,6 +2028,8 @@ class BaiduStorage:
                     tasks.pop(i)
                     # 确保更新调度器
                     self._save_config(update_scheduler=True)
+                    # 重新整理剩余任务的顺序
+                    self._update_task_orders()
                     logger.success(f"删除任务成功: order={order}")
                     return True
             logger.warning(f"未找到任务: order={order}")

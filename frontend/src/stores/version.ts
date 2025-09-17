@@ -30,6 +30,12 @@ export const useVersionStore = defineStore('version', () => {
       return
     }
     
+    // 避免在任务执行期间检查版本，防止干扰任务监控
+    if (window.location.pathname.includes('/tasks')) {
+      console.log('用户正在任务管理页面，跳过版本检查')
+      return
+    }
+    
     checking.value = true
     
     try {
@@ -78,10 +84,35 @@ export const useVersionStore = defineStore('version', () => {
   
   // 初始化版本检查（只在应用启动时调用一次）
   const initVersionCheck = () => {
-    // 异步延迟检查版本，避免阻塞页面加载
-    setTimeout(() => {
-      checkForUpdates()
-    }, 3000) // 延迟3秒，让页面先完全加载
+    // 使用更智能的版本检查策略，避免干扰用户操作
+    let checkAttempts = 0
+    const maxAttempts = 3
+    
+    const smartVersionCheck = () => {
+      checkAttempts++
+      
+      // 检查是否在关键操作页面
+      const isInTaskPage = window.location.pathname.includes('/tasks')
+      const isUserActive = document.hasFocus() && !document.hidden
+      
+      // 如果用户不在任务页面且页面不活跃，则进行版本检查
+      if (!isInTaskPage && !isUserActive) {
+        console.log('后台静默检查版本更新')
+        checkForUpdates()
+        return
+      }
+      
+      // 如果检查次数未达上限，延迟重试
+      if (checkAttempts < maxAttempts) {
+        const nextDelay = 30000 * checkAttempts // 30秒、60秒、90秒
+        setTimeout(smartVersionCheck, nextDelay)
+      } else {
+        console.log('版本检查已跳过，避免干扰用户操作')
+      }
+    }
+    
+    // 初始延迟15秒后开始智能检查
+    setTimeout(smartVersionCheck, 15000)
   }
   
   return {

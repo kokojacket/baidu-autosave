@@ -5,10 +5,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
+    "build:prod": "npx vite build",
     "preview": "vite preview",
-    "version:patch": "npm version patch && git push --tags",
-    "version:minor": "npm version minor && git push --tags",
-    "version:major": "npm version major && git push --tags",
+    "version:patch": "npm version patch --no-git-tag-version && git add package.json && git commit -m \"chore: bump version to $(jq -r '.version' package.json)\" && git tag \"v$(jq -r '.version' package.json)\" && git push && git push --tags",
+    "version:minor": "npm version minor --no-git-tag-version && git add package.json && git commit -m \"chore: bump version to $(jq -r '.version' package.json)\" && git tag \"v$(jq -r '.version' package.json)\" && git push && git push --tags",
+    "version:major": "npm version major --no-git-tag-version && git add package.json && git commit -m \"chore: bump version to $(jq -r '.version' package.json)\" && git tag \"v$(jq -r '.version' package.json)\" && git push && git push --tags",
     "build:version": "echo $npm_package_version > public/version.txt && vite build"
   },
   "dependencies": {

@@ -18,7 +18,6 @@
           placeholder="搜索任务..."
           clearable
           style="width: 300px"
-          @input="handleSearch"
         >
           <template #prefix>
             <el-icon><Search /></el-icon>
@@ -72,6 +71,7 @@
         :data="filteredTasks"
         stripe
         row-key="order"
+        :key="tableKey"
         @selection-change="handleSelectionChange"
         class="desktop-table"
       >
@@ -129,6 +129,17 @@
           <template #default="{ row }">
             <div class="save-dir text-truncate" :title="row.save_dir">
               {{ row.save_dir }}
+            </div>
+          </template>
+        </el-table-column>
+        
+        <el-table-column prop="category" label="分类" width="120">
+          <template #default="{ row }">
+            <div class="task-category">
+              <el-tag v-if="row.category" size="small" type="primary">
+                {{ row.category }}
+              </el-tag>
+              <span v-else class="text-muted">-</span>
             </div>
           </template>
         </el-table-column>
@@ -320,6 +331,16 @@
       @success="handleTaskSuccess"
       @update:modelValue="handleDialogClose"
     />
+
+    <!-- 任务运行窗口 -->
+    <TaskRunnerDialog
+      v-model="showTaskRunner"
+      :task="runningTask"
+      :task-id="runningTaskId"
+      @task-completed="handleTaskCompleted"
+      @task-cancelled="handleTaskCancelled"
+      @update:modelValue="handleTaskRunnerClose"
+    />
   </div>
 </template>
 
@@ -334,8 +355,9 @@ import { storeToRefs } from 'pinia'
 import { useTaskStore } from '@/stores/tasks'
 import { useTasks } from '@/composables/useTasks'
 import AddTaskDialog from '@/components/business/AddTaskDialog.vue'
+import TaskRunnerDialog from '@/components/business/TaskRunnerDialog.vue'
 import type { Task } from '@/types'
-import { getTaskStatusText, getTaskStatusColor, debounce } from '@/utils/helpers'
+import { getTaskStatusText, getTaskStatusColor } from '@/utils/helpers'
 import Sortable from 'sortablejs'
 
 const taskStore = useTaskStore()
@@ -347,7 +369,8 @@ const {
   deleteBatchTasks: deleteBatchTasksWithConfirm,
   shareTask: shareTaskWithOptions,
   moveTask,
-  initTasks
+  initTasks,
+  fetchTasks
 } = useTasks()
 
 // 表格引用
@@ -364,9 +387,17 @@ const selectedTasks = ref<Task[]>([])
 const showAddTaskDialog = ref(false)
 const editingTask = ref<Task | null>(null)
 
+// 任务运行窗口相关
+const showTaskRunner = ref(false)
+const runningTask = ref<Task | null>(null)
+const runningTaskId = ref(-1)
+
 // 拖拽状态
 const isDragging = ref(false)
 let sortableInstance: Sortable | null = null
+
+// 强制重新渲染的key
+const tableKey = ref(0)
 
 // 计算属性
 const uniqueCategories = computed(() => {
@@ -379,15 +410,15 @@ const uniqueCategories = computed(() => {
 const filteredTasks = computed(() => {
   let result = tasks.value
 
-  // 搜索筛选
+  // 搜索筛选（任务名称、保存路径、分类）
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    result = result.filter(task => 
-      task.name?.toLowerCase().includes(query) ||
-      task.url.toLowerCase().includes(query) ||
-      task.save_dir.toLowerCase().includes(query) ||
-      task.category?.toLowerCase().includes(query)
-    )
+    result = result.filter(task => {
+      const nameMatch = task.name?.toLowerCase().includes(query)
+      const dirMatch = task.save_dir.toLowerCase().includes(query)
+      const categoryMatch = task.category?.toLowerCase().includes(query)
+      return nameMatch || dirMatch || categoryMatch
+    })
   }
 
   // 状态筛选
@@ -400,21 +431,22 @@ const filteredTasks = computed(() => {
     result = result.filter(task => task.category === categoryFilter.value)
   }
   
-  // 排序（倒序）
-  if (isReversed.value) {
-    result = [...result].reverse()
-  }
+  // 排序（基于order字段）
+  result = result.slice().sort((a, b) => {
+    const orderA = a.order || 0
+    const orderB = b.order || 0
+    return isReversed.value ? orderB - orderA : orderA - orderB
+  })
 
   return result
 })
 
 // 方法
-const handleSearch = debounce(() => {
-  // 搜索逻辑已在计算属性中处理
-}, 300)
 
 const toggleSortOrder = () => {
   isReversed.value = !isReversed.value
+  // 排序切换后强制重新渲染，确保排序立即生效
+  tableKey.value++
 }
 
 const handleSelectionChange = (selection: Task[]) => {
@@ -422,21 +454,50 @@ const handleSelectionChange = (selection: Task[]) => {
 }
 
 const executeTask = async (taskId: number) => {
-  await executeTaskWithPolling(taskId)
+  // 找到对应的任务
+  const task = tasks.value.find(t => t.order - 1 === taskId)
+  if (!task) {
+    ElMessage.error('任务不存在')
+    return
+  }
+  
+  // 检查任务是否正在运行
+  if (task.status === 'running') {
+    ElMessage.warning('任务正在执行中')
+    return
+  }
+  
+  // 设置运行窗口数据并显示
+  runningTask.value = task
+  runningTaskId.value = taskId
+  showTaskRunner.value = true
+  
+  // 执行任务（不等待完成）
+  executeTaskWithPolling(taskId).catch((error) => {
+    console.error('任务执行失败:', error)
+  })
 }
 
 const executeBatchTasks = async () => {
   const taskIds = selectedTasks.value.map(task => task.order - 1)
   await executeBatchTasksWithPolling(taskIds)
+  // 批量执行后强制重新渲染，确保任务状态更新立即显示
+  tableKey.value++
 }
 
 const deleteTask = async (taskId: number) => {
   await deleteTaskWithConfirm(taskId)
+  // 删除后强制重新渲染，确保任务立即从列表中消失
+  tableKey.value++
 }
 
 const deleteBatchTasks = async () => {
   const taskIds = selectedTasks.value.map(task => task.order - 1)
   await deleteBatchTasksWithConfirm(taskIds)
+  // 批量删除后强制重新渲染，确保删除的任务立即从列表中消失
+  tableKey.value++
+  // 清空选择状态
+  selectedTasks.value = []
 }
 
 const shareTask = async (taskId: number) => {
@@ -475,6 +536,8 @@ const editTask = (task: Task) => {
 
 const handleTaskSuccess = () => {
   editingTask.value = null
+  // 强制重新渲染任务列表，确保新增/编辑的任务立即显示
+  tableKey.value++
 }
 
 const handleDialogClose = (visible: boolean) => {
@@ -482,6 +545,23 @@ const handleDialogClose = (visible: boolean) => {
   if (!visible) {
     editingTask.value = null
   }
+}
+
+// 任务运行窗口相关处理
+const handleTaskCompleted = (task: Task) => {
+  // 任务完成后更新任务列表
+  taskStore.fetchTasks()
+}
+
+const handleTaskCancelled = () => {
+  // 任务取消处理
+  ElMessage.info('任务已取消')
+}
+
+const handleTaskRunnerClose = () => {
+  // 清理运行窗口状态
+  runningTask.value = null
+  runningTaskId.value = -1
 }
 
 // 拖拽功能
@@ -516,12 +596,35 @@ const initSortable = async () => {
       try {
         const movedTask = filteredTasks.value[oldIndex]
         if (movedTask) {
-          // 调用移动任务的API
-          await moveTask(movedTask.order - 1, newIndex)
+          // 找到任务在完整任务列表中的索引
+          const taskIndex = tasks.value.findIndex(t => t.order === movedTask.order)
+          if (taskIndex !== -1) {
+            // 调用API移动任务
+            moveTask(taskIndex, newIndex).then(async () => {
+              console.log('任务顺序已同步到后端')
+              
+              // 重新获取最新数据
+              await fetchTasks()
+              
+              // 强制重新渲染整个表格（这会销毁并重新创建所有DOM）
+              tableKey.value++
+              
+              console.log('拖拽排序完成，表格已强制重新渲染')
+              
+            }).catch(async (error) => {
+              console.error('API调用失败:', error)
+              // 失败时也重新获取数据恢复状态
+              await fetchTasks()
+              tableKey.value++
+            })
+          }
         }
       } catch (error) {
         // 错误已在moveTask中处理
         console.error('任务排序失败:', error)
+        // 发生错误时恢复状态
+        fetchTasks()
+        tableKey.value++
       }
     }
   })

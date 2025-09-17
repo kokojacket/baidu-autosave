@@ -42,7 +42,18 @@ export const useUserStore = defineStore('users', () => {
     try {
       const response = await apiService.getUsers()
       if (response.success) {
-        users.value = response.users || response.data?.users || []
+        const userList = response.users || response.data?.users || []
+        // 格式化用户配额信息
+        users.value = userList.map((user: any) => {
+          if (user.quota) {
+            user.quota = {
+              ...user.quota,
+              used_formatted: `${user.quota.used_gb || 0} GB`,
+              total_formatted: `${user.quota.total_gb || 0} GB`
+            }
+          }
+          return user
+        })
         currentUser.value = response.current_user || response.data?.current_user || ''
       } else {
         throw new Error(response.message || '获取用户列表失败')
@@ -59,7 +70,15 @@ export const useUserStore = defineStore('users', () => {
     try {
       const response = await apiService.getUserQuota()
       if (response.success) {
-        userQuota.value = response.quota || response.data?.quota || response.data
+        const quota = response.quota || response.data?.quota || response.data
+        // 将后端返回的数据格式化为前端需要的格式
+        userQuota.value = {
+          used: quota.used || 0,
+          total: quota.total || 0,
+          used_formatted: `${quota.used_gb || 0} GB`,
+          total_formatted: `${quota.total_gb || 0} GB`,
+          percent: quota.percent || 0
+        }
       } else {
         throw new Error(response.message || '获取用户配额失败')
       }
@@ -121,6 +140,14 @@ export const useUserStore = defineStore('users', () => {
         // 更新当前用户状态
         users.value.forEach(user => {
           user.is_current = user.username === username
+          // 如果返回的响应包含用户配额信息，也要格式化
+          if (response.current_user && response.current_user.quota && user.username === username) {
+            user.quota = {
+              ...response.current_user.quota,
+              used_formatted: `${response.current_user.quota.used_gb || 0} GB`,
+              total_formatted: `${response.current_user.quota.total_gb || 0} GB`
+            }
+          }
         })
         currentUser.value = username
         

@@ -118,6 +118,14 @@ export class ApiService {
     return httpClient.get('/api/tasks/status')
   }
 
+  async getTaskStatus(taskId: number): Promise<ApiResponse<Task>> {
+    return httpClient.get(`/api/tasks/${taskId}/status`)
+  }
+
+  async getTaskLog(taskId: number): Promise<ApiResponse<any>> {
+    return httpClient.get(`/api/task/log/${taskId}`)
+  }
+
   // 认证相关API
   async login(username: string, password: string): Promise<ApiResponse<any>> {
     return httpClient.post('/api/auth/login', { username, password })

@@ -4,7 +4,13 @@ on:
   push:
     branches: [ main, master ]
     paths:
-      - 'static/main.js'
+      - 'frontend/package.json'
+      - 'frontend/src/**'
+      - 'web_app.py'
+      - 'storage.py'
+      - 'scheduler.py'
+      - 'notify.py'
+      - 'utils.py'
 
 env:
   REGISTRY: docker.io
@@ -23,19 +29,27 @@ jobs:
         with:
           fetch-depth: 2
       
-      - name: Extract version from main.js
+      - name: Extract version from package.json
         id: get-version
         run: |
-          VERSION=$(grep -m 1 "APP_VERSION = " static/main.js | sed -E "s/.*APP_VERSION = '(.*)'.*/\1/")
-          echo "Version from main.js: $VERSION"
+          VERSION=$(jq -r '.version' frontend/package.json)
+          echo "Version from package.json: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
       - name: Check if version changed
         id: check-version
         run: |
           git fetch origin
-          PREVIOUS_VERSION=$(git show HEAD~1:static/main.js | grep -m 1 "APP_VERSION = " | sed -E "s/.*APP_VERSION = '(.*)'.*/\1/")
-          CURRENT_VERSION=$(grep -m 1 "APP_VERSION = " static/main.js | sed -E "s/.*APP_VERSION = '(.*)'.*/\1/")
+          
+          # 检查前一个提交是否存在frontend/package.json
+          if git show HEAD~1:frontend/package.json >/dev/null 2>&1; then
+            PREVIOUS_VERSION=$(git show HEAD~1:frontend/package.json | jq -r '.version')
+          else
+            PREVIOUS_VERSION="0.0.0"
+            echo "Previous commit doesn't have frontend/package.json, treating as first build"
+          fi
+          
+          CURRENT_VERSION=$(jq -r '.version' frontend/package.json)
           echo "Previous version: $PREVIOUS_VERSION"
           echo "Current version: $CURRENT_VERSION"
           
@@ -72,7 +86,7 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ env.VERSION }}
+            type=raw,value=v${{ env.VERSION }}
             type=raw,value=latest
 
       - name: Build and push Docker image
@@ -91,8 +105,8 @@ jobs:
         if: steps.check-version.outputs.should_build == 'true'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ env.VERSION }}
-          name: Release ${{ env.VERSION }}
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
           draft: false
           prerelease: false
           generate_release_notes: true

@@ -899,9 +899,9 @@ class TaskScheduler:
                 username = user_info.get('user_name', self.storage.config['baidu'].get('current_user', '未知用户'))
                 
                 # 构建通知内容
-                title = f"百度网盘容量警告 - {username}"
+                title = f"网盘容量不足 - {username}"
                 content = f"""
-## 百度网盘容量警告
+## 网盘容量不足
 
 **用户**: {username}  
 **已使用**: {used_gb}GB / {total_gb}GB  

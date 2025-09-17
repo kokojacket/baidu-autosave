@@ -43,7 +43,6 @@ class EventEmitter {
 
 export class PollingService extends EventEmitter {
   private taskStatusTimer: number | null = null
-  private logsTimer: number | null = null
   private isRunning = false
   private retryCount = 0
   private maxRetries = 3
@@ -51,7 +50,6 @@ export class PollingService extends EventEmitter {
   // 轮询配置
   private config = {
     taskStatusInterval: 5000,   // 任务状态轮询间隔
-    logsInterval: 10000,        // 日志轮询间隔
     fastPollingInterval: 1000,  // 快速轮询间隔（任务执行时）
     retryDelay: 3000           // 重试延迟
   }
@@ -64,20 +62,15 @@ export class PollingService extends EventEmitter {
     if (this.isRunning) return
     
     this.isRunning = true
-    console.log('启动轮询服务')
+    console.log('启动任务状态轮询服务')
     
-    // 立即执行一次轮询
+    // 立即执行一次任务状态轮询
     this.pollTaskStatus()
-    this.pollLogs()
     
-    // 启动定时轮询
+    // 启动任务状态定时轮询
     this.taskStatusTimer = window.setInterval(() => {
       this.pollTaskStatus()
     }, this.config.taskStatusInterval)
-    
-    this.logsTimer = window.setInterval(() => {
-      this.pollLogs()
-    }, this.config.logsInterval)
     
     this.emit('started')
   }
@@ -86,16 +79,11 @@ export class PollingService extends EventEmitter {
     if (!this.isRunning) return
     
     this.isRunning = false
-    console.log('停止轮询服务')
+    console.log('停止任务状态轮询服务')
     
     if (this.taskStatusTimer) {
       clearInterval(this.taskStatusTimer)
       this.taskStatusTimer = null
-    }
-    
-    if (this.logsTimer) {
-      clearInterval(this.logsTimer)
-      this.logsTimer = null
     }
     
     this.emit('stopped')
@@ -132,19 +120,6 @@ export class PollingService extends EventEmitter {
     }
   }
 
-  private async pollLogs() {
-    try {
-      const response = await apiService.getLogs(10)
-      if (response.success) {
-        this.emit('logs_update', response.logs || response.data?.logs || [])
-        this.retryCount = 0
-      } else {
-        this.handleError('日志轮询失败', response.message)
-      }
-    } catch (error) {
-      this.handleError('日志轮询出错', error)
-    }
-  }
 
   private handleError(context: string, error: any) {
     console.error(`${context}:`, error)

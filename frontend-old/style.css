@@ -109,7 +109,7 @@ body {
         width: 32px;
         height: 32px;
     }
-
+    
     #logout-btn i {
         font-size: 18px;
     }
@@ -210,47 +210,35 @@ body {
 .operations-bar {
     display: flex;
     flex-direction: column;
-    gap: 8px; /* 进一步从12px减少到8px，让PC端更紧凑 */
+    gap: 16px;
     padding: 16px 24px;
     background: white;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: 16px;
     position: relative; /* 添加相对定位 */
     z-index: 1000; /* 设置z-index低于角标 */
-    overflow: hidden; /* 防止内容超出圆角面板 */
-    align-items: stretch; /* 改为拉伸，让子项自然对齐 */
+    overflow: visible; /* 确保内容不被裁剪 */
+    align-items: center; /* 修改为align-items实现水平居中 */
     box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* 添加轻微阴影 */
     border-radius: 8px; /* 添加圆角 */
-    margin: 0 0 16px 0; /* 占满容器宽度，不再居中收窄 */
-    width: 100%;
-    max-width: 100%; /* 与 task-list 一致 */
-    box-sizing: border-box;
+    margin: 0 auto 16px; /* 居中显示 */
+    max-width: 95%; /* 设置最大宽度 */
 }
 
 /* 操作栏上部 */
 .operations-top {
     display: flex;
     align-items: center;
-    gap: 12px; /* 减少间距，节省空间 */
+    gap: 16px;
     justify-content: space-between;
-    margin-bottom: 0; /* 进一步从6px减少到0，让PC端更紧凑 */
-    flex-wrap: wrap; /* 允许换行，防止溢出 */
-    row-gap: 8px; /* 换行时的行间距 */
-}
-
-/* 搜索框和排序控制容器 */
-.search-sort-container {
-    display: flex;
-    align-items: center;
-    gap: 12px; /* 略减间距 */
-    flex: 1 1 auto; /* 允许收缩，避免撑爆 */
+    margin-bottom: 10px; /* 增加与下方元素的间距 */
 }
 
 /* 搜索框 */
 .search-box {
     position: relative;
-    min-width: 240px; /* 原 280px，下调以便在窄屏时可收缩 */
-    flex: 1 1 360px;  /* 允许压缩与扩展，默认占 ~360px */
+    min-width: 280px;
+    margin-right: 10px; /* 增加与右侧按钮的间距 */
 }
 
 .search-box input {
@@ -277,69 +265,19 @@ body {
     color: var(--text-secondary);
 }
 
-/* 排序控制样式 */
-.sort-control {
-    margin-right: 16px;
-}
-
-.sort-toggle {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    user-select: none;
-    padding: 8px 12px;
-    border-radius: 6px;
-    transition: background-color 0.2s;
-}
-
-.sort-toggle:hover {
-    background-color: var(--background-color);
-}
-
-.sort-checkbox {
-    display: none;
-}
-
-.sort-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    color: var(--text-secondary);
-    transition: color 0.2s;
-}
-
-.sort-label i {
-    font-size: 18px;
-    transition: transform 0.2s;
-}
-
-.sort-checkbox:checked + .sort-label {
-    color: var(--primary-color);
-}
-
-.sort-checkbox:checked + .sort-label i {
-    transform: rotate(180deg);
-}
-
 /* 操作按钮组 */
 .action-group {
     display: flex;
     align-items: center;
-    gap: 8px; /* 略减按钮间距，节省空间 */
-    flex-wrap: nowrap; /* 桌面端保持同一行，不再在组内换行 */
+    gap: 10px; /* 增加按钮之间的间距 */
 }
 
 .action-group .btn {
     height: 36px;
-    min-width: 88px; /* 从 100px 调到 88px，更紧凑 */
-    padding: 0 10px; /* 适当减小左右内边距，保持可读性 */
-    flex: 0 0 auto; /* 禁止按钮自身缩到下一行 */
-    white-space: nowrap; /* 文本不换行，避免多行按钮 */
+    min-width: 100px; /* 确保按钮足够宽 */
 }
 
 /* 状态筛选 */
-
 .status-filter {
     display: flex;
     gap: 8px;
@@ -400,266 +338,102 @@ body {
     .sidebar {
         display: none; /* 在移动端隐藏侧边栏 */
     }
-
+    
     .bottom-nav {
         display: flex; /* 在移动端显示底部导航 */
     }
-
+    
     .main-content {
-        margin-top: 56px; /* 调整为更小的顶部导航高度 */
+        margin-top: 64px;
         margin-bottom: 56px;
-        height: calc(100vh - 112px); /* 调整高度适应更小的导航 */
+        height: calc(100vh - 120px); /* 调整高度适应底部导航 */
         padding: 0;
     }
-
-    /* 移动端顶部导航优化 */
-    .top-nav {
-        height: 56px;
-    }
-
-    .nav-content {
-        padding: 0 12px;
-        height: 56px;
-    }
-
-    .nav-left {
-        gap: 8px;
-    }
-
-    .nav-left i {
-        font-size: 20px;
-    }
-
-    .nav-title {
-        font-size: 16px;
-        font-weight: 500;
-    }
-
-    .version {
-        font-size: 10px;
-        padding: 1px 4px;
-    }
-
-    .nav-right {
-        gap: 6px;
-    }
-
-    #current-user {
-        font-size: 12px;
-        padding: 4px 6px;
-    }
-
+    
     .content-panels {
         padding: 12px;
         height: 100%;
     }
-
+    
     .panel {
         height: 100%;
         overflow: hidden;
         padding: 0;
     }
-
-    /* 确保面板头部固定 - 极简高度 */
+    
+    /* 确保面板头部固定 */
     .panel-header {
         position: sticky;
         top: 0;
         background: white;
         z-index: 10;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        justify-content: flex-start; /* 改为左对齐，确保内部操作栏左对齐 */
-        padding: 2px 0; /* 进一步减少内边距 */
-        margin-bottom: 2px; /* 减少底部外边距 */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        justify-content: center; /* 水平居中操作栏 */
     }
-
-    /* 操作栏适配 - 极简设计 */
+    
+    /* 操作栏适配 */
     .operations-bar {
-        padding: 4px 6px; /* 稍微增加内边距，为更大的按钮留空间 */
-        max-width: 100%;
-        gap: 8px; /* 增加上下区块间距，让布局更舒适 */
+        padding: 12px;
+        max-width: 98%; /* 移动端占据更多宽度 */
     }
-
-    /* 顶部操作布局 - 垂直紧凑布局 */
+    
+    /* 顶部操作布局 */
     .operations-top {
-        display: flex;
         flex-direction: column;
         width: 100%;
-        gap: 6px; /* 增加搜索行与操作按钮行之间的间距 */
-        align-items: stretch; /* 让子项占满宽度，避免整体被居中 */
-        margin-bottom: 0; /* 由父容器的 gap 控制，不再叠加 margin */
     }
-
-    /* 搜索和排序行 */
-    .search-sort-container {
-        display: flex;
-        gap: 8px;
-        width: 100%;
-        align-items: center;
-    }
-
-    /* 底部筛选区域 - 紧凑间距 */
-    .operations-bottom {
-        display: flex;
-        align-items: center;
-        justify-content: flex-start; /* 改为左对齐，确保筛选区域贴左显示 */
-        flex-wrap: wrap;
-        gap: 3px;
-        padding: 0 6px;
-        margin-top: 0; /* 由父容器的 gap 控制，不再叠加 margin */
-    }
-
-    /* 筛选按钮组 - 移动端紧凑布局（与上方区块间距保持一致） */
-    .filter-group {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        gap: 6px; /* 增加状态筛选和分类筛选行之间的间距 */
-        justify-content: flex-start; /* 顶部开始堆叠 */
-        align-items: stretch; /* 子项拉伸至整行，以便左对齐可见 */
-    }
-
-    .status-filter,
-    .category-filter {
-        display: flex;
-        justify-content: flex-start; /* 改为左对齐，从容器左侧开始排列 */
-        flex-wrap: wrap;
-        gap: 6px; /* 增加按钮之间的水平与换行间距 */
-    }
-
-    /* 状态筛选行 - 移动端去除上下 padding，保持紧凑 */
-    .status-filter {
-        padding: 0 !important; /* 强制覆盖全局的 padding: 5px 0; */
-        margin: 0; /* 防止外边距撑开 */
-        min-height: 0; /* 覆盖全局的 min-height:50px，消除多余垂直空间 */
-    }
-
-    /* 分类筛选行 - 同样去除多余留白 */
-    .category-filter {
-        padding: 0; /* 防止继承到 padding-bottom 等规则 */
-        margin: 0;
-    }
-
-    /* 搜索框在移动端的样式 - 更紧凑 */
+    
+    /* 搜索框和按钮在移动端垂直排列 */
     .search-box {
-        flex: 1;
-        margin-right: 0;
-        margin-bottom: 0;
-        min-width: 0;
-    }
-
-    .search-box input {
-        padding: 8px 10px 8px 32px;
-        font-size: 14px;
-        height: 44px; /* 与操作按钮高度保持一致 */
-        box-sizing: border-box;
-    }
-
-    .search-box i {
-        left: 10px;
-        font-size: 18px;
-    }
-
-    /* 排序控制 - 与操作按钮高度一致 */
-    .sort-control {
-        margin-right: 0;
-        margin-bottom: 0;
-        flex-shrink: 0;
-    }
-
-    .sort-toggle {
-        padding: 8px 10px;
-        background-color: transparent;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        white-space: nowrap;
-        height: 44px; /* 与操作按钮高度保持一致 */
-        box-sizing: border-box;
-        display: flex;
-        align-items: center;
-    }
-
-    .sort-label {
-        font-size: 11px;
-        gap: 3px;
-    }
-
-    .sort-label i {
-        font-size: 14px;
-    }
-
-    /* 操作按钮组 - 等宽填充 100% 布局 */
-    .action-group {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr); /* 四个按钮等宽 */
-        gap: 6px; /* 均匀间距 */
         width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
     }
-
-    .action-group .btn {
-        width: 100%; /* 占满各自网格单元 */
-        margin: 0;
-        padding: 8px 6px;
-        font-size: 12px;
-        display: flex;
-        align-items: center;
+    
+    .action-group {
+        width: 100%;
         justify-content: center;
-        gap: 6px;
-        height: 44px; /* 触摸友好最小高度 */
-        box-sizing: border-box;
-        border-radius: 6px;
+        display: grid; /* 使用网格布局 */
+        grid-template-columns: 1fr 1fr; /* 两列 */
+        grid-template-rows: auto auto; /* 两行 */
+        gap: 8px; /* 按钮之间的间距 */
     }
-
-    .action-group .btn i {
-        font-size: 18px; /* 适配更紧凑的等宽按钮 */
+    
+    .action-group .btn {
+        width: 100%; /* 按钮宽度占满单元格 */
+        min-width: 0; /* 覆盖之前设置的最小宽度 */
+        margin: 0; /* 移除外边距 */
+        padding: 8px 5px; /* 减小内边距 */
+        font-size: 13px; /* 稍微减小字体大小 */
     }
-    /* 取消移动端激活状态的上移效果，避免“上下两行间距”与外部间距不一致的错觉 */
-    @media (max-width: 768px) { .status-btn.active, .category-btn.active { transform: none; } }
-
-
-    /* 保留按钮文字（等宽布局下文字有空间显示） */
-    .action-group .btn span {
-        display: inline;
+    
+    /* 整体居中 */
+    .panel-header {
+        justify-content: center; /* 水平居中 panel-header 内部容器 */
     }
-
-
-
-    .status-btn,
-    .category-btn {
-        padding: 6px 12px; /* 增加内边距，让按钮更大更易点击 */
-        font-size: 12px; /* 增大字体 */
-        border-radius: 8px;
-        min-width: auto;
-        flex-shrink: 0;
-        margin: 0; /* 移动端：去掉外边距，间距由父容器的 gap 控制 */
-        line-height: 1.2;
-        height: 32px; /* 增加高度，提升可点击性和视觉效果 */
-        box-sizing: border-box;
-        display: flex;
-        align-items: center;
-        justify-content: center; /* 确保文字居中 */
+    .operations-bar {
+        align-items: center; /* 水平居中操作栏内元素 */
     }
-
+    .operations-top {
+        align-items: center; /* 水平居中搜索框与按钮组 */
+    }
+    .operations-bottom {
+        justify-content: center; /* 水平居中分类按钮组 */
+        flex-wrap: wrap;
+    }
+    
     /* 确保task-list能滚动且占据剩余空间 */
     .task-list {
-        padding: 6px;
+        padding: 12px;
         flex: 1;
-        margin-top: 0;
     }
-
+    
     /* 任务项在小屏幕上的布局 */
     .task-item {
         grid-template-columns: auto 1fr auto;
-        padding: 8px;
-        margin-bottom: 6px;
+        padding: 10px;
+        margin-bottom: 8px;
     }
-
-/* 统一窄屏环境下按钮垂直间距（防止 hover 能力设备不命中 pointer:coarse 或 hover:none） */
-@media (max-width: 768px) {
-  .status-btn, .category-btn {
-    margin-block: 0; /* 上下 0 */
-  }
-}
-
 }
 
 /* 批量操作区 */
@@ -714,17 +488,15 @@ body {
     font-size: 20px;
 }
 
-@media (min-width: 769px) {
-    /* 操作栏下部（桌面端） */
-    .operations-bottom {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        overflow: visible; /* 确保内容不被裁剪 */
-        padding-top: 0; /* 从3px减少到0，让PC端更紧凑 */
-        justify-content: flex-start; /* 左对齐，统一与移动端一致 */
-        width: 100%; /* 确保宽度占满 */
-    }
+/* 操作栏下部 */
+.operations-bottom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: visible; /* 确保内容不被裁剪 */
+    padding-top: 3px; /* 增加顶部内边距 */
+    justify-content: center; /* 居中显示筛选区域 */
+    width: 100%; /* 确保宽度占满 */
 }
 
 /* 按钮样式 */
@@ -962,7 +734,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    max-width: 400px;
 }
 
 .notification {
@@ -972,7 +743,6 @@ body {
     font-size: 14px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     animation: slideIn 0.3s ease-out;
-    width: 100%;
 }
 
 .notification.info {
@@ -993,34 +763,6 @@ body {
 
 .notification.fade-out {
     animation: fadeOut 0.3s ease-in forwards;
-}
-
-/* 更新通知样式 */
-.update-notification {
-    background-color: white;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: var(--shadow-medium);
-    color: var(--text-primary);
-    width: 100%;
-}
-
-.update-notification strong {
-    display: block;
-    font-size: 16px;
-    margin-bottom: 8px;
-    color: var(--primary-color);
-}
-
-.update-notification p {
-    margin: 4px 0;
-    font-size: 14px;
-}
-
-.update-notification a.btn {
-    margin-top: 12px;
-    display: inline-block;
 }
 
 @keyframes slideIn {
@@ -1127,30 +869,24 @@ body {
     box-shadow: var(--shadow-heavy);
 }
 
-@media (min-width: 769px) {
-    /* 筛选组样式（桌面端） */
-    .filter-group {
-        display: flex;
-        flex-direction: column;
-        gap: 4px; /* 进一步从8px减少到4px，让PC端筛选区域更紧凑 */
-        justify-content: flex-start; /* 左对齐，统一两端 */
-        width: 100%;
-        overflow: visible; /* 确保溢出内容可见 */
-        padding: 2px; /* 添加内边距 */
-    }
+/* 筛选组样式 */
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    overflow: visible; /* 确保溢出内容可见 */
+    padding: 2px; /* 添加内边距 */
 }
 
-@media (min-width: 769px) {
-    .category-filter {
-        display: flex;
-        gap: 8px;
-        justify-content: flex-start; /* 左对齐，统一两端 */
-        overflow-x: auto;
-        padding-bottom: 8px;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-    }
+.category-filter {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .category-filter::-webkit-scrollbar {
@@ -1190,7 +926,15 @@ body {
     color: var(--text-secondary);
 }
 
-
+@media (max-width: 768px) {
+    .filter-group {
+        gap: 8px;
+    }
+    
+    .category-filter {
+        margin-top: 4px;
+    }
+}
 
 /* 模态框样式 */
 .modal {
@@ -1201,7 +945,7 @@ body {
     right: 0;
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.5);
-    z-index: 10001; /* 确保高于底部导航栏(9999) */
+    z-index: 2000;
     padding: 24px;
 }
 
@@ -1369,7 +1113,7 @@ body {
         font-size: 12px;
         padding: 4px 8px;
     }
-
+    
     #current-user .logout-btn i {
         font-size: 16px;
     }
@@ -1560,28 +1304,21 @@ input[list]::placeholder {
     line-height: 1.4;
 }
 
-/* 表单警告/错误帮助文本（红色） */
-.form-help.error {
-    color: var(--error-color);
+/* 面板头部样式 */
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
 }
 
-/* 面板头部样式（桌面端） */
-@media (min-width: 769px) {
-    .panel-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px 16px; /* 与 .task-list 的左右 16px 一致，确保容器宽度对齐 */
-        border-bottom: 1px solid var(--border-color);
-        flex-shrink: 0;
-    }
-
-    .panel-header h2 {
-        margin: 0;
-        font-size: 1.25rem;
-        font-weight: 500;
-        color: var(--text-primary);
-    }
+.panel-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--text-primary);
 }
 
 /* 文本域样式 */
@@ -1848,11 +1585,11 @@ textarea:focus {
     .modal form {
         padding: 16px;
     }
-
+    
     .modal .form-group {
         margin-bottom: 16px;
     }
-
+    
     .modal .form-group input[type="text"] {
         font-size: 16px; /* 移动端输入框字体放大，避免iOS自动缩放 */
     }
@@ -1898,12 +1635,12 @@ textarea:focus {
         transform: scale(0.95);
         box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7);
     }
-
+    
     70% {
         transform: scale(1);
         box-shadow: 0 0 0 5px rgba(255, 59, 48, 0);
     }
-
+    
     100% {
         transform: scale(0.95);
         box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);
@@ -1938,32 +1675,32 @@ textarea:focus {
     .nav-left {
         flex-grow: 1;
     }
-
+    
     .nav-title {
         max-width: 150px;
     }
-
+    
     .version-container {
         margin-left: 4px;
         margin-right: 8px;
     }
-
+    
     .version {
         font-size: 10px;
         padding: 1px 4px;
     }
-
+    
     .update-indicator {
         width: 6px;
         height: 6px;
         top: -1px;
         right: -3px;
     }
-
+    
     .github-link {
         margin-left: auto;
     }
-
+    
     .github-icon {
         width: 18px;
         height: 18px;
@@ -2264,13 +2001,17 @@ textarea:focus {
     background: #999;
 }
 
+.task-message.error {
+    color: #ff4d4f;
+}
+
 /* 添加安全区域适配 */
 @supports (padding: max(0px)) {
     .bottom-nav {
         padding-bottom: max(4px, env(safe-area-inset-bottom));
         height: calc(56px + env(safe-area-inset-bottom));
     }
-}
+}   
 
 /* 在移动端显示底部导航 */
 @media screen and (max-width: 768px) {
@@ -2297,8 +2038,8 @@ textarea:focus {
     }
 
     .status-btn, .category-btn {
-        margin: 0; /* 移除外边距，使用父容器的gap控制间距 */
-        padding: 6px 12px; /* 与移动端样式保持一致 */
+        margin: 0 2px;
+        padding: 6px 10px;
     }
 }
 
@@ -2344,7 +2085,7 @@ textarea:focus {
         min-height: 40px;
         padding: 12px !important;
     }
-
+    
     .task-item {
         touch-action: pan-y;
     }
@@ -2371,8 +2112,7 @@ textarea:focus {
     }
 
     .status-btn, .category-btn {
-        margin: 0; /* 移除外边距，使用父容器的gap控制间距 */
-        padding: 6px 12px; /* 与移动端样式保持一致 */
+        margin: 0 4px; /* 增加筛选按钮间距 */
     }
 }
 
@@ -2506,7 +2246,7 @@ textarea:focus {
     display: flex;
     gap: 8px;
     align-items: center;
-    min-width: 120px; /* PC端固定宽度 */
+    min-width: 120px; /* 新增固定宽度 */
     justify-content: flex-end; /* 保持右对齐 */
     transition: none !important; /* 禁用过渡效果 */
 }
@@ -2538,49 +2278,6 @@ textarea:focus {
     text-overflow: ellipsis;
 }
 
-/* 任务消息样式 */
-.task-message {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: #666;
-    line-height: 1.4;
-}
-
-.task-message.error {
-    color: #ff4d4f;
-}
-
-/* 复制按钮样式 */
-.copy-btn {
-    background: none;
-    border: none;
-    padding: 2px;
-    cursor: pointer;
-    color: #666;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 24px;
-    height: 24px;
-}
-
-.copy-btn:hover {
-    background-color: #f0f0f0;
-    color: var(--primary-color);
-}
-
-.copy-btn:active {
-    transform: scale(0.95);
-}
-
-.copy-btn i {
-    font-size: 16px;
-}
-
 /* 移动端任务列表样式调整 */
 @media screen and (max-width: 768px) {
     .task-list {
@@ -2590,379 +2287,56 @@ textarea:focus {
         gap: 8px;
     }
 
-
-
-    /* 任务项优化 - 统一移动端布局 */
-    .task-item {
-        padding: 14px;
-        gap: 10px;
-        align-items: flex-start;
-        border-radius: 12px;
-        margin-bottom: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        border-left: 3px solid transparent;
-        transition: all 0.2s ease;
+    /* 搜索框调整 */
+    .search-box {
+        width: 100%;
+        min-width: auto;
     }
 
-    .task-item:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-        border-left-color: var(--primary-color);
+    /* 整体操作栏水平居中 */
+    .operations-bar {
+        align-items: center; /* 水平居中整体容器 */
+    }
+
+    /* 顶部操作布局 */
+    .operations-top {
+        flex-direction: column;
+        align-items: center; /* 水平居中搜索框与按钮组 */
+        gap: 8px;
+    }
+
+    /* 底部筛选按钮水平居中 */
+    .operations-bottom {
+        justify-content: center; /* 水平居中分类框 */
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* 任务项、左侧控件、按钮等其他调整 */
+    .task-item {
+        padding: 8px;
+        gap: 8px;
+        align-items: flex-start;
     }
 
     .task-item-left {
-        gap: 8px;
+        gap: 4px;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        padding-top: 2px;
-        min-width: 32px;
-    }
-
-    .drag-handle {
-        order: 2;
-        color: #ccc;
-        cursor: move;
-    }
-
-    .checkbox-wrapper {
-        order: 1;
-    }
-
-    .task-content {
-        flex: 1;
-        min-width: 0;
-        width: 100%;
-    }
-
-    .task-header {
-        margin-bottom: 8px;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .task-name {
-        font-size: 16px;
-        font-weight: 600;
-        line-height: 1.3;
-        color: var(--primary-color);
-        text-decoration: none;
-        display: block;
-        width: 100%;
-        margin-bottom: 6px;
-        word-break: break-word;
-    }
-
-    .task-name:hover {
-        color: #1557b0;
-    }
-
-    .task-status {
-        font-size: 11px;
-        padding: 3px 8px;
-        border-radius: 12px;
-        font-weight: 500;
-        white-space: nowrap;
-    }
-
-    .task-category {
-        font-size: 11px;
-        padding: 3px 8px;
-        border-radius: 12px;
-        background-color: rgba(108, 117, 125, 0.1);
-        color: #6c757d;
-        font-weight: 500;
-        white-space: nowrap;
-    }
-
-    .task-details {
-        font-size: 12px;
-        line-height: 1.5;
-        gap: 6px;
-        color: #666;
-    }
-
-    .task-details > * {
-        margin-bottom: 4px;
-        word-break: break-word;
-        overflow-wrap: break-word;
-    }
-
-    .task-details .save-dir,
-    .task-details .cron-rule {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-        display: block;
-    }
-
-    .last-execute-time {
-        font-size: 11px;
-        color: #999;
-        font-weight: normal;
-    }
-
-    /* 移动端任务消息样式 - 统一样式，无背景色 */
-    .task-message {
-        font-size: 12px;
-        padding: 0;
-        border-radius: 0;
-        background: transparent;
-        color: #666;
-        display: block;
-        margin-top: 4px;
-        font-weight: normal;
-        line-height: 1.4;
-        word-break: break-word;
-    }
-
-    .task-message.error {
-        background: transparent;
-        color: #dc2626;
-        font-weight: normal;
-    }
-
-    .task-message.success {
-        background: transparent;
-        color: #666;
-        font-weight: normal;
-    }
-
-    /* 移动端任务操作按钮 - 统一样式 */
-    .task-actions {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        align-items: center;
-        justify-content: flex-start;
-        padding-top: 2px;
-        min-width: 44px;
-        width: 44px;
-    }
-
-    .task-actions .btn-icon {
-        width: 36px;
-        height: 36px;
-        padding: 8px;
-        border-radius: 8px;
-        font-size: 16px;
-        transition: all 0.2s ease;
-        touch-action: manipulation;
-        display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--background-color);
-        border: 1px solid var(--border-color);
-        color: var(--text-primary);
-        margin: 0;
     }
 
-    .task-actions .btn-icon:hover,
-    .task-actions .btn-icon:active {
-        transform: scale(0.95);
-        background: var(--primary-color);
-        color: white;
-        border-color: var(--primary-color);
-    }
-
-    .task-actions .btn-icon.danger {
-        color: #ff4d4f;
-        border-color: rgba(255, 77, 79, 0.3);
-    }
-
-    .task-actions .btn-icon.danger:hover,
-    .task-actions .btn-icon.danger:active {
-        background: #ff4d4f;
-        border-color: #ff4d4f;
-        color: white;
-    }
-
-    .task-actions .btn-icon i {
-        font-size: 16px;
-    }
-
-    /* 移动端分享链接样式优化 - 左对齐，无背景，内联布局 */
-    .task-message.share-link {
-        background: transparent !important;
-        color: #666 !important;
-        padding: 0 !important;
-        border-radius: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
-        gap: 4px !important;
-        font-size: 12px !important;
-        font-weight: normal !important;
-        margin-top: 4px !important;
-        margin-bottom: 0 !important;
+    .task-actions {
+        flex-direction: column !important;
         width: auto !important;
-        box-sizing: border-box !important;
-        flex-wrap: nowrap !important;
-        flex-direction: row !important;
-        text-align: left !important;
-    }
-
-    .task-message.share-link .share-text {
-        flex-shrink: 0 !important;
-        white-space: nowrap !important;
-        font-weight: normal !important;
-        color: #666 !important;
-        display: inline !important;
-        margin: 0 !important;
         padding: 0 !important;
-    }
-
-    .task-message.share-link .share-url {
-        display: none !important; /* 移动端隐藏完整链接文本 */
-    }
-
-    .task-message.share-link .share-actions {
-        display: inline-flex !important;
-        gap: 4px !important;
-        flex-shrink: 0 !important;
-        align-items: center !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        flex-direction: row !important;
-    }
-
-    .task-message.share-link .share-btn {
-        background: var(--background-color) !important;
-        border: 1px solid var(--border-color) !important;
-        padding: 2px !important;
-        cursor: pointer !important;
-        color: #666 !important;
-        border-radius: 3px !important;
-        transition: all 0.2s ease !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        min-width: 20px !important;
-        width: 20px !important;
-        height: 20px !important;
-        font-size: 10px !important;
-        touch-action: manipulation !important;
-        flex-shrink: 0 !important;
-        margin: 0 !important;
-        vertical-align: middle !important;
-    }
-
-    .task-message.share-link .share-btn:hover,
-    .task-message.share-link .share-btn:active {
-        background-color: var(--primary-color);
-        border-color: var(--primary-color);
-        color: white;
-        transform: scale(0.95);
-    }
-
-    .task-message.share-link .share-btn i {
-        font-size: 12px;
-        line-height: 1;
-    }
-}
-
-/* PC端分享链接样式 - 可点击链接 + 复制按钮 */
-@media (min-width: 769px) {
-    .task-message.share-link {
         background: transparent !important;
-        color: #666 !important;
-        padding: 0 !important;
-        border-radius: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
-        gap: 6px !important;
-        font-size: 13px !important;
-        font-weight: normal !important;
-        margin-top: 4px !important;
-        margin-bottom: 0 !important;
-        width: auto !important;
-        box-sizing: border-box !important;
-        flex-wrap: nowrap !important;
-        flex-direction: row !important;
-        text-align: left !important;
+        gap: 4px;
     }
-
-    .task-message.share-link .share-text {
-        display: inline !important;
-        flex-shrink: 0 !important;
-        white-space: nowrap !important;
-        font-weight: normal !important;
-        color: #666 !important;
+    .task-actions .btn-icon {
         margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    .task-message.share-link .share-url {
-        display: inline !important; /* PC端显示完整链接文本 */
-        color: var(--primary-color) !important;
-        text-decoration: none !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        word-break: break-all !important;
-        max-width: 400px !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        white-space: nowrap !important;
-    }
-
-    .task-message.share-link .share-url:hover {
-        text-decoration: underline !important;
-        color: #1557b0 !important;
-    }
-
-    .task-message.share-link .share-actions {
-        display: inline-flex !important; /* PC端显示复制按钮 */
-        gap: 4px !important;
-        flex-shrink: 0 !important;
-        align-items: center !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        flex-direction: row !important;
-    }
-
-    .task-message.share-link .share-btn {
-        background: var(--background-color) !important;
-        border: 1px solid var(--border-color) !important;
-        padding: 3px !important;
-        cursor: pointer !important;
-        color: #666 !important;
-        border-radius: 4px !important;
-        transition: all 0.2s ease !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        min-width: 22px !important;
-        width: 22px !important;
-        height: 22px !important;
-        font-size: 11px !important;
-        touch-action: manipulation !important;
-        flex-shrink: 0 !important;
-        margin: 0 !important;
-        vertical-align: middle !important;
-    }
-
-    .task-message.share-link .share-btn:hover,
-    .task-message.share-link .share-btn:active {
-        background-color: var(--primary-color) !important;
-        border-color: var(--primary-color) !important;
-        color: white !important;
-        transform: scale(0.95) !important;
-    }
-
-    .task-message.share-link .share-btn i {
-        font-size: 13px !important;
-        line-height: 1 !important;
-    }
-
-    /* 只显示复制按钮，隐藏跳转按钮（因为链接本身就可以点击） */
-    .task-message.share-link .share-btn:nth-child(2) {
-        display: none !important;
+        transform: scale(0.9);
     }
 }
 
@@ -3084,7 +2458,7 @@ textarea:focus {
 
 .input-with-dropdown {
     position: relative;
-}
+} 
 
 /* 用户信息样式 */
 #current-user {
@@ -3115,7 +2489,7 @@ textarea:focus {
     .quota-info {
         display: none;
     }
-}
+} 
 
 /* 分享相关样式 */
 .task-share-info {
@@ -3127,7 +2501,7 @@ textarea:focus {
     font-size: 0.9em;
 }
 
-.share-link:not(.task-message) {
+.share-link {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -3155,64 +2529,13 @@ textarea:focus {
 }
 
 @media (max-width: 768px) {
-    .share-link:not(.task-message) {
+    .share-link {
         flex-direction: column;
         gap: 4px;
     }
-
+    
     .share-time {
         flex-direction: column;
         gap: 4px;
     }
-}
-
-/* 超小屏幕优化 (320px-480px) */
-@media screen and (max-width: 480px) {
-    .task-item {
-        padding: 12px;
-        gap: 8px;
-        margin-bottom: 8px;
-    }
-
-    .task-name {
-        font-size: 15px;
-        margin-bottom: 4px;
-    }
-
-    .task-details {
-        font-size: 11px;
-        gap: 4px;
-    }
-
-    .task-message.share-link {
-        padding: 0 !important;
-        gap: 3px !important;
-        font-size: 11px !important;
-    }
-
-    .task-message.share-link .share-btn {
-        min-width: 18px !important;
-        width: 18px !important;
-        height: 18px !important;
-        padding: 1px !important;
-    }
-
-    .task-message.share-link .share-btn i {
-        font-size: 10px !important;
-    }
-
-    .task-actions .btn-icon {
-        width: 32px;
-        height: 32px;
-        padding: 6px;
-    }
-
-    .task-actions .btn-icon i {
-        font-size: 14px;
-    }
-}
-
-/* 被筛选隐藏的任务 */
-.task-item.filtered-hidden {
-    display: none !important;
-}
+} 
