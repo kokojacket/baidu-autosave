@@ -53,8 +53,7 @@ COPY *.py ./
 # 从前端构建阶段复制构建产物到static目录（替换旧前端）
 COPY --from=frontend-builder /app/frontend/dist/ static/
 
-# 复制模板文件（保留登录页面，以防需要fallback）
-COPY templates/ templates/
+# 模板文件已移除，改用Vue前端
 
 # 复制配置模板
 COPY config/config.template.json ./template/config.template.json
