@@ -77,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useAuthStore, useTaskStore, useUserStore } from '@/stores'
@@ -151,9 +151,17 @@ onMounted(async () => {
   // 监听窗口大小变化
   window.addEventListener('resize', handleResize)
   
-  // 初始化应用数据
-  await nextTick()
-  await initializeApp()
+  // 监听认证状态变化，只在用户已认证时初始化应用数据
+  watch(
+    () => authStore.isLoggedIn,
+    async (isLoggedIn) => {
+      if (isLoggedIn) {
+        await nextTick()
+        await initializeApp()
+      }
+    },
+    { immediate: true } // 立即检查当前认证状态
+  )
 })
 
 onUnmounted(() => {

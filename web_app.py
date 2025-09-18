@@ -1476,7 +1476,6 @@ def update_auth():
     return jsonify({'success': True, 'message': '登录凭据更新成功'})
 
 @app.route('/api/version/check', methods=['GET'])
-@login_required
 @handle_api_error
 def check_version():
     """检查最新版本"""

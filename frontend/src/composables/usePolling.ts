@@ -1,7 +1,8 @@
 // 轮询管理组合式函数
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { pollingService } from '@/services/polling'
-import type { Task, LogEntry } from '@/types'
+import { useAuthStore } from '@/stores/auth'
+import type { Task } from '@/types'
 
 // 全局共享的轮询状态
 const globalPollingState = ref(false)
@@ -11,6 +12,9 @@ export function usePolling() {
   // 使用全局共享状态，而不是每次创建新的ref
   const isRunning = computed(() => globalPollingState.value)
   const error = computed(() => globalPollingError.value)
+  
+  // 获取认证状态
+  const authStore = useAuthStore()
 
   const start = () => {
     pollingService.start()
@@ -78,8 +82,20 @@ export function usePolling() {
     // 初始化状态：从pollingService获取当前状态
     globalPollingState.value = pollingService.isPolling()
 
-    // 启动轮询
-    start()
+    // 监听认证状态变化，只在用户已认证时启动轮询
+    watch(
+      () => authStore.isLoggedIn,
+      (isLoggedIn) => {
+        if (isLoggedIn) {
+          // 用户已登录，启动轮询
+          start()
+        } else {
+          // 用户未登录或已登出，停止轮询
+          stop()
+        }
+      },
+      { immediate: true } // 立即执行一次检查
+    )
   })
 
   onUnmounted(() => {
