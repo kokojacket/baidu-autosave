@@ -33,6 +33,12 @@ onMounted(async () => {
   
   // 异步初始化版本检查，不阻塞应用启动
   versionStore.initVersionCheck()
+  
+  // 移除初始加载元素（如果存在）
+  const appLoading = document.getElementById('app-loading')
+  if (appLoading) {
+    appLoading.remove()
+  }
 })
 </script>
 
