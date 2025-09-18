@@ -7,6 +7,9 @@
   <meta name="keywords" content="百度网盘,自动转存,网盘管理,资源下载">
   <meta name="author" content="百度网盘自动转存工具">
   
+  <!-- 禁用 Cloudflare Rocket Loader -->
+  <meta name="cloudflare-rocket-loader" content="off">
+  
   <!-- 预连接优化 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="dns-prefetch" href="//pan.baidu.com">
@@ -88,13 +91,22 @@
       }, 1000); // 最少显示1秒加载动画
     });
     
-    // 全局错误捕获
+    // 全局错误捕获 - 过滤无意义错误
     window.addEventListener('error', function(e) {
-      console.error('全局错误:', e.error);
+      // 过滤掉 null 错误和 Cloudflare Rocket Loader 错误
+      if (!e.error || 
+          (e.filename && e.filename.includes('rocket-loader')) ||
+          (e.target && e.target.src && e.target.src.includes('cloudflare'))) {
+        return; // 忽略这些错误
+      }
+      console.error('应用错误:', e.error);
     });
     
     window.addEventListener('unhandledrejection', function(e) {
-      console.error('未处理的Promise错误:', e.reason);
+      // 过滤掉空的 Promise 拒绝
+      if (e.reason) {
+        console.error('Promise错误:', e.reason);
+      }
     });
   </script>
   
