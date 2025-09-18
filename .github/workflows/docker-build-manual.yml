@@ -7,6 +7,7 @@ on:
         description: '镜像版本号 (例如: v1.0.0)，留空则使用package.json中的版本'
         required: false
         type: string
+        default: 'test'  # 默认版本号
       push_to_registry:
         description: '是否推送到 Docker Hub'
         required: true
@@ -16,7 +17,7 @@ on:
         description: '是否同时更新latest标签'
         required: true
         type: boolean
-        default: true
+        default: false
 
 env:
   REGISTRY: docker.io
@@ -63,14 +64,31 @@ jobs:
           tags: |
             type=raw,value=${{ env.VERSION }}
             type=raw,value=latest,enable=${{ inputs.update_latest }}
+      
+      - name: Add additional tags
+        id: additional_tags
+        run: |
+          TAGS="${{ steps.meta.outputs.tags }}"
+          if [ -n "${{ inputs.docker_tags }}" ]; then
+            IFS=',' read -ra TAG_ARRAY <<< "${{ inputs.docker_tags }}"
+            for tag in "${TAG_ARRAY[@]}"; do
+              tag=$(echo "$tag" | xargs)  # 去掉空格
+              if [ "$tag" != "${{ env.VERSION }}" ]; then  # 避免重复
+                TAGS="$TAGS,${{ env.IMAGE_NAME }}:$tag"
+              fi
+            done
+          fi
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
       - name: Display build information
         run: |
           echo "🚀 开始构建 Docker 镜像"
           echo "📦 镜像名称: ${{ env.IMAGE_NAME }}"
           echo "🏷️  版本标签: ${{ env.VERSION }}"
+          echo "🏷️  额外标签: ${{ inputs.docker_tags }}"
           echo "🔄 更新latest: ${{ inputs.update_latest }}"
           echo "📤 推送到仓库: ${{ inputs.push_to_registry }}"
+          echo "📋 所有标签: ${{ steps.additional_tags.outputs.tags }}"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -78,7 +96,7 @@ jobs:
           context: .
           push: ${{ inputs.push_to_registry }}
           platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.additional_tags.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max 
