@@ -64,10 +64,24 @@ RUN mkdir -p config log template && \
 
 # 创建启动脚本
 RUN echo '#!/bin/sh\n\
-if [ ! -f /app/config/config.json ]; then\n\
+# 等待一秒确保volume挂载完成\n\
+sleep 1\n\
+\n\
+# 如果config.json不存在或为空，则从模板创建\n\
+if [ ! -f /app/config/config.json ] || [ ! -s /app/config/config.json ]; then\n\
+    echo "配置文件不存在或为空，从模板创建..."\n\
+    # 如果存在非空的config.json，先备份\n\
+    if [ -f /app/config/config.json ] && [ -s /app/config/config.json ]; then\n\
+        cp /app/config/config.json /app/config/config.json.backup.$(date +%s)\n\
+        echo "已备份现有配置文件"\n\
+    fi\n\
     cp /app/template/config.template.json /app/config/config.json\n\
     chmod 666 /app/config/config.json\n\
+    echo "已从模板创建配置文件"\n\
+else\n\
+    echo "使用现有配置文件"\n\
 fi\n\
+\n\
 exec python web_app.py' > start.sh && \
     chmod +x start.sh
 

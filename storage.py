@@ -10,6 +10,7 @@ import posixpath
 from threading import Lock
 import traceback
 import subprocess
+import shutil
 import json
 import random
 from functools import wraps
@@ -79,6 +80,11 @@ class BaiduStorage:
         
     def _load_config(self):
         try:
+            # 检查配置文件是否存在且不为空
+            if not os.path.exists('config/config.json') or os.path.getsize('config/config.json') == 0:
+                logger.warning("配置文件不存在或为空，将从模板创建")
+                self._create_config_from_template()
+            
             with open('config/config.json', 'r', encoding='utf-8') as f:
                 config = json.load(f)
                 # 确保配置文件结构完整
@@ -122,6 +128,40 @@ class BaiduStorage:
             }
         except Exception as e:
             logger.error(f"加载配置文件失败: {str(e)}")
+            raise
+    
+    def _create_config_from_template(self):
+        """从模板创建配置文件"""
+        try:
+            # 查找模板文件
+            template_paths = [
+                'config/config.template.json',
+                'template/config.template.json'
+            ]
+            
+            template_path = None
+            for path in template_paths:
+                if os.path.exists(path):
+                    template_path = path
+                    break
+            
+            if not template_path:
+                logger.error("找不到配置模板文件")
+                raise FileNotFoundError("配置模板文件不存在")
+            
+            # 备份现有配置文件（如果存在）
+            if os.path.exists('config/config.json'):
+                backup_path = f'config/config.json.backup.{int(time.time())}'
+                shutil.copy2('config/config.json', backup_path)
+                logger.info(f"已备份现有配置文件到: {backup_path}")
+            
+            # 从模板复制配置文件
+            os.makedirs('config', exist_ok=True)
+            shutil.copy2(template_path, 'config/config.json')
+            logger.info(f"已从模板 {template_path} 创建配置文件")
+            
+        except Exception as e:
+            logger.error(f"从模板创建配置文件失败: {str(e)}")
             raise
             
     def _save_config(self, update_scheduler=True):
