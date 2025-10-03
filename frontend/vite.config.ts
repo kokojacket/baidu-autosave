@@ -92,7 +92,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '../static-new',
+    outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
       output: {
