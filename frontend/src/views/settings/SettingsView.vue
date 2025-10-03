@@ -207,15 +207,16 @@
                   </div>
                 </el-form-item>
                 
-                <el-form-item label="默认有效期">
+                <el-form-item label="有效期设置">
                   <el-input-number
                     v-model="shareForm.default_period_days"
                     :min="0"
-                    :max="365"
+                    :max="999"
                     style="width: 150px;"
+                    placeholder="0"
                   />
                   <span style="margin-left: 8px; color: #666">天</span>
-                  <div class="form-tip">分享链接的默认有效期，0表示永久有效</div>
+                  <div class="form-tip">分享链接的有效期，0 为永久有效</div>
                 </el-form-item>
                 
                 <el-form-item>
