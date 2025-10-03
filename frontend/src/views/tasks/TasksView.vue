@@ -150,11 +150,15 @@
           </template>
         </el-table-column>
         
-        <el-table-column prop="status" label="状态" class-name="col-status" v-if="columnVisible.status">
+        <!-- 定时规则列 -->
+        <el-table-column label="定时规则" class-name="col-cron" v-if="columnVisible.cron">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)" size="small">
-              {{ getStatusText(row.status) }}
-            </el-tag>
+            <div class="cron-display">
+              <el-tag v-if="row.cron" size="small" type="warning">
+                {{ row.cron }}
+              </el-tag>
+              <span v-else class="text-muted">使用默认</span>
+            </div>
           </template>
         </el-table-column>
         
@@ -166,15 +170,11 @@
           </template>
         </el-table-column>
         
-        <!-- 定时规则列 -->
-        <el-table-column label="定时规则" class-name="col-cron" v-if="columnVisible.cron">
+        <el-table-column prop="status" label="状态" class-name="col-status" v-if="columnVisible.status">
           <template #default="{ row }">
-            <div class="cron-display">
-              <el-tag v-if="row.cron" size="small" type="warning">
-                {{ row.cron }}
-              </el-tag>
-              <span v-else class="text-muted">使用默认</span>
-            </div>
+            <el-tag :type="getStatusType(row.status)" size="small">
+              {{ getStatusText(row.status) }}
+            </el-tag>
           </template>
         </el-table-column>
         
@@ -859,15 +859,15 @@ watch(tasks, async () => {
 }
 
 .desktop-table :deep(colgroup col[name="el-table_1_column_8"]) {
-  width: 5% !important;
-}
-
-.desktop-table :deep(colgroup col[name="el-table_1_column_9"]) {
   width: 14% !important;
 }
 
-.desktop-table :deep(colgroup col[name="el-table_1_column_10"]) {
+.desktop-table :deep(colgroup col[name="el-table_1_column_9"]) {
   width: 7% !important;
+}
+
+.desktop-table :deep(colgroup col[name="el-table_1_column_10"]) {
+  width: 5% !important;
 }
 
 .desktop-table :deep(colgroup col[name="el-table_1_column_11"]) {
