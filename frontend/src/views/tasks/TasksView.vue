@@ -46,6 +46,12 @@
           <el-icon><Sort /></el-icon>
           {{ isReversed ? '倒序' : '正序' }}
         </el-button>
+        
+        <el-tooltip content="列设置" placement="top">
+          <el-button @click="showColumnSettings = true" size="default">
+            <el-icon><Setting /></el-icon>
+          </el-button>
+        </el-tooltip>
       </div>
       
       <div class="toolbar-right">
@@ -75,10 +81,10 @@
         @selection-change="handleSelectionChange"
         class="desktop-table"
       >
-        <el-table-column type="selection" width="55" />
+        <el-table-column type="selection" class-name="col-selection" />
         
         <!-- 拖拽手柄列 -->
-        <el-table-column label="排序" width="60" align="center">
+        <el-table-column label="排序" class-name="col-drag" align="center">
           <template #default>
             <div class="drag-handle" :class="{ 'dragging': isDragging }">
               <el-icon><DCaret /></el-icon>
@@ -86,9 +92,9 @@
           </template>
         </el-table-column>
         
-        <el-table-column prop="order" label="序号" width="80" />
+        <el-table-column prop="order" label="序号" class-name="col-order" v-if="columnVisible.order" />
         
-        <el-table-column prop="name" label="任务名称" min-width="200">
+        <el-table-column prop="name" label="任务名称" class-name="col-name" v-if="columnVisible.name">
           <template #default="{ row }">
             <div class="task-name">
               <a 
@@ -104,7 +110,7 @@
           </template>
         </el-table-column>
         
-        <el-table-column label="分享链接" min-width="300">
+        <el-table-column label="分享链接" class-name="col-share" v-if="columnVisible.shareLink">
           <template #default="{ row }">
             <div class="share-link-container">
               <template v-if="row.share_info">
@@ -125,7 +131,7 @@
           </template>
         </el-table-column>
         
-        <el-table-column prop="save_dir" label="保存路径" min-width="200">
+        <el-table-column prop="save_dir" label="保存路径" class-name="col-savedir" v-if="columnVisible.saveDir">
           <template #default="{ row }">
             <div class="save-dir text-truncate" :title="row.save_dir">
               {{ row.save_dir }}
@@ -133,7 +139,7 @@
           </template>
         </el-table-column>
         
-        <el-table-column prop="category" label="分类" width="120">
+        <el-table-column prop="category" label="分类" class-name="col-category" v-if="columnVisible.category">
           <template #default="{ row }">
             <div class="task-category">
               <el-tag v-if="row.category" size="small" type="primary">
@@ -144,7 +150,7 @@
           </template>
         </el-table-column>
         
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="status" label="状态" class-name="col-status" v-if="columnVisible.status">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)" size="small">
               {{ getStatusText(row.status) }}
@@ -152,7 +158,7 @@
           </template>
         </el-table-column>
         
-        <el-table-column prop="message" label="消息" min-width="200">
+        <el-table-column prop="message" label="消息" class-name="col-message" v-if="columnVisible.message">
           <template #default="{ row }">
             <div class="task-message text-truncate" :title="row.message">
               {{ row.message || '-' }}
@@ -160,27 +166,19 @@
           </template>
         </el-table-column>
         
-        <!-- 高级功能列 -->
-        <el-table-column label="高级功能" min-width="150">
+        <!-- 定时规则列 -->
+        <el-table-column label="定时规则" class-name="col-cron" v-if="columnVisible.cron">
           <template #default="{ row }">
-            <div class="advanced-features">
-              <el-tag v-if="row.cron" size="small" type="warning" style="margin-right: 4px;">
-                定时
+            <div class="cron-display">
+              <el-tag v-if="row.cron" size="small" type="warning">
+                {{ row.cron }}
               </el-tag>
-              <el-tag v-if="row.regex_pattern" size="small" type="info" style="margin-right: 4px;">
-                过滤
-              </el-tag>
-              <el-tag v-if="row.regex_replace" size="small" type="success" style="margin-right: 4px;">
-                重命名
-              </el-tag>
-              <span v-if="!row.cron && !row.regex_pattern && !row.regex_replace" class="no-advanced">
-                -
-              </span>
+              <span v-else class="text-muted">使用默认</span>
             </div>
           </template>
         </el-table-column>
         
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" class-name="col-actions">
           <template #default="{ row }">
             <el-button-group size="small">
               <el-button 
@@ -341,6 +339,28 @@
       @task-cancelled="handleTaskCancelled"
       @update:modelValue="handleTaskRunnerClose"
     />
+    
+    <!-- 列设置对话框 -->
+    <el-dialog
+      v-model="showColumnSettings"
+      title="列设置"
+      width="400px"
+    >
+      <div class="column-settings">
+        <el-checkbox v-model="columnVisible.order">序号</el-checkbox>
+        <el-checkbox v-model="columnVisible.name">任务名称</el-checkbox>
+        <el-checkbox v-model="columnVisible.shareLink">分享链接</el-checkbox>
+        <el-checkbox v-model="columnVisible.saveDir">保存路径</el-checkbox>
+        <el-checkbox v-model="columnVisible.category">分类</el-checkbox>
+        <el-checkbox v-model="columnVisible.status">状态</el-checkbox>
+        <el-checkbox v-model="columnVisible.message">消息</el-checkbox>
+        <el-checkbox v-model="columnVisible.cron">定时规则</el-checkbox>
+      </div>
+      <template #footer>
+        <el-button @click="showColumnSettings = false">取消</el-button>
+        <el-button type="primary" @click="saveColumnSettings">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -349,7 +369,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox, type TableInstance } from 'element-plus'
 import { 
   Plus, Search, VideoPlay, Delete, Edit, Share, 
-  Link, CopyDocument, DCaret, Sort
+  Link, CopyDocument, DCaret, Sort, Setting
 } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
 import { useTaskStore } from '@/stores/tasks'
@@ -380,11 +400,28 @@ const tableRef = ref<TableInstance>()
 const searchQuery = ref('')
 const statusFilter = ref('all')
 const categoryFilter = ref('all')
-const isReversed = ref(false)
+// 从localStorage加载排序状态
+const isReversed = ref(localStorage.getItem('taskListSortOrder') === 'desc')
 const selectedTasks = ref<Task[]>([])
+
+// 列可见性配置（从localStorage加载）
+const defaultColumnVisible = {
+  order: true,
+  name: true,
+  shareLink: true,
+  saveDir: true,
+  category: true,
+  status: true,
+  message: true,
+  cron: true
+}
+const columnVisible = ref(
+  JSON.parse(localStorage.getItem('taskListColumnVisible') || JSON.stringify(defaultColumnVisible))
+)
 
 // 对话框相关
 const showAddTaskDialog = ref(false)
+const showColumnSettings = ref(false)
 const editingTask = ref<Task | null>(null)
 
 // 任务运行窗口相关
@@ -445,8 +482,17 @@ const filteredTasks = computed(() => {
 
 const toggleSortOrder = () => {
   isReversed.value = !isReversed.value
+  // 保存到localStorage
+  localStorage.setItem('taskListSortOrder', isReversed.value ? 'desc' : 'asc')
   // 排序切换后强制重新渲染，确保排序立即生效
   tableKey.value++
+}
+
+// 保存列可见性配置
+const saveColumnSettings = () => {
+  localStorage.setItem('taskListColumnVisible', JSON.stringify(columnVisible.value))
+  showColumnSettings.value = false
+  ElMessage.success('列设置已保存')
 }
 
 const handleSelectionChange = (selection: Task[]) => {
@@ -505,13 +551,13 @@ const shareTask = async (taskId: number) => {
     const shareInfo = await shareTaskWithOptions(taskId)
     
     ElMessageBox.alert(
-      `分享链接：${shareInfo.url}\n${shareInfo.password ? `密码：${shareInfo.password}` : ''}`,
+      `分享链接：\n${getFullShareLink(shareInfo)}`,
       '分享信息',
       {
         confirmButtonText: '复制链接',
         callback: async () => {
           try {
-            await navigator.clipboard.writeText(shareInfo.url)
+            await navigator.clipboard.writeText(getFullShareLink(shareInfo))
             ElMessage.success('链接已复制到剪贴板')
           } catch {
             ElMessage.warning('复制失败，请手动复制')
@@ -770,6 +816,62 @@ watch(tasks, async () => {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+}
+
+.desktop-table {
+  width: 100%;
+}
+
+/* 表格固定布局 */
+.desktop-table :deep(.el-table__header),
+.desktop-table :deep(.el-table__body) {
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* 通过 colgroup > col 设置列宽百分比 */
+.desktop-table :deep(colgroup col[name="el-table_1_column_1"]) {
+  width: 3% !important;
+}
+
+.desktop-table :deep(colgroup col[name="el-table_1_column_2"]) {
+  width: 3% !important;
+}
+
+.desktop-table :deep(colgroup col[name="el-table_1_column_3"]) {
+  width: 3% !important;
+}
+
+.desktop-table :deep(colgroup col[name="el-table_1_column_4"]) {
+  width: 9% !important;
+}
+
+.desktop-table :deep(colgroup col[name="el-table_1_column_5"]) {
+  width: 25% !important;
+}
+
+.desktop-table :deep(colgroup col[name="el-table_1_column_6"]) {
+  width: 14% !important;
+}
+
+.desktop-table :deep(colgroup col[name="el-table_1_column_7"]) {
+  width: 6% !important;
+}
+
+.desktop-table :deep(colgroup col[name="el-table_1_column_8"]) {
+  width: 5% !important;
+}
+
+.desktop-table :deep(colgroup col[name="el-table_1_column_9"]) {
+  width: 14% !important;
+}
+
+.desktop-table :deep(colgroup col[name="el-table_1_column_10"]) {
+  width: 7% !important;
+}
+
+.desktop-table :deep(colgroup col[name="el-table_1_column_11"]) {
+  width: 11% !important;
 }
 
 .task-name {
@@ -1078,6 +1180,20 @@ watch(tasks, async () => {
 
 .empty-text {
   font-size: 16px;
+}
+
+/* 列设置对话框 */
+.column-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.column-settings .el-checkbox {
+  margin: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
 }
 
 /* 响应式设计 - 统一断点为1200px */

@@ -26,12 +26,12 @@
       <el-form-item label="转存链接" prop="url">
         <el-input
           v-model="form.url"
-          placeholder="https://pan.baidu.com/s/xxx 或 https://pan.baidu.com/s/xxx?pwd=1234"
+          placeholder="https://pan.baidu.com/s/xxx?pwd=1234 或 https://pan.baidu.com/share/init?surl=xxx&pwd=1234"
           clearable
           @blur="parseUrl"
           :loading="isParsingUrl"
         />
-        <div class="form-help">支持带密码的转存链接，格式：链接?pwd=密码</div>
+        <div class="form-help">支持两种格式的百度网盘链接，密码可在链接中或单独填写</div>
       </el-form-item>
       
       <el-form-item label="保存路径" prop="save_dir">
@@ -65,10 +65,7 @@
         />
       </el-form-item>
 
-      <!-- 高级设置折叠面板 -->
-      <el-collapse v-model="advancedVisible" class="advanced-settings">
-        <el-collapse-item title="高级设置" name="advanced">
-          <el-form-item label="定时规则" prop="cron">
+      <el-form-item label="定时规则" prop="cron">
             <div class="cron-input-group">
               <el-autocomplete
                 v-model="form.cron"
@@ -106,8 +103,6 @@
             />
             <div class="form-help">正则表达式替换，用于重命名文件，留空表示不重命名</div>
           </el-form-item>
-        </el-collapse-item>
-      </el-collapse>
     </el-form>
     
     <template #footer>
@@ -178,7 +173,7 @@ const form = reactive({
 })
 
 // 高级设置折叠面板状态
-const advancedVisible = ref<string[]>([])
+// 移除advancedVisible，不再需要折叠面板
 
 const formRules = {
   url: [
@@ -211,7 +206,6 @@ const resetForm = () => {
   form.cron = ''
   form.regex_pattern = ''
   form.regex_replace = ''
-  advancedVisible.value = []
   pathNameSync.value = true // 重置开关状态
   formRef.value?.resetFields()
 }
@@ -351,7 +345,6 @@ const loadTaskData = (task: Task) => {
   
   // 如果有高级设置数据，展开面板
   if (task.cron || task.regex_pattern || task.regex_replace) {
-    advancedVisible.value = ['advanced']
   }
 }
 
@@ -522,18 +515,9 @@ watch(pathNameSync, (newValue) => {
   min-height: 80px;
 }
 
+/* 高级设置区域样式 */
 .advanced-settings {
   margin-top: 20px;
-}
-
-.advanced-settings :deep(.el-collapse-item__header) {
-  font-weight: 500;
-  color: #409eff;
-  border-bottom: 1px solid #e4e7ed;
-}
-
-.advanced-settings :deep(.el-collapse-item__content) {
-  padding: 20px 10px 10px;
 }
 
 .form-help {

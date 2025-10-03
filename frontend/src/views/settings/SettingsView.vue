@@ -9,128 +9,119 @@
         <!-- 通知设置 -->
         <el-tab-pane label="通知设置" name="notification">
           <el-card>
+            <!-- 基础设置 -->
             <div class="setting-section">
-              <h3>通知配置</h3>
+              <h3>基础设置</h3>
               <el-form :model="notificationForm" label-width="150px">
                 <el-form-item label="启用通知">
                   <el-switch v-model="notificationForm.enabled" />
+                  <div class="form-tip">开启后，任务执行结果将通过配置的渠道发送通知</div>
                 </el-form-item>
                 
-                <template v-if="notificationForm.enabled">
-                  <el-form-item label="通知延迟(秒)">
-                    <el-input-number 
-                      v-model="notificationForm.notification_delay" 
-                      :min="0" 
-                      :max="300" 
-                    />
-                  </el-form-item>
-                  
-                  <el-divider content-position="left">Push Plus配置</el-divider>
-                  
-                  <el-form-item label="Push Plus Token">
-                    <el-input
-                      v-model="notificationForm.push_plus_token"
-                      placeholder="请输入Push Plus Token"
-                      show-password
-                    />
-                  </el-form-item>
-                  
-                  <el-form-item label="Push Plus User">
-                    <el-input
-                      v-model="notificationForm.push_plus_user"
-                      placeholder="请输入Push Plus用户标识"
-                    />
-                  </el-form-item>
-                  
-                  <el-divider content-position="left">Webhook配置</el-divider>
-                  
-                  <el-form-item label="Webhook URL">
-                    <el-input
-                      v-model="notificationForm.webhook_url"
-                      placeholder="https://your-webhook-url.com"
-                    />
-                  </el-form-item>
-                  
-                  <el-form-item label="HTTP方法">
-                    <el-select v-model="notificationForm.webhook_method" style="width: 120px">
-                      <el-option label="POST" value="POST" />
-                      <el-option label="PUT" value="PUT" />
-                      <el-option label="PATCH" value="PATCH" />
-                    </el-select>
-                  </el-form-item>
-                  
-                  <el-form-item label="内容类型">
-                    <el-select v-model="notificationForm.webhook_content_type">
-                      <el-option label="application/json" value="application/json" />
-                      <el-option label="application/x-www-form-urlencoded" value="application/x-www-form-urlencoded" />
-                      <el-option label="text/plain" value="text/plain" />
-                    </el-select>
-                  </el-form-item>
-                  
-                  <el-form-item label="请求头">
-                    <el-input
-                      v-model="notificationForm.webhook_headers"
-                      type="textarea"
-                      :rows="2"
-                      placeholder="Content-Type: application/json"
-                    />
-                    <div class="form-tip">每行一个头部，格式: Header-Name: Header-Value</div>
-                  </el-form-item>
-                  
-                  <el-form-item label="请求体模板">
-                    <el-input
-                      v-model="notificationForm.webhook_body"
-                      type="textarea"
-                      :rows="4"
-                      placeholder='title: "$title"&#10;content: "$content"&#10;source: "我的项目"'
-                    />
-                    <div class="form-tip">支持变量：$title, $content</div>
-                  </el-form-item>
-                </template>
-                
-                <el-form-item>
-                  <el-button type="primary" @click="saveNotificationSettings" :loading="saving">
-                    保存设置
-                  </el-button>
-                  <el-button v-if="notificationForm.enabled" @click="testNotification">
-                    测试通知
-                  </el-button>
+                <el-form-item label="通知延迟" v-if="notificationForm.enabled">
+                  <el-input-number 
+                    v-model="notificationForm.notification_delay" 
+                    :min="0" 
+                    :max="300" 
+                  />
+                  <span style="margin-left: 8px; color: #666">秒</span>
+                  <div class="form-tip">发送通知前的延迟时间，避免频繁通知</div>
                 </el-form-item>
               </el-form>
             </div>
             
             <el-divider />
             
-            <!-- 其他自定义字段 -->
+            <!-- 通知字段配置 -->
             <div class="setting-section">
-              <h3>其他自定义字段</h3>
-              <div class="custom-fields">
-                <div v-for="field in customNotificationFields" :key="field.name" class="field-item">
-                  <span class="field-name">{{ field.name }}:</span>
-                  <span class="field-value">{{ field.value }}</span>
-                  <el-button
-                    type="text"
-                    size="small"
-                    @click="deleteCustomField(field.name)"
-                  >
-                    删除
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div>
+                  <h3 style="margin: 0;">通知字段配置</h3>
+                  <div class="form-tip" style="margin-top: 4px;">
+                    配置通知渠道所需的参数，不同的通知方式需要不同的字段
+                  </div>
+                </div>
+                <el-dropdown @command="handleQuickAdd" v-if="notificationForm.enabled">
+                  <el-button type="primary" size="small">
+                    快速添加常用字段<el-icon class="el-icon--right"><arrow-down /></el-icon>
                   </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="pushplus">Push Plus 配置</el-dropdown-item>
+                      <el-dropdown-item command="webhook">Webhook 配置</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
+              
+              <!-- 已配置的字段列表 -->
+              <div class="notification-fields" v-if="allNotificationFields.length > 0">
+                <div v-for="field in allNotificationFields" :key="field.name" class="notification-field-item">
+                  <div class="field-header">
+                    <span class="field-name">{{ field.name }}</span>
+                    <el-button
+                      type="danger"
+                      size="small"
+                      text
+                      @click="deleteNotificationField(field.name)"
+                    >
+                      <el-icon><Delete /></el-icon>
+                      删除
+                    </el-button>
+                  </div>
+                  <div class="field-value">
+                    <el-input
+                      v-model="field.value"
+                      :type="field.name.includes('TOKEN') || field.name.includes('PASSWORD') ? 'password' : 
+                             (field.name.includes('BODY') || field.name.includes('HEADERS')) ? 'textarea' : 'text'"
+                      :rows="field.name.includes('BODY') ? 4 : 2"
+                      :placeholder="getFieldPlaceholder(field.name)"
+                      show-word-limit
+                      @change="updateFieldValue(field.name, field.value)"
+                    />
+                    <div class="field-description" v-if="getFieldDescription(field.name)">
+                      {{ getFieldDescription(field.name) }}
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              <div class="add-field">
-                <el-input
-                  v-model="newField.name"
-                  placeholder="字段名"
-                  style="width: 200px; margin-right: 8px;"
-                />
-                <el-input
-                  v-model="newField.value"
-                  placeholder="字段值"
-                  style="width: 300px; margin-right: 8px;"
-                />
-                <el-button @click="addCustomField">添加</el-button>
+              <el-empty v-else description="暂无配置字段，请添加通知所需的字段" :image-size="100" />
+              
+              <!-- 添加新字段 -->
+              <div class="add-notification-field" v-if="notificationForm.enabled">
+                <el-divider content-position="left">添加新字段</el-divider>
+                <div class="add-field-form">
+                  <el-input
+                    v-model="newField.name"
+                    placeholder="字段名（如：WEBHOOK_URL）"
+                    style="width: 250px;"
+                    clearable
+                  />
+                  <el-input
+                    v-model="newField.value"
+                    placeholder="字段值"
+                    style="width: 400px;"
+                    clearable
+                  />
+                  <el-button type="primary" @click="addNotificationField" :disabled="!newField.name || !newField.value">
+                    <el-icon><Plus /></el-icon>
+                    添加字段
+                  </el-button>
+                </div>
               </div>
+            </div>
+            
+            <el-divider />
+            
+            <!-- 操作按钮 -->
+            <div class="setting-actions">
+              <el-button type="primary" @click="saveNotificationSettings" :loading="saving">
+                保存设置
+              </el-button>
+              <el-button v-if="notificationForm.enabled && allNotificationFields.length > 0" @click="testNotification">
+                测试通知
+              </el-button>
             </div>
           </el-card>
         </el-tab-pane>
@@ -217,15 +208,14 @@
                 </el-form-item>
                 
                 <el-form-item label="默认有效期">
-                  <el-select v-model="shareForm.default_period_days" style="width: 150px;">
-                    <el-option label="1天" :value="1" />
-                    <el-option label="3天" :value="3" />
-                    <el-option label="7天" :value="7" />
-                    <el-option label="15天" :value="15" />
-                    <el-option label="30天" :value="30" />
-                  </el-select>
+                  <el-input-number
+                    v-model="shareForm.default_period_days"
+                    :min="0"
+                    :max="365"
+                    style="width: 150px;"
+                  />
                   <span style="margin-left: 8px; color: #666">天</span>
-                  <div class="form-tip">分享链接的默认有效期</div>
+                  <div class="form-tip">分享链接的默认有效期，0表示永久有效</div>
                 </el-form-item>
                 
                 <el-form-item>
@@ -541,7 +531,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Plus, Delete, User } from '@element-plus/icons-vue'
+import { Plus, Delete, User, ArrowDown } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
 import { useConfigStore, useVersionStore, useAuthStore } from '@/stores'
 import { APP_VERSION, BUILD_TIME, RELEASE_NOTES } from '@/config/version'
@@ -549,7 +539,7 @@ import { APP_VERSION, BUILD_TIME, RELEASE_NOTES } from '@/config/version'
 const configStore = useConfigStore()
 const versionStore = useVersionStore()
 const authStore = useAuthStore()
-const { config, loading, saving, notificationFields } = storeToRefs(configStore)
+const { config, saving } = storeToRefs(configStore)
 const { latestVersion, hasUpdate, checking } = storeToRefs(versionStore)
 const { username } = storeToRefs(authStore)
 
@@ -563,14 +553,7 @@ const activeTab = ref('notification')
 // 表单数据
 const notificationForm = reactive({
   enabled: false,
-  notification_delay: 30,
-  push_plus_token: '',
-  push_plus_user: '',
-  webhook_url: '',
-  webhook_method: 'POST',
-  webhook_content_type: 'application/json',
-  webhook_headers: 'Content-Type: application/json',
-  webhook_body: 'title: "$title"\ncontent: "$content"\nsource: "我的项目"'
+  notification_delay: 30
 })
 
 // 定时任务配置 (对应config.json中的cron) - 默认启用
@@ -628,22 +611,135 @@ const authForm = reactive({
   session_timeout: 3600
 })
 
-// 自定义通知字段（除了内置字段外的其他字段）
-const customNotificationFields = ref<Array<{ name: string; value: string }>>([]);
+// 所有通知字段（从direct_fields加载）
+const allNotificationFields = ref<Array<{ name: string; value: string }>>([])
 
 const newField = reactive({
   name: '',
   value: ''
 })
 
-// 方法
+// 字段模板
+const fieldTemplates = {
+  pushplus: [
+    { name: 'PUSH_PLUS_TOKEN', value: '', description: 'Push Plus Token' },
+    { name: 'PUSH_PLUS_USER', value: '', description: 'Push Plus 用户标识' }
+  ],
+  webhook: [
+    { name: 'WEBHOOK_URL', value: '', description: 'Webhook URL' },
+    { name: 'WEBHOOK_METHOD', value: 'POST', description: 'HTTP 方法' },
+    { name: 'WEBHOOK_CONTENT_TYPE', value: 'application/json', description: '内容类型' },
+    { name: 'WEBHOOK_HEADERS', value: '', description: '请求头' },
+    { name: 'WEBHOOK_BODY', value: 'title: "$title"\ncontent: "$content"\nsource: "我的项目"', description: '请求体模板' }
+  ]
+}
+
+// 方法 - 通知配置相关
 const saveNotificationSettings = async () => {
   try {
-    await configStore.updateNotificationConfig(notificationForm)
+    // 从allNotificationFields构建direct_fields
+    const direct_fields: Record<string, string> = {}
+    
+    allNotificationFields.value.forEach(field => {
+      if (field.value && field.value.trim()) {
+        direct_fields[field.name] = field.value.trim()
+      }
+    })
+    
+    const notifyConfig = {
+      enabled: notificationForm.enabled,
+      notification_delay: notificationForm.notification_delay,
+      direct_fields: direct_fields
+    }
+    
+    await configStore.updateNotificationConfig(notifyConfig)
     ElMessage.success('通知设置已保存')
   } catch (error) {
     ElMessage.error(`保存失败：${error}`)
   }
+}
+
+// 快速添加字段模板
+const handleQuickAdd = (command: string) => {
+  const template = fieldTemplates[command as keyof typeof fieldTemplates]
+  if (!template) return
+  
+  template.forEach(field => {
+    // 检查字段是否已存在
+    const exists = allNotificationFields.value.some(f => f.name === field.name)
+    if (!exists) {
+      allNotificationFields.value.push({
+        name: field.name,
+        value: field.value
+      })
+    }
+  })
+  
+  ElMessage.success(`已添加 ${command === 'pushplus' ? 'Push Plus' : 'Webhook'} 配置字段`)
+}
+
+// 添加通知字段
+const addNotificationField = () => {
+  if (!newField.name || !newField.value) {
+    ElMessage.warning('请填写字段名和值')
+    return
+  }
+  
+  // 检查是否已存在
+  const exists = allNotificationFields.value.some(f => f.name === newField.name)
+  if (exists) {
+    ElMessage.warning('该字段已存在')
+    return
+  }
+  
+  allNotificationFields.value.push({
+    name: newField.name.trim(),
+    value: newField.value.trim()
+  })
+  
+  newField.name = ''
+  newField.value = ''
+  ElMessage.success('字段已添加')
+}
+
+// 删除通知字段
+const deleteNotificationField = (name: string) => {
+  const index = allNotificationFields.value.findIndex(f => f.name === name)
+  if (index > -1) {
+    allNotificationFields.value.splice(index, 1)
+    ElMessage.success('字段已删除')
+  }
+}
+
+// 更新字段值
+const updateFieldValue = (name: string, value: string) => {
+  const field = allNotificationFields.value.find(f => f.name === name)
+  if (field) {
+    field.value = value
+  }
+}
+
+// 获取字段占位符
+const getFieldPlaceholder = (name: string): string => {
+  const placeholders: Record<string, string> = {
+    'PUSH_PLUS_TOKEN': '请输入 Push Plus Token',
+    'PUSH_PLUS_USER': '请输入 Push Plus 用户标识',
+    'WEBHOOK_URL': 'https://your-webhook-url.com',
+    'WEBHOOK_METHOD': 'POST/PUT/PATCH',
+    'WEBHOOK_CONTENT_TYPE': 'application/json',
+    'WEBHOOK_HEADERS': 'Content-Type: application/json',
+    'WEBHOOK_BODY': 'title: "$title"\ncontent: "$content"\nsource: "我的项目"'
+  }
+  return placeholders[name] || `请输入 ${name} 的值`
+}
+
+// 获取字段说明
+const getFieldDescription = (name: string): string => {
+  const descriptions: Record<string, string> = {
+    'WEBHOOK_HEADERS': '每行一个头部，格式: Header-Name: Header-Value',
+    'WEBHOOK_BODY': '支持变量：$title（标题）, $content（内容）'
+  }
+  return descriptions[name] || ''
 }
 
 const saveCronSettings = async () => {
@@ -724,31 +820,6 @@ const testNotification = async () => {
   }
 }
 
-const addNotificationField = async () => {
-  if (!newField.name || !newField.value) {
-    ElMessage.warning('请填写字段名和值')
-    return
-  }
-  
-  try {
-    await configStore.addNotificationField(newField.name, newField.value)
-    ElMessage.success('字段已添加')
-    newField.name = ''
-    newField.value = ''
-  } catch (error) {
-    ElMessage.error(`添加失败：${error}`)
-  }
-}
-
-const deleteNotificationField = async (name: string) => {
-  try {
-    await configStore.deleteNotificationField(name)
-    ElMessage.success('字段已删除')
-  } catch (error) {
-    ElMessage.error(`删除失败：${error}`)
-  }
-}
-
 // cron计划管理
 const addCronSchedule = () => {
   cronForm.default_schedule.push('')
@@ -756,40 +827,6 @@ const addCronSchedule = () => {
 
 const removeCronSchedule = (index: number) => {
   cronForm.default_schedule.splice(index, 1)
-}
-
-// 自定义字段管理
-const addCustomField = async () => {
-  if (!newField.name || !newField.value) {
-    ElMessage.warning('请填写字段名和值')
-    return
-  }
-  
-  try {
-    await configStore.addCustomNotificationField(newField.name, newField.value)
-    customNotificationFields.value.push({
-      name: newField.name,
-      value: newField.value
-    })
-    ElMessage.success('自定义字段已添加')
-    newField.name = ''
-    newField.value = ''
-  } catch (error) {
-    ElMessage.error(`添加失败：${error}`)
-  }
-}
-
-const deleteCustomField = async (name: string) => {
-  try {
-    await configStore.deleteCustomNotificationField(name)
-    const index = customNotificationFields.value.findIndex(field => field.name === name)
-    if (index > -1) {
-      customNotificationFields.value.splice(index, 1)
-    }
-    ElMessage.success('自定义字段已删除')
-  } catch (error) {
-    ElMessage.error(`删除失败：${error}`)
-  }
 }
 
 // 初始化表单数据
@@ -801,15 +838,12 @@ const initForms = () => {
     notificationForm.enabled = config.value.notify.enabled || false
     notificationForm.notification_delay = config.value.notify.notification_delay || 30
     
-    // 从direct_fields加载具体配置
+    // 从direct_fields加载所有字段到allNotificationFields
     const fields = config.value.notify.direct_fields || {}
-    notificationForm.push_plus_token = fields.PUSH_PLUS_TOKEN || ''
-    notificationForm.push_plus_user = fields.PUSH_PLUS_USER || ''
-    notificationForm.webhook_url = fields.WEBHOOK_URL || ''
-    notificationForm.webhook_method = fields.WEBHOOK_METHOD || 'POST'
-    notificationForm.webhook_content_type = fields.WEBHOOK_CONTENT_TYPE || 'application/json'
-    notificationForm.webhook_headers = fields.WEBHOOK_HEADERS || 'Content-Type: application/json'
-    notificationForm.webhook_body = fields.WEBHOOK_BODY || 'title: "$title"\ncontent: "$content"\nsource: "我的项目"'
+    allNotificationFields.value = Object.entries(fields).map(([name, value]) => ({
+      name,
+      value: String(value || '')
+    }))
   }
   
   // 定时设置 (从config.cron加载) - 默认启用
@@ -905,39 +939,70 @@ onMounted(async () => {
   margin-bottom: 16px;
 }
 
-.custom-fields {
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
-  padding: 16px;
-}
-
-.field-item {
+/* 通知字段配置样式 */
+.notification-fields {
   display: flex;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.field-item:last-child {
-  border-bottom: none;
-  margin-bottom: 16px;
+.notification-field-item {
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 16px;
+  background-color: #fafafa;
+  transition: all 0.3s;
+}
+
+.notification-field-item:hover {
+  border-color: #409eff;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+}
+
+.field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .field-name {
-  font-weight: 500;
-  color: #333;
-  min-width: 100px;
+  font-weight: 600;
+  color: #409eff;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+  background-color: #ecf5ff;
+  padding: 4px 12px;
+  border-radius: 4px;
 }
 
 .field-value {
   flex: 1;
-  margin-left: 16px;
-  color: #666;
 }
 
-.add-field {
+.field-description {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.add-notification-field {
+  margin-top: 20px;
+}
+
+.add-field-form {
   display: flex;
   align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.setting-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
 }
 
 .version-info {

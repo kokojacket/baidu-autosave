@@ -259,8 +259,23 @@ def add_task():
     # 移除URL中的hash部分
     if '#' in url:
         url = url.split('#')[0]
+    
+    # 处理第二种格式: https://pan.baidu.com/share/init?surl=xxx&pwd=xxx
+    if '/share/init?' in url and 'surl=' in url:
+        import urllib.parse
+        parsed = urllib.parse.urlparse(url)
+        params = urllib.parse.parse_qs(parsed.query)
         
-    # 处理URL中的密码部分
+        # 提取surl和pwd参数
+        surl = params.get('surl', [''])[0]
+        if not pwd and 'pwd' in params:
+            pwd = params.get('pwd', [''])[0]
+        
+        # 转换为第一种格式
+        if surl:
+            url = f"https://pan.baidu.com/s/{surl}"
+    
+    # 处理第一种格式中的密码部分
     if '?pwd=' in url:
         url, pwd = url.split('?pwd=')
         pwd = pwd.strip()
@@ -371,7 +386,22 @@ def get_share_info():
         # 移除URL中的hash部分
         url = url.split('#')[0]
         
-        # 处理URL中的密码部分
+        # 处理第二种格式: https://pan.baidu.com/share/init?surl=xxx&pwd=xxx
+        if '/share/init?' in url and 'surl=' in url:
+            import urllib.parse
+            parsed = urllib.parse.urlparse(url)
+            params = urllib.parse.parse_qs(parsed.query)
+            
+            # 提取surl和pwd参数
+            surl = params.get('surl', [''])[0]
+            if not pwd and 'pwd' in params:
+                pwd = params.get('pwd', [''])[0]
+            
+            # 转换为第一种格式
+            if surl:
+                url = f"https://pan.baidu.com/s/{surl}"
+        
+        # 处理第一种格式中的密码部分
         if '?pwd=' in url:
             url, extracted_pwd = url.split('?pwd=')
             pwd = extracted_pwd.strip()
@@ -959,12 +989,24 @@ def update_config():
         
     data = request.get_json()
     
-    # 自动格式化WEBHOOK_BODY字段
-    if 'notify' in data and 'direct_fields' in data['notify']:
-        direct_fields = data['notify']['direct_fields']
-        if 'WEBHOOK_BODY' in direct_fields:
-            direct_fields['WEBHOOK_BODY'] = format_webhook_body(direct_fields['WEBHOOK_BODY'])
+    # 处理通知配置：完全替换notify配置，清除旧字段
+    if 'notify' in data:
+        # 格式化WEBHOOK_BODY字段
+        if 'direct_fields' in data['notify'] and 'WEBHOOK_BODY' in data['notify']['direct_fields']:
+            data['notify']['direct_fields']['WEBHOOK_BODY'] = format_webhook_body(data['notify']['direct_fields']['WEBHOOK_BODY'])
+        
+        # 完全替换整个notify对象，而不是合并
+        # 这样可以清除旧的字段（push_plus_token、webhook_url等）
+        storage.config['notify'] = {
+            'enabled': data['notify'].get('enabled', False),
+            'notification_delay': data['notify'].get('notification_delay', 30),
+            'direct_fields': data['notify'].get('direct_fields', {})
+        }
+        
+        # 从data中移除notify，避免后续update重复处理
+        del data['notify']
     
+    # 更新其他配置
     storage.config.update(data)
     storage._save_config()
     
@@ -1852,8 +1894,9 @@ def share_task():
         
         # 获取分享配置
         share_config = storage.config.get('share', {})
-        password = custom_password or share_config.get('default_password', '1234')
-        period_days = custom_period or share_config.get('default_period_days', 7)
+        password = custom_password if custom_password is not None else share_config.get('default_password', '1234')
+        # 支持0作为永久有效期
+        period_days = custom_period if custom_period is not None else share_config.get('default_period_days', 7)
         
         try:
             # 调用BaiduPCS-Py的share命令

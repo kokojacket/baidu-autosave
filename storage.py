@@ -563,6 +563,20 @@ class BaiduStorage:
             # 移除URL中的hash部分
             url = url.split('#')[0]
             
+            # 处理第二种格式: https://pan.baidu.com/share/init?surl=xxx&pwd=xxx
+            # 注意：这里不处理pwd参数，因为pwd由调用方传入
+            if '/share/init?' in url and 'surl=' in url:
+                import urllib.parse
+                parsed = urllib.parse.urlparse(url)
+                params = urllib.parse.parse_qs(parsed.query)
+                
+                # 提取surl参数
+                surl = params.get('surl', [''])[0]
+                
+                # 转换为第一种格式
+                if surl:
+                    url = f"https://pan.baidu.com/s/{surl}"
+            
             # 验证URL格式（更新正则表达式以适应可能的查询参数）
             if not re.match(r'^https?://pan\.baidu\.com/s/[a-zA-Z0-9_-]+(?:\?pwd=[a-zA-Z0-9]+)?$', url):
                 raise ValueError("无效的百度网盘分享链接格式")

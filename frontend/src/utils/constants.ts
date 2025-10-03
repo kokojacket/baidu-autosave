@@ -126,7 +126,7 @@ export const THEME_COLORS = {
 export const REGEX = {
   URL: /^https?:\/\/.+/,
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  BAIDU_SHARE_URL: /^https:\/\/pan\.baidu\.com\/s\/[a-zA-Z0-9_-]+/,
+  BAIDU_SHARE_URL: /^https:\/\/pan\.baidu\.com\/(s\/[a-zA-Z0-9_-]+|share\/init\?surl=[a-zA-Z0-9_-]+)/,
   VERSION: /^v?\d+\.\d+\.\d+$/
 } as const
 
