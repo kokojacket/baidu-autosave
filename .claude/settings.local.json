@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(python -m py_compile:*)",
-      "mcp__plugin_claude-mem_claude-mem-search__search"
+      "mcp__plugin_claude-mem_claude-mem-search__search",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

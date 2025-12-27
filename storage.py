@@ -15,6 +15,12 @@ import json
 import random
 from functools import wraps
 
+def _format_transfer_error(error_str):
+    """格式化转存错误信息，将百度API返回的模糊错误信息转换为更清晰的提示"""
+    if "error_code: 4" in error_str or "存储好像出问题了" in error_str:
+        return "转存错误"
+    return error_str
+
 def api_retry(max_retries=1, delay_range=(2, 3), exclude_errors=None):
     """
     API重试装饰器
@@ -1309,15 +1315,17 @@ class BaiduStorage:
                                 if progress_callback:
                                     progress_callback('success', f'重试成功: {dir_path}')
                             except Exception as retry_e:
-                                logger.error(f"重试转存失败: {dir_path} - {str(retry_e)}")
+                                error_msg = _format_transfer_error(str(retry_e))
+                                logger.error(f"重试转存失败: {dir_path} - {error_msg}")
                                 if progress_callback:
-                                    progress_callback('error', f'转存失败: {dir_path} - {str(retry_e)}')
-                                return {'success': False, 'error': f'转存失败: {dir_path} - {str(retry_e)}'}
+                                    progress_callback('error', f'转存失败: {dir_path} - {error_msg}')
+                                return {'success': False, 'error': f'转存失败: {dir_path} - {error_msg}'}
                         else:
-                            logger.error(f"转存操作失败: {dir_path} - {str(e)}")
+                            error_msg = _format_transfer_error(str(e))
+                            logger.error(f"转存操作失败: {dir_path} - {error_msg}")
                             if progress_callback:
-                                progress_callback('error', f'转存失败: {dir_path} - {str(e)}')
-                            return {'success': False, 'error': f'转存失败: {dir_path} - {str(e)}'}
+                                progress_callback('error', f'转存失败: {dir_path} - {error_msg}')
+                            return {'success': False, 'error': f'转存失败: {dir_path} - {error_msg}'}
                     
                     time.sleep(1)  # 避免频率限制
                 
