@@ -788,6 +788,21 @@ class BaiduStorage:
             logger.error(f"标准化路径失败: {str(e)}")
             return path
 
+    def _relative_to_dir(self, file_path, dir_path):
+        """计算 file_path 相对于 dir_path 的相对路径, 都用标准化后的网盘路径。
+        例如 dir_path=/root/股票数据, file_path=/root/股票数据/股票日K_按日期_备用/20260717.csv
+        → 股票日K_按日期_备用/20260717.csv
+        """
+        try:
+            norm_file = self._normalize_path(file_path).strip('/')
+            norm_dir = self._normalize_path(dir_path).strip('/')
+            if norm_file.startswith(norm_dir + '/'):
+                return norm_file[len(norm_dir) + 1:]
+            # 如果 file_path 不以 dir_path 为前缀, 回退到只取文件名
+            return os.path.basename(norm_file)
+        except Exception:
+            return os.path.basename(str(file_path))
+
     def _is_missing_path_error(self, error):
         """判断错误是否表示路径不存在。"""
         error_text = str(error).lower()
@@ -1336,13 +1351,14 @@ class BaiduStorage:
                                 progress_callback('info', f'文件被正则过滤掉: {clean_path}')
                             continue
                     
-                    # 🔄 改进的去重检查逻辑
-                    clean_normalized = self._normalize_path(clean_path, file_only=True)
-                    final_normalized = self._normalize_path(final_path, file_only=True)
-                    
+                    # 🔄 去重检查: 用完整相对路径对比 (含子目录),
+                    # 避免不同子目录下同名文件被误判为已存在。
+                    clean_normalized = self._normalize_path(clean_path).strip('/')
+                    final_normalized = self._normalize_path(final_path).strip('/')
+
                     # 检查原文件是否存在
                     original_exists = clean_normalized in local_files
-                    # 检查重命名后文件是否存在  
+                    # 检查重命名后文件是否存在
                     final_exists = final_normalized in local_files
                     
                     if final_path != clean_path:  # 需要重命名
@@ -1982,10 +1998,12 @@ class BaiduStorage:
                             continue
 
                         if self._is_list_entry_file(item):
-                            # 只保留文件名进行对比
-                            file_name = os.path.basename(item_path)
-                            files.append(file_name)
-                            logger.debug(f"记录本地文件: {file_name}")
+                            # 保留相对路径 (相对于 dir_path) 用于对比,
+                            # 避免不同子目录下同名文件 (如 资金流向/20260717.csv 和
+                            # 股票日K/20260717.csv) 被误判为已存在。
+                            rel_path = self._relative_to_dir(item_path, dir_path)
+                            files.append(rel_path)
+                            logger.debug(f"记录本地文件: {rel_path}")
                         elif self._is_list_entry_dir(item):
                             _list_dir(item_path)
 
